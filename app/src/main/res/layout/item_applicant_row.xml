@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="@dimen/spacing_sm"
+    android:background="@color/bg_surface">
+
+    <ImageView
+        android:id="@+id/imageApplicantLogo"
+        android:layout_width="@dimen/avatar_sm"
+        android:layout_height="@dimen/avatar_sm"
+        android:scaleType="centerCrop"
+        android:contentDescription="로고"
+        android:src="@drawable/ic_shield_gray"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginHorizontal="@dimen/spacing_sm">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/textApplicantRowNew"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="NEW"
+                android:textSize="@dimen/text_xs"
+                android:textColor="@color/white"
+                android:background="@drawable/bg_badge_red_circle"
+                android:paddingHorizontal="@dimen/spacing_xs"
+                android:layout_marginEnd="@dimen/spacing_xs"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/textApplicantName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/text_md"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/textApplicantSkill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="@dimen/text_sm"
+            android:textColor="@color/text_secondary"/>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnAccept"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="수락"
+        android:textAllCaps="false"
+        android:textSize="@dimen/text_sm"
+        android:textColor="@color/white"
+        android:backgroundTint="@color/primary"
+        android:layout_marginEnd="@dimen/spacing_xs"/>
+
+    <Button
+        android:id="@+id/btnReject"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="거절"
+        android:textAllCaps="false"
+        android:textSize="@dimen/text_sm"
+        android:textColor="@color/loss"
+        android:backgroundTint="@color/bg_surface"/>
+
+</LinearLayout>

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.example.soccerclub.common.StateLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/stateLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:loadingLayout="@layout/view_state_loading"
+    app:emptyLayout="@layout/view_state_empty"
+    android:background="@color/bg_page">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/page_padding_horizontal">
+
+            <!-- 다가오는 일정 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="다가오는 일정" android:textStyle="bold"
+                android:textSize="@dimen/text_lg" android:textColor="@color/text_primary"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:layout_marginBottom="@dimen/spacing_sm"/>
+
+            <include android:id="@+id/nextScheduleCard"
+                layout="@layout/view_next_schedule_card"
+                android:visibility="gone"/>
+
+            <!-- 캘린더 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="일정 달력" android:textStyle="bold"
+                android:textSize="@dimen/text_lg" android:textColor="@color/text_primary"
+                android:layout_marginTop="@dimen/spacing_xl"
+                android:layout_marginBottom="@dimen/spacing_sm"/>
+
+            <FrameLayout
+                android:id="@+id/calendarContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card"/>
+
+            <!-- 선택 날짜 일정 -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:layout_marginTop="@dimen/spacing_lg">
+
+                <TextView android:id="@+id/tvSelectedDateTitle"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="날짜를 선택하세요" android:textStyle="bold"
+                    android:textSize="@dimen/text_lg" android:textColor="@color/text_primary"/>
+
+                <ProgressBar android:id="@+id/progressSelectedDate"
+                    android:layout_width="24dp" android:layout_height="24dp"
+                    android:visibility="gone"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/selectedDateList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:layout_marginBottom="@dimen/spacing_xl"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</com.example.soccerclub.common.StateLayout>

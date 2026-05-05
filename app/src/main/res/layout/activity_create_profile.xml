@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/mainRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_page"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:id="@+id/contentContainer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/page_padding_horizontal">
+
+        <!-- 프로필 사진 -->
+        <FrameLayout
+            android:id="@+id/profileClickableArea"
+            android:layout_width="@dimen/avatar_lg"
+            android:layout_height="@dimen/avatar_lg"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="@dimen/spacing_xl"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:id="@+id/imageProfile"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_person_placeholder"/>
+
+            <ImageView
+                android:id="@+id/iconProfileOverlay"
+                android:layout_width="@dimen/icon_md"
+                android:layout_height="@dimen/icon_md"
+                android:layout_gravity="bottom|end"
+                android:src="@drawable/ic_add_white"/>
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/textProfileHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="@dimen/spacing_sm"
+            android:text="프로필 사진"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_sm"/>
+
+        <!-- 닉네임 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_lg"
+            android:text="닉네임"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_sm"/>
+
+        <EditText
+            android:id="@+id/editNickname"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:background="@drawable/bg_input"
+            android:hint="닉네임 입력"
+            android:inputType="text"
+            android:padding="@dimen/input_padding_horizontal"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"/>
+
+        <!-- 나이 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="나이"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_sm"/>
+
+        <EditText
+            android:id="@+id/editAge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:background="@drawable/bg_input"
+            android:hint="나이 입력"
+            android:inputType="number"
+            android:padding="@dimen/input_padding_horizontal"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"/>
+
+        <!-- 신장 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="신장 (cm)"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_sm"/>
+
+        <EditText
+            android:id="@+id/editHeight"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:background="@drawable/bg_input"
+            android:hint="신장 입력"
+            android:inputType="number"
+            android:padding="@dimen/input_padding_horizontal"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"/>
+
+        <!-- 몸무게 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="몸무게 (kg)"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_sm"/>
+
+        <EditText
+            android:id="@+id/editWeight"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:background="@drawable/bg_input"
+            android:hint="몸무게 입력"
+            android:inputType="number"
+            android:padding="@dimen/input_padding_horizontal"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"/>
+
+        <!-- 포지션 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="포지션"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_sm"/>
+
+        <Spinner
+            android:id="@+id/spinnerPosition"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:background="@drawable/bg_input"
+            android:entries="@array/position_array"
+            android:padding="@dimen/input_padding_horizontal"/>
+
+        <!-- 실력 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="실력"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_sm"/>
+
+        <Spinner
+            android:id="@+id/spinnerSkill"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:background="@drawable/bg_input"
+            android:entries="@array/skill_array"
+            android:padding="@dimen/input_padding_horizontal"/>
+
+        <!-- 주발 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="주발"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_sm"/>
+
+        <Spinner
+            android:id="@+id/spinnerFoot"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:background="@drawable/bg_input"
+            android:entries="@array/foot_array"
+            android:padding="@dimen/input_padding_horizontal"/>
+
+        <!-- 선수 타입 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="선수 유형"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_sm"/>
+
+        <RadioGroup
+            android:id="@+id/radioGroupPlayerType"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="@dimen/spacing_xs">
+
+            <RadioButton
+                android:id="@+id/radioNonPro"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="비선출"
+                android:checked="true"
+                android:buttonTint="@color/radio_blue_tint"/>
+
+            <RadioButton
+                android:id="@+id/radioPro"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_lg"
+                android:text="선출"
+                android:buttonTint="@color/radio_blue_tint"/>
+        </RadioGroup>
+
+        <!-- 선출 레벨 (선출 선택 시에만 노출) -->
+        <LinearLayout
+            android:id="@+id/layoutSelectPlayerLevel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:text="선출 레벨"
+                android:textColor="@color/text_secondary"
+                android:textSize="@dimen/text_sm"/>
+
+            <Spinner
+                android:id="@+id/spinnerPlayerLevel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:background="@drawable/bg_input"
+                android:entries="@array/player_level_array"
+                android:padding="@dimen/input_padding_horizontal"/>
+        </LinearLayout>
+
+        <!-- 자기소개 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:text="자기소개"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_sm"/>
+
+        <EditText
+            android:id="@+id/editIntroduction"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:background="@drawable/bg_input"
+            android:gravity="top"
+            android:hint="자기소개를 입력해주세요"
+            android:inputType="textMultiLine"
+            android:minLines="3"
+            android:padding="@dimen/input_padding_horizontal"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"/>
+
+        <!-- 저장 버튼 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSaveProfile"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/btn_height"
+            android:layout_marginTop="@dimen/spacing_xl"
+            android:layout_marginBottom="@dimen/spacing_xl"
+            android:text="프로필 저장하기"
+            android:textColor="@color/white"
+            android:textAllCaps="false"
+            app:backgroundTint="@color/primary"
+            app:cornerRadius="@dimen/btn_radius"/>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

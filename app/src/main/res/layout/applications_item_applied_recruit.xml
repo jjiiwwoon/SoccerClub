@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_card"
+    android:layout_marginHorizontal="@dimen/spacing_sm"
+    android:layout_marginBottom="@dimen/spacing_sm">
+
+    <include android:id="@+id/includePost" layout="@layout/recruit_post_item"/>
+
+    <TextView
+        android:id="@+id/textApplicationStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/spacing_md"
+        android:textSize="@dimen/text_sm"
+        android:textColor="@color/primary"
+        android:gravity="end"
+        android:text="대기중"/>
+
+</LinearLayout>

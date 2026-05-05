@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/homeLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:fitsSystemWindows="true">
+
+    <!-- 프래그먼트 영역 -->
+    <FrameLayout
+        android:id="@+id/fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
+
+    <!-- 하단 네비게이션 -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:background="@color/bg_surface"
+        android:fillViewport="true"
+        android:scrollbars="none"
+        android:elevation="6dp">
+
+        <LinearLayout
+            android:id="@+id/bottomNavBar"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/spacing_sm"
+            android:paddingVertical="@dimen/spacing_sm">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRecruitMatch"
+                style="@style/BottomNavButton"
+                android:text="모집/매치"
+                app:icon="@drawable/ic_recruit"
+                app:iconGravity="top"
+                app:iconSize="@dimen/icon_md"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMyTeam"
+                style="@style/BottomNavButton"
+                android:text="My팀"
+                app:icon="@drawable/ic_team"
+                app:iconGravity="top"
+                app:iconSize="@dimen/icon_md"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnOtherTeams"
+                style="@style/BottomNavButton"
+                android:text="팀"
+                app:icon="@drawable/ic_group"
+                app:iconGravity="top"
+                app:iconSize="@dimen/icon_md"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMyProfile"
+                style="@style/BottomNavButton"
+                android:text="내 프로필"
+                app:icon="@drawable/ic_person"
+                app:iconGravity="top"
+                app:iconSize="@dimen/icon_md"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnChat"
+                style="@style/BottomNavButton"
+                android:text="채팅"
+                app:icon="@drawable/ic_chat"
+                app:iconGravity="top"
+                app:iconSize="@dimen/icon_md"/>
+
+        </LinearLayout>
+    </HorizontalScrollView>
+</LinearLayout>

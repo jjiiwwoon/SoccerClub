@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_page">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- 상단 탭 (모집 / 시합) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            android:background="@color/bg_surface">
+
+            <TextView
+                android:id="@+id/btnRecruitTab"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="모집"
+                android:textSize="@dimen/text_lg"
+                android:textColor="@color/tab_text_selector"
+                android:clickable="true"
+                android:focusable="true"/>
+
+            <TextView
+                android:id="@+id/btnMatchTab"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="시합"
+                android:textSize="@dimen/text_lg"
+                android:textColor="@color/tab_text_selector"
+                android:clickable="true"
+                android:focusable="true"/>
+
+            <!-- 신청 목록 버튼 + 배지 -->
+            <FrameLayout
+                android:id="@+id/btnApplicationsList"
+                android:layout_width="48dp"
+                android:layout_height="match_parent"
+                android:clickable="true"
+                android:focusable="true">
+
+                <ImageView
+                    android:layout_width="@dimen/icon_md"
+                    android:layout_height="@dimen/icon_md"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_list"/>
+
+                <View
+                    android:id="@+id/badgeNewApplications"
+                    android:layout_width="8dp"
+                    android:layout_height="8dp"
+                    android:layout_gravity="top|end"
+                    android:layout_margin="10dp"
+                    android:background="@drawable/bg_badge_red_circle"
+                    android:visibility="gone"/>
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- 하위 탭 (시합글 / 팀 매칭) -->
+        <LinearLayout
+            android:id="@+id/matchModeTabsCard"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:orientation="horizontal"
+            android:background="@color/bg_section"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/btnMatchListTab"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="시합글"
+                android:textSize="@dimen/text_md"
+                android:textColor="@color/primary"
+                android:clickable="true"
+                android:focusable="true"/>
+
+            <TextView
+                android:id="@+id/btnTeamMatchTab"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="팀 매칭"
+                android:textSize="@dimen/text_md"
+                android:textColor="@color/text_hint"
+                android:clickable="true"
+                android:focusable="true"/>
+        </LinearLayout>
+
+        <!-- 필터 바 -->
+        <LinearLayout
+            android:id="@+id/filterBarContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="@color/bg_surface"
+            android:paddingHorizontal="@dimen/spacing_sm"
+            android:paddingVertical="@dimen/spacing_xs">
+
+            <ImageView
+                android:id="@+id/btnOpenFilter"
+                android:layout_width="@dimen/icon_md"
+                android:layout_height="@dimen/icon_md"
+                android:src="@drawable/ic_filter"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_marginEnd="@dimen/spacing_sm"/>
+
+            <HorizontalScrollView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/selectedFilterChips"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"/>
+            </HorizontalScrollView>
+        </LinearLayout>
+
+        <!-- 팀 찾기 버튼 -->
+        <Button
+            android:id="@+id/btnTeamFindGlobal"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:text="팀 찾기 조건 설정"
+            android:textAllCaps="false"
+            android:textColor="@color/primary"
+            android:backgroundTint="@color/primary_light"
+            android:visibility="gone"/>
+
+        <!-- 프래그먼트 컨테이너 -->
+        <FrameLayout
+            android:id="@+id/recruit_match_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+    </LinearLayout>
+
+    <!-- Speed Dial 스크림 -->
+    <View
+        android:id="@+id/speedDialScrim"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#66000000"
+        android:visibility="gone"/>
+
+    <!-- Speed Dial 액션들 -->
+    <LinearLayout
+        android:id="@+id/speedDialActions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="80dp"
+        android:layout_marginEnd="@dimen/spacing_lg"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/btnActionRecruit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="선수 모집"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/primary"
+            android:layout_marginBottom="@dimen/spacing_sm"
+            app:cornerRadius="@dimen/btn_radius"/>
+
+        <Button
+            android:id="@+id/btnActionMatch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="시합 모집"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:backgroundTint="@color/primary"
+            app:cornerRadius="@dimen/btn_radius"/>
+    </LinearLayout>
+
+    <!-- FAB -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabSpeedDial"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/spacing_lg"
+        app:srcCompat="@drawable/ic_add_white"
+        app:backgroundTint="@color/primary"/>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

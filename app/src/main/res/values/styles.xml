@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="BottomNavButton">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:background">?attr/selectableItemBackground</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:paddingHorizontal">@dimen/spacing_lg</item>
+        <item name="android:paddingVertical">@dimen/spacing_sm</item>
+        <item name="android:minWidth">80dp</item>
+    </style>
+
+    <style name="CustomDialog" parent="Theme.AppCompat.Dialog">
+        <item name="android:windowBackground">@drawable/dialog_background</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+
+    <style name="ButtonPrimary" parent="Widget.MaterialComponents.Button">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="cornerRadius">@dimen/btn_radius</item>
+        <item name="backgroundTint">@color/badge_blue</item>
+        <item name="android:padding">@dimen/spacing_md</item>
+        <item name="android:textSize">@dimen/text_md</item>
+    </style>
+
+    <style name="ProfileLabel">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:textSize">@dimen/text_md</item>
+        <item name="android:textColor">@color/text_secondary</item>
+    </style>
+
+    <style name="ProfileValue">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">@dimen/text_xl</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
+
+    <style name="ProfileDivider">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">@dimen/divider_height</item>
+        <item name="android:layout_marginTop">@dimen/spacing_sm</item>
+        <item name="android:layout_marginBottom">@dimen/spacing_sm</item>
+        <item name="android:background">@color/bg_divider</item>
+    </style>
+
+    <style name="ProfileBadgeFixed">
+        <item name="android:background">@drawable/bg_round_badge</item>
+        <item name="android:textColor">@color/text_dark</item>
+        <item name="android:textSize">@dimen/text_lg</item>
+        <item name="android:gravity">center</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:paddingHorizontal">@dimen/spacing_lg</item>
+        <item name="android:paddingVertical">@dimen/spacing_md</item>
+    </style>
+
+    <style name="SpecLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">@dimen/spacing_sm</item>
+        <item name="android:textSize">@dimen/text_sm</item>
+        <item name="android:textColor">@color/text_secondary</item>
+    </style>
+
+    <style name="SpecValue">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">end</item>
+        <item name="android:textSize">@dimen/text_md</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/text_dark</item>
+    </style>
+
+    <style name="RecordCellBase">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <style name="RecordCellHeader" parent="RecordCellBase">
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="RecordCellValue" parent="RecordCellBase">
+        <item name="android:textSize">@dimen/text_lg</item>
+    </style>
+
+    <style name="RoundedImageStyle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+</resources>

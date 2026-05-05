@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.example.soccerclub.common.StateLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/stateLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:loadingLayout="@layout/view_state_loading"
+    app:emptyLayout="@layout/view_state_empty"
+    android:background="@color/bg_page">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/page_padding_horizontal">
+
+            <!-- 팀 전적 요약 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="팀 전적" android:textStyle="bold"
+                android:textSize="@dimen/text_lg" android:textColor="@color/text_primary"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:layout_marginBottom="@dimen/spacing_sm"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <TextView android:id="@+id/tvGames" style="@style/RecordCellValue" android:text="0"/>
+                <TextView android:id="@+id/tvWins" style="@style/RecordCellValue" android:text="0"/>
+                <TextView android:id="@+id/tvDraws" style="@style/RecordCellValue" android:text="0"/>
+                <TextView android:id="@+id/tvLosses" style="@style/RecordCellValue" android:text="0"/>
+                <TextView android:id="@+id/tvGF" style="@style/RecordCellValue" android:text="0"/>
+                <TextView android:id="@+id/tvGA" style="@style/RecordCellValue" android:text="0"/>
+            </LinearLayout>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <TextView style="@style/RecordCellHeader" android:text="경기"/>
+                <TextView style="@style/RecordCellHeader" android:text="승"/>
+                <TextView style="@style/RecordCellHeader" android:text="무"/>
+                <TextView style="@style/RecordCellHeader" android:text="패"/>
+                <TextView style="@style/RecordCellHeader" android:text="득점"/>
+                <TextView style="@style/RecordCellHeader" android:text="실점"/>
+            </LinearLayout>
+
+            <TextView android:id="@+id/tvWinRate"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:textSize="@dimen/text_sm" android:textColor="@color/text_hint"/>
+
+            <!-- 구분선 -->
+            <View android:layout_width="match_parent" android:layout_height="@dimen/divider_height"
+                android:background="@color/bg_divider"
+                android:layout_marginVertical="@dimen/spacing_lg"/>
+
+            <!-- 개인 기록 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="개인 기록" android:textStyle="bold"
+                android:textSize="@dimen/text_lg" android:textColor="@color/text_primary"
+                android:layout_marginBottom="@dimen/spacing_sm"/>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvMembers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/spacing_xl"
+                android:nestedScrollingEnabled="false"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</com.example.soccerclub.common.StateLayout>

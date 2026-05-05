@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_page"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/page_padding_horizontal">
+
+        <!-- 팀 로고 -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="팀 로고" android:textSize="@dimen/text_sm"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="@dimen/spacing_lg"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:layout_marginTop="@dimen/spacing_xs">
+
+            <ImageView android:id="@+id/imageTeamLogo"
+                android:layout_width="@dimen/avatar_md" android:layout_height="@dimen/avatar_md"
+                android:scaleType="centerCrop" android:src="@drawable/ic_shield_gray"/>
+
+            <Button android:id="@+id/btnSelectLogo"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_md"
+                android:text="로고 선택" android:textAllCaps="false"
+                android:textColor="@color/primary" android:backgroundTint="@color/bg_surface"
+                app:strokeColor="@color/primary" app:strokeWidth="1dp"
+                app:cornerRadius="@dimen/btn_radius"/>
+        </LinearLayout>
+
+        <!-- 팀 이름 -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="팀 이름" android:textSize="@dimen/text_sm"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="@dimen/spacing_lg"/>
+
+        <EditText android:id="@+id/editTeamName"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:background="@drawable/bg_input"
+            android:hint="팀 이름 입력" android:inputType="text"
+            android:padding="@dimen/input_padding_horizontal"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"/>
+
+        <!-- 지역 -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="활동 지역" android:textSize="@dimen/text_sm"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="@dimen/spacing_md"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="@dimen/spacing_xs">
+
+            <Spinner android:id="@+id/spinnerCity"
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:layout_marginEnd="@dimen/spacing_sm"
+                android:background="@drawable/bg_input"
+                android:padding="@dimen/input_padding_horizontal"/>
+
+            <Spinner android:id="@+id/spinnerDistrict"
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:padding="@dimen/input_padding_horizontal"/>
+        </LinearLayout>
+
+        <!-- 나이대 -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="나이대" android:textSize="@dimen/text_sm"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="@dimen/spacing_md"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:layout_marginTop="@dimen/spacing_xs">
+
+            <Spinner android:id="@+id/spinnerAgeStart"
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:padding="@dimen/input_padding_horizontal"/>
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text=" ~ " android:textColor="@color/text_hint"/>
+
+            <Spinner android:id="@+id/spinnerAgeEnd"
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:padding="@dimen/input_padding_horizontal"/>
+        </LinearLayout>
+
+        <!-- 활동 요일/시간 -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="활동 요일/시간" android:textSize="@dimen/text_sm"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="@dimen/spacing_md"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:layout_marginTop="@dimen/spacing_xs">
+
+            <Spinner android:id="@+id/spinnerActivityDay"
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:layout_marginEnd="@dimen/spacing_sm"
+                android:background="@drawable/bg_input"
+                android:padding="@dimen/input_padding_horizontal"/>
+
+            <Spinner android:id="@+id/spinnerTimeStart"
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:layout_marginEnd="@dimen/spacing_sm"
+                android:background="@drawable/bg_input"
+                android:padding="@dimen/input_padding_horizontal"/>
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text=" ~ " android:textColor="@color/text_hint"/>
+
+            <Spinner android:id="@+id/spinnerTimeEnd"
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:padding="@dimen/input_padding_horizontal"/>
+        </LinearLayout>
+
+        <!-- 주 활동 구장 -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="주 활동 구장" android:textSize="@dimen/text_sm"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="@dimen/spacing_md"/>
+
+        <EditText android:id="@+id/editStadiumName"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:background="@drawable/bg_input"
+            android:hint="구장 명칭 입력" android:inputType="text"
+            android:padding="@dimen/input_padding_horizontal"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"/>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:layout_marginTop="@dimen/spacing_xs">
+
+            <TextView android:id="@+id/editStadium"
+                android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input"
+                android:hint="주소 검색" android:singleLine="true"
+                android:ellipsize="end"
+                android:padding="@dimen/input_padding_horizontal"
+                android:textColor="@color/text_hint"
+                android:textSize="@dimen/text_md"/>
+
+            <Button android:id="@+id/btnSearchStadium"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:text="검색" android:textAllCaps="false"
+                android:textColor="@color/white"
+                android:backgroundTint="@color/primary"
+                app:cornerRadius="@dimen/btn_radius"/>
+        </LinearLayout>
+
+        <!-- 팀 소개 -->
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="팀 소개" android:textSize="@dimen/text_sm"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="@dimen/spacing_md"/>
+
+        <EditText android:id="@+id/editTeamIntro"
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_xs"
+            android:background="@drawable/bg_input"
+            android:gravity="top" android:hint="팀 소개를 입력해 주세요"
+            android:inputType="textMultiLine" android:minLines="4"
+            android:padding="@dimen/input_padding_horizontal"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_hint"/>
+
+        <!-- 저장 버튼 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSaveTeam"
+            android:layout_width="match_parent" android:layout_height="@dimen/btn_height"
+            android:layout_marginTop="@dimen/spacing_xl"
+            android:layout_marginBottom="@dimen/spacing_xl"
+            android:text="팀 생성하기" android:textColor="@color/white"
+            android:textAllCaps="false"
+            app:backgroundTint="@color/primary"
+            app:cornerRadius="@dimen/btn_radius"/>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.example.soccerclub.common.StateLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/state"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:loadingLayout="@layout/view_state_loading"
+    app:emptyLayout="@layout/view_state_empty"
+    android:background="@color/bg_page">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/page_padding_horizontal">
+
+            <!-- 팀 vs 팀 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginTop="@dimen/spacing_lg">
+
+                <TextView
+                    android:id="@+id/tvHomeTeam"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="@dimen/text_lg"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:gravity="center"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" VS "
+                    android:textSize="@dimen/text_xl"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_hint"/>
+
+                <TextView
+                    android:id="@+id/tvAwayTeam"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="@dimen/text_lg"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:gravity="center"/>
+            </LinearLayout>
+
+            <!-- 스코어 입력 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginTop="@dimen/spacing_lg">
+
+                <EditText
+                    android:id="@+id/editScoreFor"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_score_box"
+                    android:gravity="center"
+                    android:hint="0"
+                    android:inputType="number"
+                    android:textSize="@dimen/text_xxl"
+                    android:textStyle="bold"
+                    android:textColor="@color/goal_for"
+                    android:padding="@dimen/spacing_md"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" : "
+                    android:textSize="@dimen/text_xxl"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_hint"
+                    android:layout_marginHorizontal="@dimen/spacing_md"/>
+
+                <EditText
+                    android:id="@+id/editScoreAgainst"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_score_box"
+                    android:gravity="center"
+                    android:hint="0"
+                    android:inputType="number"
+                    android:textSize="@dimen/text_xxl"
+                    android:textStyle="bold"
+                    android:textColor="@color/goal_against"
+                    android:padding="@dimen/spacing_md"/>
+            </LinearLayout>
+
+            <!-- 득점 이벤트 목록 -->
+            <LinearLayout
+                android:id="@+id/goalEventListContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/spacing_lg"/>
+
+            <!-- 득점 추가 버튼 -->
+            <Button
+                android:id="@+id/btnAddGoalEvent"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/btn_height"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:text="+ 득점 추가"
+                android:textAllCaps="false"
+                android:textColor="@color/primary"
+                android:backgroundTint="@color/primary_light"
+                app:cornerRadius="@dimen/btn_radius"/>
+
+            <!-- 저장 버튼 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSaveRecord"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/btn_height"
+                android:layout_marginTop="@dimen/spacing_xl"
+                android:layout_marginBottom="@dimen/spacing_xl"
+                android:text="기록 저장"
+                android:textColor="@color/white"
+                android:textAllCaps="false"
+                app:backgroundTint="@color/primary"
+                app:cornerRadius="@dimen/btn_radius"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</com.example.soccerclub.common.StateLayout>

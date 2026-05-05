@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.example.soccerclub.common.StateLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/state"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:loadingLayout="@layout/view_state_loading"
+    app:emptyLayout="@layout/view_state_empty"
+    android:background="@color/bg_page">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/page_padding_horizontal">
+
+            <!-- 프로필 상단 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="@dimen/spacing_lg">
+
+                <ImageView
+                    android:id="@+id/profileImageView"
+                    android:layout_width="@dimen/avatar_lg"
+                    android:layout_height="@dimen/avatar_lg"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/ic_person_placeholder"/>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="@dimen/spacing_lg">
+
+                    <TextView
+                        android:id="@+id/textNickname"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textSize="@dimen/text_xl"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"/>
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="@dimen/spacing_xs">
+
+                        <ImageView
+                            android:id="@+id/teamLogo"
+                            android:layout_width="@dimen/icon_md"
+                            android:layout_height="@dimen/icon_md"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/ic_shield_gray"/>
+
+                        <TextView
+                            android:id="@+id/textTeam"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="@dimen/spacing_xs"
+                            android:textSize="@dimen/text_md"
+                            android:textColor="@color/text_secondary"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 구분선 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/divider_height"
+                android:layout_marginVertical="@dimen/spacing_lg"
+                android:background="@color/bg_divider"/>
+
+            <!-- 스펙 정보 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="@dimen/spacing_sm">
+                    <TextView style="@style/SpecLabel" android:text="나이"/>
+                    <TextView android:id="@+id/textAge" style="@style/SpecValue"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="@dimen/spacing_sm">
+                    <TextView style="@style/SpecLabel" android:text="포지션"/>
+                    <TextView android:id="@+id/textPositionBox" style="@style/SpecValue"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="@dimen/spacing_sm">
+                    <TextView style="@style/SpecLabel" android:text="실력"/>
+                    <TextView android:id="@+id/textSkill" style="@style/SpecValue"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="@dimen/spacing_sm">
+                    <TextView style="@style/SpecLabel" android:text="주발"/>
+                    <TextView android:id="@+id/textFoot" style="@style/SpecValue"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="@dimen/spacing_sm">
+                    <TextView style="@style/SpecLabel" android:text="신장"/>
+                    <TextView android:id="@+id/textHeight" style="@style/SpecValue"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="@dimen/spacing_sm">
+                    <TextView style="@style/SpecLabel" android:text="몸무게"/>
+                    <TextView android:id="@+id/textWeight" style="@style/SpecValue"/>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <TextView style="@style/SpecLabel" android:text="선수 유형"/>
+                    <TextView android:id="@+id/textPlayerType" style="@style/SpecValue"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 구분선 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/divider_height"
+                android:layout_marginVertical="@dimen/spacing_lg"
+                android:background="@color/bg_divider"/>
+
+            <!-- 자기소개 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="자기소개"
+                    android:textSize="@dimen/text_md"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"/>
+
+                <ImageView
+                    android:id="@+id/toggleIntroArrow"
+                    android:layout_width="@dimen/icon_sm"
+                    android:layout_height="@dimen/icon_sm"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    android:src="@drawable/ic_arrow_down"
+                    android:clickable="true"
+                    android:focusable="true"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/textIntroContent"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:textSize="@dimen/text_md"
+                android:textColor="@color/text_secondary"
+                android:maxLines="2"
+                android:ellipsize="end"/>
+
+            <!-- 구분선 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/divider_height"
+                android:layout_marginVertical="@dimen/spacing_lg"
+                android:background="@color/bg_divider"/>
+
+            <!-- 기록 카드 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="@dimen/spacing_xl">
+
+                <!-- 팀 기록 -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card"
+                    android:padding="@dimen/card_padding"
+                    android:layout_marginEnd="@dimen/spacing_sm">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="팀 기록"
+                        android:textSize="@dimen/text_sm"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginBottom="@dimen/spacing_sm"/>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <TextView style="@style/ProfileLabel" android:text="경기"/>
+                        <TextView android:id="@+id/statsTeamGames" style="@style/ProfileValue" android:text="0"/>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <TextView style="@style/ProfileLabel" android:text="득점"/>
+                        <TextView android:id="@+id/statsTeamGoals" style="@style/ProfileValue" android:text="0"/>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <TextView style="@style/ProfileLabel" android:text="도움"/>
+                        <TextView android:id="@+id/statsTeamAssists" style="@style/ProfileValue" android:text="0"/>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- 용병 기록 -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:background="@drawable/bg_card"
+                    android:padding="@dimen/card_padding"
+                    android:layout_marginStart="@dimen/spacing_sm">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="용병 기록"
+                        android:textSize="@dimen/text_sm"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginBottom="@dimen/spacing_sm"/>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <TextView style="@style/ProfileLabel" android:text="경기"/>
+                        <TextView android:id="@+id/statsMercGames" style="@style/ProfileValue" android:text="0"/>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <TextView style="@style/ProfileLabel" android:text="득점"/>
+                        <TextView android:id="@+id/statsMercGoals" style="@style/ProfileValue" android:text="0"/>
+                    </LinearLayout>
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <TextView style="@style/ProfileLabel" android:text="도움"/>
+                        <TextView android:id="@+id/statsMercAssists" style="@style/ProfileValue" android:text="0"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</com.example.soccerclub.common.StateLayout>
