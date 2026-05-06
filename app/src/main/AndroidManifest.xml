@@ -61,7 +61,7 @@
         <activity android:name=".ui.common.RecordsActivity" />
         <activity android:name=".ui.common.ScheduleActivity" />
         <activity android:name=".ui.common.StadiumSearchActivity" />
-
+        <activity android:name=".ui.profile.EditProfileActivity" />
     </application>
 
 </manifest>

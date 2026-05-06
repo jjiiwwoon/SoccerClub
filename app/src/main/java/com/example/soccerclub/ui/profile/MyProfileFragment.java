@@ -1,5 +1,6 @@
 package com.example.soccerclub.ui.profile;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
@@ -11,6 +12,8 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -50,6 +53,19 @@ public class MyProfileFragment extends Fragment {
 
     private FirebaseFirestore db;
     private FirebaseAuth auth;
+
+    // ✅ 편집 화면에서 돌아왔을 때 프로필 새로고침
+    private final ActivityResultLauncher<Intent> editProfileLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == Activity.RESULT_OK && isUiSafe()) {
+                            contentShown = false;
+                            pendingOps.set(0);
+                            if (state != null) state.showLoading();
+                            loadUserProfile();
+                        }
+                    });
 
     @Nullable
     @Override
@@ -91,6 +107,14 @@ public class MyProfileFragment extends Fragment {
         View.OnClickListener teamClick = v -> openTeamOrWarn();
         teamLogo.setOnClickListener(teamClick);
         textTeam.setOnClickListener(teamClick);
+
+        // ✅ 편집 버튼 클릭 → EditProfileActivity 실행
+        View btnEditProfile = view.findViewById(R.id.btnEditProfile);
+        if (btnEditProfile != null) {
+            btnEditProfile.setOnClickListener(v ->
+                    editProfileLauncher.launch(
+                            new Intent(requireContext(), EditProfileActivity.class)));
+        }
 
         loadUserProfile();
         return view;
@@ -226,14 +250,14 @@ public class MyProfileFragment extends Fragment {
                                     .listener(new RequestListener<Drawable>() {
                                         @Override
                                         public boolean onLoadFailed(@Nullable GlideException e,
-                                                Object model, Target<Drawable> t, boolean first) {
+                                                                    Object model, Target<Drawable> t, boolean first) {
                                             if (WAIT_IMAGES) doneOne();
                                             return false;
                                         }
                                         @Override
                                         public boolean onResourceReady(Drawable r, Object model,
-                                                Target<Drawable> t,
-                                                com.bumptech.glide.load.DataSource ds, boolean first) {
+                                                                       Target<Drawable> t,
+                                                                       com.bumptech.glide.load.DataSource ds, boolean first) {
                                             if (WAIT_IMAGES) doneOne();
                                             return false;
                                         }

@@ -19,25 +19,30 @@ import com.example.soccerclub.util.AppUtils;
 import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 public class RecruitListFragment extends Fragment {
 
+    private static final int PAGE_SIZE = 20;
+
     private RecyclerView recyclerRecruit;
     private TextView emptyView;
+    private View loadingFooter;
     private RecruitAdapter adapter;
 
     private RecruitFilters currentFilters = null;
     private final List<RecruitAdapter.RecruitItem> allItems = new ArrayList<>();
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
-    private ListenerRegistration reg;
+
+    // 페이지네이션 상태
+    private DocumentSnapshot lastDoc       = null;
+    private boolean           isLoading    = false;
+    private boolean           hasMore      = true;
 
     @Nullable
     @Override
@@ -48,57 +53,113 @@ public class RecruitListFragment extends Fragment {
 
         recyclerRecruit = v.findViewById(R.id.recyclerRecruit);
         emptyView       = v.findViewById(R.id.emptyView);
+        loadingFooter   = v.findViewById(R.id.loadingFooter);
 
-        recyclerRecruit.setLayoutManager(new LinearLayoutManager(requireContext()));
+        LinearLayoutManager lm = new LinearLayoutManager(requireContext());
+        recyclerRecruit.setLayoutManager(lm);
         adapter = new RecruitAdapter();
         recyclerRecruit.setAdapter(adapter);
 
-        attachRealtime();
+        // 스크롤 끝 감지 → 다음 페이지 로드
+        recyclerRecruit.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                if (dy <= 0) return;
+                int lastVisible = lm.findLastVisibleItemPosition();
+                int total       = lm.getItemCount();
+                // 마지막에서 3개 전에 도달하면 다음 페이지 요청
+                if (!isLoading && hasMore && lastVisible >= total - 3) {
+                    loadNextPage();
+                }
+            }
+        });
+
+        // 첫 페이지 로드
+        resetAndLoad();
         return v;
     }
 
+    // 상위 Fragment에서 필터 변경 시 호출
     public void applyExternalFilters(@Nullable RecruitFilters filters) {
         this.currentFilters = filters;
-        applyFilters();
+        // 필터 변경 시 처음부터 다시 로드
+        if (adapter != null) resetAndLoad();
     }
 
-    private void attachRealtime() {
-        detachRealtime();
-        reg = db.collection("recruitPosts")
+    // 상태 초기화 후 첫 페이지 로드
+    private void resetAndLoad() {
+        allItems.clear();
+        lastDoc   = null;
+        hasMore   = true;
+        isLoading = false;
+        if (adapter != null) adapter.submit(new ArrayList<>());
+        if (emptyView     != null) emptyView.setVisibility(View.GONE);
+        if (loadingFooter != null) loadingFooter.setVisibility(View.GONE);
+        loadNextPage();
+    }
+
+    private void loadNextPage() {
+        if (isLoading || !hasMore || !isAdded()) return;
+        isLoading = true;
+        if (loadingFooter != null) loadingFooter.setVisibility(View.VISIBLE);
+
+        // 기본 쿼리
+        Query q = db.collection("recruitPosts")
                 .whereEqualTo("status", "open")
-                .limit(100)
-                .addSnapshotListener((snap, e) -> {
-                    if (!isAdded() || e != null || snap == null) return;
-                    allItems.clear();
+                .orderBy("createdAtMs", Query.Direction.DESCENDING)
+                .limit(PAGE_SIZE);
 
-                    for (DocumentSnapshot ds : snap.getDocuments()) {
+        // 두 번째 페이지부터 커서 적용
+        if (lastDoc != null) q = q.startAfter(lastDoc);
+
+        q.get().addOnSuccessListener(snap -> {
+                    if (!isAdded()) return;
+                    if (loadingFooter != null) loadingFooter.setVisibility(View.GONE);
+                    isLoading = false;
+
+                    if (snap == null || snap.isEmpty()) {
+                        hasMore = false;
+                        if (allItems.isEmpty()) {
+                            if (emptyView != null) emptyView.setVisibility(View.VISIBLE);
+                        }
+                        return;
+                    }
+
+                    // 페이지 크기보다 적게 왔으면 마지막 페이지
+                    if (snap.size() < PAGE_SIZE) hasMore = false;
+
+                    // 커서 업데이트
+                    lastDoc = snap.getDocuments().get(snap.size() - 1);
+
+                    // 문서 → 아이템 변환 (RecruitAdapter.RecruitItem 실제 필드 기준)
+                    for (DocumentSnapshot d : snap.getDocuments()) {
                         RecruitAdapter.RecruitItem it = new RecruitAdapter.RecruitItem();
-                        it.id           = ds.getId();
-                        it.teamName     = ds.getString("teamName");
+                        it.id           = d.getId();
+                        it.teamName     = d.getString("teamName");
                         it.teamLogoUrl  = AppUtils.firstNonEmpty(
-                                ds.getString("teamLogoUrl"), ds.getString("logoUrl"));
-                        it.date         = ds.getString("date");
-                        it.time         = ds.getString("time");
-                        it.weekday      = ds.getString("weekday");
+                                d.getString("teamLogoUrl"), d.getString("logoUrl"));
+                        it.date         = d.getString("date");
+                        it.time         = d.getString("time");
+                        it.weekday      = d.getString("weekday");
                         it.stadiumName  = AppUtils.firstNonEmpty(
-                                ds.getString("stadiumName"), ds.getString("stadium"));
+                                d.getString("stadiumName"), d.getString("stadium"));
                         it.stadiumAddress = AppUtils.firstNonEmpty(
-                                ds.getString("address"), ds.getString("stadiumAddress"));
-                        it.recruitType  = ds.getString("recruitType");
-                        it.relativeTime = ds.getString("relativeTime");
+                                d.getString("address"), d.getString("stadiumAddress"));
+                        it.recruitType  = d.getString("recruitType");
+                        it.relativeTime = d.getString("relativeTime");
 
-                        Long skillMinL = ds.getLong("skillMin");
-                        Long skillMaxL = ds.getLong("skillMax");
+                        Long skillMinL = d.getLong("skillMin");
+                        Long skillMaxL = d.getLong("skillMax");
                         it.skillMin = skillMinL != null ? skillMinL.intValue() : null;
                         it.skillMax = skillMaxL != null ? skillMaxL.intValue() : null;
 
-                        List<String> pos = (List<String>) ds.get("positions");
+                        List<String> pos = (List<String>) d.get("positions");
                         it.positions = pos != null ? pos : new ArrayList<>();
 
-                        Long createdAtMs = ds.getLong("createdAtMs");
-                        Timestamp createdAtTs = ds.getTimestamp("createdAt");
-                        Long postTs  = ds.getLong("postTs");
-                        Long matchTs = ds.getLong("matchTs");
+                        Long createdAtMs = d.getLong("createdAtMs");
+                        Timestamp createdAtTs = d.getTimestamp("createdAt");
+                        Long postTs  = d.getLong("postTs");
+                        Long matchTs = d.getLong("matchTs");
 
                         it.createdAtMs = createdAtMs != null ? createdAtMs : 0L;
                         it.createdAt   = createdAtTs != null ? createdAtTs.toDate().getTime() : 0L;
@@ -108,10 +169,15 @@ public class RecruitListFragment extends Fragment {
                         allItems.add(it);
                     }
 
+                    // 정렬 후 필터 적용
                     Collections.sort(allItems, (a, b) ->
                             Long.compare(sortKey(b), sortKey(a)));
-
                     applyFilters();
+                })
+                .addOnFailureListener(e -> {
+                    if (!isAdded()) return;
+                    isLoading = false;
+                    if (loadingFooter != null) loadingFooter.setVisibility(View.GONE);
                 });
     }
 
@@ -122,14 +188,10 @@ public class RecruitListFragment extends Fragment {
         return it.matchTs;
     }
 
-    private void detachRealtime() {
-        if (reg != null) { reg.remove(); reg = null; }
-    }
-
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        detachRealtime();
+        // get() 방식은 리스너 없으므로 해제 불필요
     }
 
     private void applyFilters() {
@@ -155,62 +217,25 @@ public class RecruitListFragment extends Fragment {
             if (postMax < f.skillMin) return false;
         }
         if (f.skillMax != null) {
-            int postMin = it.skillMin != null ? it.skillMin : Integer.MIN_VALUE;
+            int postMin = it.skillMin != null ? it.skillMin : 0;
             if (postMin > f.skillMax) return false;
         }
 
-        if (!isAll(f.position)) {
-            List<String> wanted = splitSelections(f.position);
-            boolean ok = false;
-            if (it.positions != null) {
-                for (String p : it.positions) {
-                    if (wanted.contains(AppUtils.safe(p))) { ok = true; break; }
-                }
+        // positions는 List<String>
+        if (!isAll(f.position) && it.positions != null && !it.positions.isEmpty()) {
+            boolean matched = false;
+            for (String p : it.positions) {
+                if (p != null && p.equalsIgnoreCase(f.position)) { matched = true; break; }
             }
-            if (!ok) return false;
+            if (!matched) return false;
         }
 
-        if (!isAll(f.recruitType)) {
-            String postType = AppUtils.normalizeRecruitType(it.recruitType);
-            String wantType = AppUtils.normalizeRecruitType(f.recruitType);
-            if (!wantType.equals(postType)) return false;
-        }
-
-        if (!isAll(f.dateFrom) || !isAll(f.dateTo)) {
-            String postDate = AppUtils.safe(it.date);
-            if (!postDate.isEmpty()) {
-                if (!isAll(f.dateFrom) && postDate.compareTo(f.dateFrom) < 0) return false;
-                if (!isAll(f.dateTo)   && postDate.compareTo(f.dateTo)   > 0) return false;
-            }
-        }
-
-        if (!isAll(f.timeFrom) || !isAll(f.timeTo)) {
-            String postTime = AppUtils.safe(it.time);
-            if (!postTime.isEmpty()) {
-                if (!isAll(f.timeFrom) && postTime.compareTo(f.timeFrom) < 0) return false;
-                if (!isAll(f.timeTo)   && postTime.compareTo(f.timeTo)   > 0) return false;
-            }
-        }
-
-        if (!isAll(f.weekday)) {
-            List<String> wanted = splitSelections(f.weekday);
-            if (!wanted.contains(AppUtils.safe(it.weekday))) return false;
-        }
+        if (!isAll(f.recruitType) && !AppUtils.safe(it.recruitType).equalsIgnoreCase(f.recruitType)) return false;
 
         return true;
     }
 
     private boolean isAll(String v) {
-        return v == null || v.trim().isEmpty() || "전체".equals(v.trim());
-    }
-
-    private List<String> splitSelections(String raw) {
-        List<String> out = new ArrayList<>();
-        if (raw == null) return out;
-        for (String p : raw.split(",")) {
-            String v = p.trim();
-            if (!v.isEmpty()) out.add(v);
-        }
-        return out;
+        return v == null || v.isEmpty() || v.equals("전체");
     }
 }

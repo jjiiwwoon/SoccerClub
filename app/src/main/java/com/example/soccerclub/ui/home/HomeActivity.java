@@ -1,10 +1,10 @@
 package com.example.soccerclub.ui.home;
 
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.example.soccerclub.R;
@@ -66,14 +66,15 @@ public class HomeActivity extends AppCompatActivity {
         MaterialButton[] buttons = {
                 btnRecruitMatch, btnMyTeam, btnOtherTeams, btnMyProfile, btnChat
         };
+
+        // ✅ 하드코딩 제거 → colors.xml 리소스 참조 (다크모드 자동 대응)
+        int selectedColor   = ContextCompat.getColor(this, R.color.badge_blue);
+        int unselectedColor = ContextCompat.getColor(this, R.color.text_primary);
+
         for (MaterialButton btn : buttons) {
-            if (btn == selected) {
-                btn.setTextColor(Color.parseColor("#42A5F5"));
-                btn.setIconTint(ColorStateList.valueOf(Color.parseColor("#42A5F5")));
-            } else {
-                btn.setTextColor(Color.parseColor("#000000"));
-                btn.setIconTint(ColorStateList.valueOf(Color.parseColor("#000000")));
-            }
+            int color = (btn == selected) ? selectedColor : unselectedColor;
+            btn.setTextColor(color);
+            btn.setIconTint(ColorStateList.valueOf(color));
         }
     }
 }

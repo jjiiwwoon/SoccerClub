@@ -24,16 +24,15 @@ import com.example.soccerclub.common.CustomToast;
 import com.example.soccerclub.common.StateLayout;
 import com.example.soccerclub.util.AppUtils;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.Source;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class TeamDetailActivity extends AppCompatActivity {
 
@@ -91,8 +90,8 @@ public class TeamDetailActivity extends AppCompatActivity {
                     bindRecordSummary();
                 });
 
-        // TODO: RecordsActivity 완성 후 주석 해제
         tvSeeDetails.setOnClickListener(v -> {
+            // RecordsActivity 완성 후 주석 해제
             // Intent intent = new Intent(this, RecordsActivity.class);
             // intent.putExtra("myTeamId", teamId);
             // startActivity(intent);
@@ -139,6 +138,8 @@ public class TeamDetailActivity extends AppCompatActivity {
         });
     }
 
+    // ── 팀 정보 로드 ──────────────────────────────────────────────────────────────
+
     private void getTeamInfo() {
         firstImageDrawn = false;
 
@@ -182,7 +183,7 @@ public class TeamDetailActivity extends AppCompatActivity {
         String timeS    = doc.getString("timeStart");
         String timeE    = doc.getString("timeEnd");
 
-        captainUid    = doc.getString("captainUID");
+        captainUid     = doc.getString("captainUID");
         viceCaptainUid = doc.getString("viceCaptainUID");
 
         teamName.setText(AppUtils.safe(name));
@@ -204,7 +205,7 @@ public class TeamDetailActivity extends AppCompatActivity {
             teamActivityDay.setVisibility(View.GONE);
         }
 
-        setTextOrGone(teamHomeStadiumName, stadName);
+        setTextOrGone(teamHomeStadiumName,    stadName);
         setTextOrGone(teamHomeStadiumAddress, stadAddr);
 
         List<String> members = (List<String>) doc.get("members");
@@ -233,21 +234,23 @@ public class TeamDetailActivity extends AppCompatActivity {
             Glide.with(this).load(photoUrl).apply(opts)
                     .placeholder(R.drawable.default_team_photo)
                     .listener(new com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable>() {
-                        @Override public boolean onLoadFailed(@androidx.annotation.Nullable com.bumptech.glide.load.engine.GlideException e,
-                                Object m, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> t, boolean b) {
+                        @Override
+                        public boolean onLoadFailed(@androidx.annotation.Nullable com.bumptech.glide.load.engine.GlideException e,
+                                                    Object m, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> t, boolean b) {
                             if (!firstImageDrawn) { firstImageDrawn = true; tryShowContent(); }
                             return false;
                         }
-                        @Override public boolean onResourceReady(android.graphics.drawable.Drawable r,
-                                Object m, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> t,
-                                com.bumptech.glide.load.DataSource ds, boolean b) {
+                        @Override
+                        public boolean onResourceReady(android.graphics.drawable.Drawable r,
+                                                       Object m, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> t,
+                                                       com.bumptech.glide.load.DataSource ds, boolean b) {
                             if (!firstImageDrawn) { firstImageDrawn = true; tryShowContent(); }
                             return false;
                         }
                     }).into(teamPhoto);
         } else {
             teamPhoto.setImageResource(R.drawable.default_team_photo);
-            firstImageDrawn = true;
+            if (!firstImageDrawn) { firstImageDrawn = true; tryShowContent(); }
         }
 
         if (!AppUtils.isEmpty(logoUrl)) {
@@ -256,60 +259,67 @@ public class TeamDetailActivity extends AppCompatActivity {
         } else {
             teamLogo.setImageResource(R.drawable.ic_shield_gray);
         }
-
-        uiHandler.postDelayed(() -> {
-            if (!firstImageDrawn) { firstImageDrawn = true; tryShowContent(); }
-        }, 600);
     }
+
+    // ── 멤버 리스트 ───────────────────────────────────────────────────────────────
 
     private void loadPlayerList() {
         db.collection("teams").document(teamId).get()
-                .addOnSuccessListener(teamDoc -> {
-                    if (teamDoc == null || !teamDoc.exists()) return;
-                    List<String> members = (List<String>) teamDoc.get("members");
-                    if (members == null || members.isEmpty()) {
+                .addOnSuccessListener(teamSnap -> {
+                    if (teamSnap == null || !teamSnap.exists()) return;
+
+                    List<String> memberUids  = (List<String>) teamSnap.get("members");
+                    String captainUID       = teamSnap.getString("captainUID");
+                    String viceCaptainUID   = teamSnap.getString("viceCaptainUID");
+
+                    if (memberUids == null || memberUids.isEmpty()) {
                         membersLoaded = true;
                         tryShowContent();
                         return;
                     }
 
                     RecyclerView recyclerView = findViewById(R.id.recyclerViewMembers);
-                    if (recyclerView == null) return;
+                    if (recyclerView == null) {
+                        membersLoaded = true;
+                        tryShowContent();
+                        return;
+                    }
 
-                    db.collection("profiles").whereIn("__name__", members).get()
-                            .addOnSuccessListener(snap -> {
-                                List<DocumentSnapshot> fw = new ArrayList<>(),
-                                        mf = new ArrayList<>(),
-                                        df = new ArrayList<>(),
-                                        gk = new ArrayList<>();
+                    db.collection("profiles").whereIn("__name__", memberUids).get()
+                            .addOnSuccessListener(profileSnap -> {
+                                List<DocumentSnapshot> fwDocs = new ArrayList<>(),
+                                        mfDocs = new ArrayList<>(),
+                                        dfDocs = new ArrayList<>(),
+                                        gkDocs = new ArrayList<>();
 
-                                for (DocumentSnapshot p : snap.getDocuments()) {
+                                for (DocumentSnapshot p : profileSnap.getDocuments()) {
                                     String pos = p.getString("position");
-                                    if (AppUtils.isEmpty(pos)) { mf.add(p); continue; }
+                                    if (pos == null) { mfDocs.add(p); continue; }
                                     switch (pos.trim().toUpperCase()) {
-                                        case "FW": fw.add(p); break;
-                                        case "MF": mf.add(p); break;
-                                        case "DF": df.add(p); break;
-                                        case "GK": gk.add(p); break;
-                                        default:   mf.add(p);
+                                        case "FW": fwDocs.add(p); break;
+                                        case "MF": mfDocs.add(p); break;
+                                        case "DF": dfDocs.add(p); break;
+                                        case "GK": gkDocs.add(p); break;
+                                        default:   mfDocs.add(p);
                                     }
                                 }
 
                                 List<TeamMemberAdapter.MemberItem> items = new ArrayList<>();
-                                addGroup(items, "FW (" + fw.size() + ")", fw);
-                                addGroup(items, "MF (" + mf.size() + ")", mf);
-                                addGroup(items, "DF (" + df.size() + ")", df);
-                                addGroup(items, "GK (" + gk.size() + ")", gk);
+                                addGroup(items, "FW (" + fwDocs.size() + ")", fwDocs);
+                                addGroup(items, "MF (" + mfDocs.size() + ")", mfDocs);
+                                addGroup(items, "DF (" + dfDocs.size() + ")", dfDocs);
+                                addGroup(items, "GK (" + gkDocs.size() + ")", gkDocs);
 
                                 if (tvMemberTitle != null)
-                                    tvMemberTitle.setText("팀 멤버 (" + snap.size() + ")");
+                                    tvMemberTitle.setText("팀 멤버 (" + profileSnap.size() + ")");
 
                                 TeamMemberAdapter adapter = new TeamMemberAdapter(
-                                        captainUid, viceCaptainUid, currentUid, null);
+                                        captainUID, viceCaptainUID, currentUid, null);
 
                                 GridLayoutManager lm = new GridLayoutManager(this, 2);
                                 lm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
-                                    @Override public int getSpanSize(int pos) {
+                                    @Override
+                                    public int getSpanSize(int pos) {
                                         return adapter.getItemViewType(pos) == TeamMemberAdapter.TYPE_HEADER ? 2 : 1;
                                     }
                                 });
@@ -319,25 +329,31 @@ public class TeamDetailActivity extends AppCompatActivity {
 
                                 membersLoaded = true;
                                 tryShowContent();
+                            })
+                            .addOnFailureListener(e -> {
+                                membersLoaded = true;
+                                tryShowContent();
                             });
                 });
     }
 
     private void addGroup(List<TeamMemberAdapter.MemberItem> items,
-                           String header, List<DocumentSnapshot> docs) {
+                          String header, List<DocumentSnapshot> docs) {
         TeamMemberAdapter.MemberItem h = new TeamMemberAdapter.MemberItem();
-        h.type = TeamMemberAdapter.TYPE_HEADER;
+        h.type   = TeamMemberAdapter.TYPE_HEADER;
         h.header = header;
         items.add(h);
         for (DocumentSnapshot d : docs) {
             TeamMemberAdapter.MemberItem item = new TeamMemberAdapter.MemberItem();
-            item.type = TeamMemberAdapter.TYPE_PLAYER;
-            item.uid = d.getId();
+            item.type     = TeamMemberAdapter.TYPE_PLAYER;
+            item.uid      = d.getId();
             item.nickname = d.getString("nickname");
             item.photoUrl = d.getString("profileImageUrl");
             items.add(item);
         }
     }
+
+    // ── 전적 요약 ─────────────────────────────────────────────────────────────────
 
     private void bindRecordSummary() {
         if (recordListener != null) recordListener.remove();
@@ -362,29 +378,66 @@ public class TeamDetailActivity extends AppCompatActivity {
                 });
     }
 
+    // ── 팀 가입 (✅ Fix 4: 트랜잭션으로 skillAverage 원자적 업데이트) ─────────────
+
     private void joinTeam() {
         new AlertDialog.Builder(this)
                 .setTitle("팀 가입 신청")
                 .setMessage("이 팀에 가입 신청하시겠어요?")
                 .setPositiveButton("예", (d, i) -> {
-                    Map<String, Object> update = new HashMap<>();
-                    update.put("members", com.google.firebase.firestore.FieldValue.arrayUnion(currentUid));
-                    db.collection("teams").document(teamId).update(update)
-                            .addOnSuccessListener(v -> {
-                                db.collection("profiles").document(currentUid)
-                                        .update("myTeam", teamId)
-                                        .addOnSuccessListener(v2 -> {
-                                            isMyTeam = true;
-                                            btnJoinTeam.setVisibility(View.GONE);
-                                            CustomToast.success(this, "팀에 가입했어요!");
-                                        });
+
+                    DocumentReference teamRef    = db.collection("teams").document(teamId);
+                    DocumentReference profileRef = db.collection("profiles").document(currentUid);
+
+                    db.runTransaction(transaction -> {
+                                DocumentSnapshot profileSnap = transaction.get(profileRef);
+                                DocumentSnapshot teamSnap    = transaction.get(teamRef);
+
+                                // 이미 가입된 경우 중복 방지
+                                List<String> members = (List<String>) teamSnap.get("members");
+                                if (members != null && members.contains(currentUid)) {
+                                    throw new RuntimeException("이미 가입된 팀입니다.");
+                                }
+
+                                // 실력 값 읽기
+                                long skill = profileSnap.getLong("skill") != null
+                                        ? profileSnap.getLong("skill") : 0L;
+
+                                // members 배열에 uid 추가
+                                transaction.update(teamRef, "members", FieldValue.arrayUnion(currentUid));
+
+                                // memberCount, skillSum 증가
+                                transaction.update(teamRef, "memberCount", FieldValue.increment(1L));
+                                transaction.update(teamRef, "skillSum",    FieldValue.increment(skill));
+
+                                // skillAverage 재계산
+                                long currentSum   = teamSnap.getLong("skillSum")   != null ? teamSnap.getLong("skillSum")   : 0L;
+                                long currentCount = teamSnap.getLong("memberCount") != null ? teamSnap.getLong("memberCount") : 0L;
+                                long newSum   = currentSum   + skill;
+                                long newCount = currentCount + 1;
+                                int  newAvg   = newCount > 0 ? (int) (newSum / newCount) : 0;
+                                transaction.update(teamRef, "skillAverage", newAvg);
+
+                                // 프로필에 myTeam 기록
+                                transaction.update(profileRef, "myTeam", teamId);
+
+                                return null;
                             })
-                            .addOnFailureListener(e ->
-                                    CustomToast.error(this, "가입 실패: " + e.getMessage()));
+                            .addOnSuccessListener(v -> {
+                                isMyTeam = true;
+                                btnJoinTeam.setVisibility(View.GONE);
+                                CustomToast.success(this, "팀에 가입했어요!");
+                            })
+                            .addOnFailureListener(e -> {
+                                String msg = e.getMessage() != null ? e.getMessage() : "가입에 실패했어요.";
+                                CustomToast.error(this, msg);
+                            });
                 })
                 .setNegativeButton("아니오", null)
                 .show();
     }
+
+    // ── 헬퍼 ─────────────────────────────────────────────────────────────────────
 
     private void tryShowContent() {
         if (teamLoaded && membersLoaded && firstImageDrawn) {

@@ -22,6 +22,7 @@ import com.example.soccerclub.adapter.ChatMessageAdapter;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.SetOptions;
 
@@ -42,6 +43,9 @@ public class ChatRoomActivity extends AppCompatActivity {
     private String roomId, currentUid;
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
+    // ✅ Fix 1: 리스너를 필드로 보관해서 onDestroy에서 해제
+    private ListenerRegistration msgReg;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,11 +56,11 @@ public class ChatRoomActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_chat_room);
 
-        chatRoot    = findViewById(R.id.chatRoot);
+        chatRoot     = findViewById(R.id.chatRoot);
         recyclerChat = findViewById(R.id.recyclerChat);
-        inputBar    = findViewById(R.id.inputBar);
-        editMessage = findViewById(R.id.editMessage);
-        btnSend     = findViewById(R.id.btnSend);
+        inputBar     = findViewById(R.id.inputBar);
+        editMessage  = findViewById(R.id.editMessage);
+        btnSend      = findViewById(R.id.btnSend);
 
         currentUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         roomId     = getIntent().getStringExtra("roomId");
@@ -116,8 +120,19 @@ public class ChatRoomActivity extends AppCompatActivity {
         markRoomRead();
     }
 
+    // ✅ Fix 1: onDestroy에서 리스너 해제
+    @Override
+    protected void onDestroy() {
+        if (msgReg != null) {
+            msgReg.remove();
+            msgReg = null;
+        }
+        super.onDestroy();
+    }
+
     private void listenForMessages() {
-        db.collection("chatRooms").document(roomId)
+        // ✅ Fix 1: addSnapshotListener 반환값을 msgReg 필드에 저장
+        msgReg = db.collection("chatRooms").document(roomId)
                 .collection("messages")
                 .orderBy("timestamp", Query.Direction.ASCENDING)
                 .addSnapshotListener((snapshots, e) -> {
