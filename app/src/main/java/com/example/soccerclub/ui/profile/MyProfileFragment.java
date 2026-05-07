@@ -16,6 +16,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import com.bumptech.glide.Glide;
@@ -25,6 +26,7 @@ import com.bumptech.glide.request.target.Target;
 import com.example.soccerclub.R;
 import com.example.soccerclub.common.CustomToast;
 import com.example.soccerclub.common.StateLayout;
+import com.example.soccerclub.ui.auth.LoginActivity;
 import com.example.soccerclub.ui.team.TeamDetailActivity;
 import com.example.soccerclub.util.AppUtils;
 import com.google.firebase.auth.FirebaseAuth;
@@ -54,7 +56,7 @@ public class MyProfileFragment extends Fragment {
     private FirebaseFirestore db;
     private FirebaseAuth auth;
 
-    // ✅ 편집 화면에서 돌아왔을 때 프로필 새로고침
+    // 편집 화면에서 돌아왔을 때 프로필 새로고침
     private final ActivityResultLauncher<Intent> editProfileLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
@@ -108,12 +110,18 @@ public class MyProfileFragment extends Fragment {
         teamLogo.setOnClickListener(teamClick);
         textTeam.setOnClickListener(teamClick);
 
-        // ✅ 편집 버튼 클릭 → EditProfileActivity 실행
+        // 편집 버튼
         View btnEditProfile = view.findViewById(R.id.btnEditProfile);
         if (btnEditProfile != null) {
             btnEditProfile.setOnClickListener(v ->
                     editProfileLauncher.launch(
                             new Intent(requireContext(), EditProfileActivity.class)));
+        }
+
+        // ✅ 로그아웃 버튼
+        View btnLogout = view.findViewById(R.id.btnLogout);
+        if (btnLogout != null) {
+            btnLogout.setOnClickListener(v -> showLogoutConfirm());
         }
 
         loadUserProfile();
@@ -125,6 +133,26 @@ public class MyProfileFragment extends Fragment {
         super.onResume();
         reloadUserStatsOnly();
     }
+
+    // ── 로그아웃 ──────────────────────────────────────────────────────────────────
+
+    // ✅ 로그아웃 확인 다이얼로그
+    private void showLogoutConfirm() {
+        new AlertDialog.Builder(requireContext())
+                .setTitle("로그아웃")
+                .setMessage("정말 로그아웃 하시겠어요?")
+                .setPositiveButton("로그아웃", (d, i) -> {
+                    auth.signOut();
+                    // 로그인 화면으로 이동 + 백스택 전부 제거
+                    Intent intent = new Intent(requireContext(), LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                })
+                .setNegativeButton("취소", null)
+                .show();
+    }
+
+    // ── 프로필 로드 ───────────────────────────────────────────────────────────────
 
     private void loadUserProfile() {
         if (auth.getCurrentUser() == null) {

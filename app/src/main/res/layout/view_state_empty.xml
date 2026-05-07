@@ -1,15 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp">
 
+    <!-- 빈 상태 아이콘 -->
+    <ImageView
+        android:id="@+id/imgEmptyIcon"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:src="@drawable/ic_shield_gray"
+        android:alpha="0.35"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- 메인 메시지 -->
     <TextView
         android:id="@+id/txtEmptyMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:text="@string/empty_list"
-        android:textSize="@dimen/text_md"
+        android:text="아직 글이 없어요."
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"
+        android:layout_marginBottom="6dp"/>
+
+    <!-- 서브 메시지 -->
+    <TextView
+        android:id="@+id/txtEmptySubMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="첫 번째로 글을 올려보세요!"
+        android:textSize="13sp"
         android:textColor="@color/text_hint"
-        android:gravity="center"/>
-</FrameLayout>
+        android:gravity="center"
+        android:layout_marginBottom="24dp"
+        android:visibility="gone"/>
+
+    <!-- 행동 유도 버튼 (선택적으로 표시) -->
+    <Button
+        android:id="@+id/btnEmptyAction"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:minWidth="160dp"
+        android:text="글 올리기"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:backgroundTint="@color/primary"
+        android:visibility="gone"
+        app:cornerRadius="24dp"
+        xmlns:app="http://schemas.android.com/apk/res-auto"/>
+
+</LinearLayout>

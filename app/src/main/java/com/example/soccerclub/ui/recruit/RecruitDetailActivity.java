@@ -57,6 +57,10 @@ public class RecruitDetailActivity extends AppCompatActivity {
     private ChipGroup chipGroupPositions;
     private Button btnApply;
 
+    // ✅ 작성자 전용 버튼
+    private LinearLayout layoutWriterActions;
+    private Button btnCloseRecruit, btnDeleteRecruit;
+
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
     private String recruitId     = "";
@@ -89,6 +93,11 @@ public class RecruitDetailActivity extends AppCompatActivity {
         tvIntro            = findViewById(R.id.tvIntro);
         chipGroupPositions = findViewById(R.id.chipGroupPositions);
         btnApply           = findViewById(R.id.btnApply);
+
+        // ✅ 작성자 전용 버튼 바인딩
+        layoutWriterActions = findViewById(R.id.layoutWriterActions);
+        btnCloseRecruit     = findViewById(R.id.btnCloseRecruit);
+        btnDeleteRecruit    = findViewById(R.id.btnDeleteRecruit);
 
         if (state != null) state.showLoading();
 
@@ -197,7 +206,7 @@ public class RecruitDetailActivity extends AppCompatActivity {
         String norm = AppUtils.normalizeRecruitType(recruitTypeRaw);
         boolean isMercenary = "mercenary".equals(norm);
 
-        if (tvRecruitType != null) tvRecruitType.setText(isMercenary ? "용병" : "회원");
+        if (tvRecruitType  != null) tvRecruitType.setText(isMercenary ? "용병" : "회원");
         if (tvTimeLabel    != null) tvTimeLabel.setText(isMercenary ? "시합 시간" : "활동 시간");
         if (tvStadiumLabel != null) tvStadiumLabel.setText(isMercenary ? "시합 장소" : "주 활동 장소");
 
@@ -233,6 +242,64 @@ public class RecruitDetailActivity extends AppCompatActivity {
                         }
                     }
                 });
+
+        // ✅ 작성자 전용 마감/삭제 버튼 설정
+        setupWriterActions(ds);
+    }
+
+    // ✅ 작성자 본인에게만 마감/삭제 버튼 표시
+    private void setupWriterActions(DocumentSnapshot ds) {
+        String status = AppUtils.safe(ds.getString("status"));
+        boolean isAuthor = !AppUtils.isEmpty(postAuthorUid) && postAuthorUid.equals(currentUid);
+        boolean isOpen   = !"closed".equalsIgnoreCase(status) && !"deleted".equalsIgnoreCase(status);
+
+        if (!isAuthor || !isOpen) return;
+
+        if (layoutWriterActions != null)
+            layoutWriterActions.setVisibility(View.VISIBLE);
+
+        // 마감 버튼 — 신청을 더 받지 않지만 글은 유지
+        if (btnCloseRecruit != null) {
+            btnCloseRecruit.setOnClickListener(v ->
+                    new AlertDialog.Builder(this)
+                            .setTitle("모집 마감")
+                            .setMessage("모집을 마감하시겠어요?\n마감 후에는 새 신청을 받지 않습니다.")
+                            .setPositiveButton("마감", (d, i) ->
+                                    db.collection("recruitPosts").document(recruitId)
+                                            .update("status", "closed")
+                                            .addOnSuccessListener(v2 -> {
+                                                CustomToast.success(this, "모집이 마감됐어요.");
+                                                if (btnApply != null) {
+                                                    btnApply.setText("모집 마감");
+                                                    btnApply.setEnabled(false);
+                                                }
+                                                if (layoutWriterActions != null)
+                                                    layoutWriterActions.setVisibility(View.GONE);
+                                            })
+                                            .addOnFailureListener(e ->
+                                                    CustomToast.error(this, "마감 처리에 실패했어요.")))
+                            .setNegativeButton("취소", null)
+                            .show());
+        }
+
+        // 삭제 버튼 — status를 deleted로 변경 후 화면 닫기
+        if (btnDeleteRecruit != null) {
+            btnDeleteRecruit.setOnClickListener(v ->
+                    new AlertDialog.Builder(this)
+                            .setTitle("글 삭제")
+                            .setMessage("정말 이 모집 글을 삭제하시겠어요?\n삭제된 글은 복구되지 않습니다.")
+                            .setPositiveButton("삭제", (d, i) ->
+                                    db.collection("recruitPosts").document(recruitId)
+                                            .update("status", "deleted")
+                                            .addOnSuccessListener(v2 -> {
+                                                CustomToast.success(this, "글이 삭제됐어요.");
+                                                finish();
+                                            })
+                                            .addOnFailureListener(e ->
+                                                    CustomToast.error(this, "삭제에 실패했어요.")))
+                            .setNegativeButton("취소", null)
+                            .show());
+        }
     }
 
     private void checkEligibility() {
@@ -343,7 +410,7 @@ public class RecruitDetailActivity extends AppCompatActivity {
             if ("regular".equals(typeTx) && !AppUtils.isEmpty(myTeamIdTx))
                 throw new IllegalStateException("현재 소속된 팀이 있습니다.");
 
-            DocumentReference apRef = postRef.collection("applicants").document(currentUid);
+            DocumentReference apRef  = postRef.collection("applicants").document(currentUid);
             DocumentSnapshot  apSnap = tr.get(apRef);
 
             long now = System.currentTimeMillis();
@@ -353,12 +420,12 @@ public class RecruitDetailActivity extends AppCompatActivity {
             }
 
             Map<String, Object> apData = new HashMap<>();
-            apData.put("status",        "pending");
-            apData.put("timestamp",     now);
-            apData.put("teamId",        myTeamId);
-            apData.put("teamName",      myTeamName);
-            apData.put("nickname",      myNickname);
-            apData.put("skill",         mySkill);
+            apData.put("status",          "pending");
+            apData.put("timestamp",       now);
+            apData.put("teamId",          myTeamId);
+            apData.put("teamName",        myTeamName);
+            apData.put("nickname",        myNickname);
+            apData.put("skill",           mySkill);
             apData.put("applicantUserId", currentUid);
             tr.set(apRef, apData, SetOptions.merge());
             return null;

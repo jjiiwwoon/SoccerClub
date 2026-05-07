@@ -15,9 +15,11 @@ import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.chip.Chip;
@@ -56,16 +58,16 @@ public class CreateRecruitActivity extends AppCompatActivity {
     private final FirebaseAuth auth = FirebaseAuth.getInstance();
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
-    private String myUid          = "";
-    private String myTeamId       = "";
-    private String myTeamName     = "";
-    private String myTeamLogo     = "";
-    private String myRegion       = "";
+    private String myUid             = "";
+    private String myTeamId          = "";
+    private String myTeamName        = "";
+    private String myTeamLogo        = "";
+    private String myRegion          = "";
     private String myHomeStadiumName = "";
     private String myStadiumAddress  = "";
-    private String myActivityDay  = "";
-    private String myTimeStart    = "";
-    private String myTimeEnd      = "";
+    private String myActivityDay     = "";
+    private String myTimeStart       = "";
+    private String myTimeEnd         = "";
 
     private String selectedDate      = "";
     private String selectedStartTime = "";
@@ -73,7 +75,7 @@ public class CreateRecruitActivity extends AppCompatActivity {
     private String stadiumName       = "";
     private String stadiumAddr       = "";
 
-    private final List<String> positions = new ArrayList<>();
+    private final List<String> positions   = new ArrayList<>();
     private final Set<String>  positionSet = new HashSet<>();
 
     private final ActivityResultLauncher<Intent> addressSearchLauncher =
@@ -109,35 +111,63 @@ public class CreateRecruitActivity extends AppCompatActivity {
 
         myUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
         fetchMyProfileThenTeam();
+
+        // ✅ 뒤로가기 취소 확인 다이얼로그
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                showExitConfirm();
+            }
+        });
+    }
+
+    // ✅ 작성 취소 확인 다이얼로그 — 입력 내용이 있을 때만 표시
+    private void showExitConfirm() {
+        boolean hasInput = !AppUtils.isEmpty(selectedDate)
+                || !AppUtils.isEmpty(stadiumAddr)
+                || (editDetails != null && !editDetails.getText().toString().trim().isEmpty())
+                || (editStadium != null && !editStadium.getText().toString().trim().isEmpty());
+
+        if (!hasInput) {
+            finish();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("작성 취소")
+                .setMessage("작성 중인 내용이 있어요.\n취소하면 저장되지 않습니다.")
+                .setPositiveButton("나가기", (d, i) -> finish())
+                .setNegativeButton("계속 작성", null)
+                .show();
     }
 
     private void bindViews() {
-        radioRecruitType   = findViewById(R.id.radioRecruitType);
-        rdoRegular         = findViewById(R.id.rdoRegular);
-        rdoMercenary       = findViewById(R.id.rdoMercenary);
-        containerRegular   = findViewById(R.id.containerRegular);
-        containerMercenary = findViewById(R.id.containerMercenary);
+        radioRecruitType    = findViewById(R.id.radioRecruitType);
+        rdoRegular          = findViewById(R.id.rdoRegular);
+        rdoMercenary        = findViewById(R.id.rdoMercenary);
+        containerRegular    = findViewById(R.id.containerRegular);
+        containerMercenary  = findViewById(R.id.containerMercenary);
 
-        tvRegularDate    = findViewById(R.id.tvRegularDate);
-        tvRegularTime    = findViewById(R.id.tvRegularTime);
-        tvRegularStadium = findViewById(R.id.tvRegularStadium);
-        tvRegularAddress = findViewById(R.id.tvRegularAddress);
+        tvRegularDate       = findViewById(R.id.tvRegularDate);
+        tvRegularTime       = findViewById(R.id.tvRegularTime);
+        tvRegularStadium    = findViewById(R.id.tvRegularStadium);
+        tvRegularAddress    = findViewById(R.id.tvRegularAddress);
 
-        txtDate           = findViewById(R.id.txtDate);
-        txtTime           = findViewById(R.id.txtTime);
-        txtAddressSearch  = findViewById(R.id.txtAddressSearch);
-        txtSelectedAddress = findViewById(R.id.txtSelectedAddress);
-        editStadium       = findViewById(R.id.editStadium);
+        txtDate             = findViewById(R.id.txtDate);
+        txtTime             = findViewById(R.id.txtTime);
+        txtAddressSearch    = findViewById(R.id.txtAddressSearch);
+        txtSelectedAddress  = findViewById(R.id.txtSelectedAddress);
+        editStadium         = findViewById(R.id.editStadium);
         btnLoadFromSchedule = findViewById(R.id.btnLoadFromSchedule);
-        editDetails       = findViewById(R.id.editDetails);
-        spinnerSkillMin   = findViewById(R.id.spinnerSkillMin);
-        spinnerSkillMax   = findViewById(R.id.spinnerSkillMax);
-        chipGroupPositions = findViewById(R.id.chipGroupPositions);
-        chipGK            = findViewById(R.id.chipGK);
-        chipDF            = findViewById(R.id.chipDF);
-        chipMF            = findViewById(R.id.chipMF);
-        chipFW            = findViewById(R.id.chipFW);
-        btnSubmit         = findViewById(R.id.btnSubmit);
+        editDetails         = findViewById(R.id.editDetails);
+        spinnerSkillMin     = findViewById(R.id.spinnerSkillMin);
+        spinnerSkillMax     = findViewById(R.id.spinnerSkillMax);
+        chipGroupPositions  = findViewById(R.id.chipGroupPositions);
+        chipGK              = findViewById(R.id.chipGK);
+        chipDF              = findViewById(R.id.chipDF);
+        chipMF              = findViewById(R.id.chipMF);
+        chipFW              = findViewById(R.id.chipFW);
+        btnSubmit           = findViewById(R.id.btnSubmit);
     }
 
     private void initSpinners() {
@@ -232,7 +262,8 @@ public class CreateRecruitActivity extends AppCompatActivity {
                 ? myTimeStart + " ~ " + myTimeEnd : "";
         selectedStartTime = myTimeStart;
         selectedEndTime   = myTimeEnd;
-        if (tvRegularTime != null) tvRegularTime.setText(AppUtils.isEmpty(timeRange) ? "시간 미설정" : timeRange);
+        if (tvRegularTime != null)
+            tvRegularTime.setText(AppUtils.isEmpty(timeRange) ? "시간 미설정" : timeRange);
     }
 
     private void pickDate() {
@@ -273,9 +304,9 @@ public class CreateRecruitActivity extends AppCompatActivity {
             if (AppUtils.isEmpty(stadiumName)) { CustomToast.info(this, "시합장소를 입력하세요."); return; }
         }
 
-        String details  = editDetails != null ? editDetails.getText().toString().trim() : "";
-        int skillMin    = parseInt(spinnerSkillMin.getSelectedItem().toString(), 0);
-        int skillMax    = parseInt(spinnerSkillMax.getSelectedItem().toString(), 10);
+        String details = editDetails != null ? editDetails.getText().toString().trim() : "";
+        int skillMin   = parseInt(spinnerSkillMin.getSelectedItem().toString(), 0);
+        int skillMax   = parseInt(spinnerSkillMax.getSelectedItem().toString(), 10);
         if (skillMin > skillMax) { CustomToast.warning(this, "실력 범위를 올바르게 선택하세요."); return; }
 
         String recruitType = isRegular ? "regular" : "mercenary";
@@ -286,31 +317,31 @@ public class CreateRecruitActivity extends AppCompatActivity {
         String weekday     = DateUtils.getKoreanWeekday(selectedDate);
 
         Map<String, Object> data = new HashMap<>();
-        data.put("teamId",       myTeamId);
-        data.put("teamName",     myTeamName);
-        data.put("teamLogoUrl",  myTeamLogo);
-        data.put("region",       myRegion);
-        data.put("date",         selectedDate);
-        data.put("time",         timeRange);
-        data.put("timeStart",    selectedStartTime);
-        data.put("timeEnd",      selectedEndTime);
-        data.put("matchTs",      matchTs);
-        data.put("endTs",        endTs);
-        data.put("weekday",      weekday);
-        data.put("postTs",       matchTs);
-        data.put("timestamp",    nowMs);
-        data.put("createdAtMs",  nowMs);
-        data.put("stadiumName",  stadiumName);
+        data.put("teamId",         myTeamId);
+        data.put("teamName",       myTeamName);
+        data.put("teamLogoUrl",    myTeamLogo);
+        data.put("region",         myRegion);
+        data.put("date",           selectedDate);
+        data.put("time",           timeRange);
+        data.put("timeStart",      selectedStartTime);
+        data.put("timeEnd",        selectedEndTime);
+        data.put("matchTs",        matchTs);
+        data.put("endTs",          endTs);
+        data.put("weekday",        weekday);
+        data.put("postTs",         matchTs);
+        data.put("timestamp",      nowMs);
+        data.put("createdAtMs",    nowMs);
+        data.put("stadiumName",    stadiumName);
         data.put("stadiumAddress", stadiumAddr);
-        data.put("skillMin",     skillMin);
-        data.put("skillMax",     skillMax);
-        data.put("positions",    new ArrayList<>(positions));
-        data.put("recruitType",  recruitType);
-        data.put("intro",        details);
-        data.put("status",       "open");
-        data.put("createdBy",    myUid);
-        data.put("createdAt",    com.google.firebase.Timestamp.now());
-        data.put("updatedAt",    com.google.firebase.Timestamp.now());
+        data.put("skillMin",       skillMin);
+        data.put("skillMax",       skillMax);
+        data.put("positions",      new ArrayList<>(positions));
+        data.put("recruitType",    recruitType);
+        data.put("intro",          details);
+        data.put("status",         "open");
+        data.put("createdBy",      myUid);
+        data.put("createdAt",      com.google.firebase.Timestamp.now());
+        data.put("updatedAt",      com.google.firebase.Timestamp.now());
 
         btnSubmit.setEnabled(false);
         db.collection("recruitPosts").add(data)

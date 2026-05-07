@@ -8,9 +8,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.soccerclub.R;
@@ -96,6 +98,35 @@ public class CreateMatchActivity extends AppCompatActivity {
                 stadiumLauncher.launch(new Intent(this, StadiumSearchActivity.class)));
 
         btnSubmit.setOnClickListener(v -> submitMatchPost());
+
+        // ✅ 뒤로가기 취소 확인 다이얼로그
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                showExitConfirm();
+            }
+        });
+    }
+
+    // ✅ 작성 취소 확인 다이얼로그
+    private void showExitConfirm() {
+        // 입력 내용이 있을 때만 확인
+        boolean hasInput = !AppUtils.isEmpty(selectedDate)
+                || !AppUtils.isEmpty(selectedAddress)
+                || (editDetails != null && !editDetails.getText().toString().trim().isEmpty())
+                || (editStadium != null && !editStadium.getText().toString().trim().isEmpty());
+
+        if (!hasInput) {
+            finish();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("작성 취소")
+                .setMessage("작성 중인 내용이 있어요.\n취소하면 저장되지 않습니다.")
+                .setPositiveButton("나가기", (d, i) -> finish())
+                .setNegativeButton("계속 작성", null)
+                .show();
     }
 
     private void loadMyTeamInfo() {
@@ -153,26 +184,26 @@ public class CreateMatchActivity extends AppCompatActivity {
         String weekday = DateUtils.getKoreanWeekday(selectedDate);
 
         Map<String, Object> data = new HashMap<>();
-        data.put("teamId",          myTeamId);
-        data.put("teamName",        myTeamName);
-        data.put("logoUrl",         myTeamLogoUrl);
-        data.put("teamLogoUrl",     myTeamLogoUrl);
-        data.put("date",            selectedDate);
-        data.put("time",            selectedStartTime + " ~ " + selectedEndTime);
-        data.put("timeStart",       selectedStartTime);
-        data.put("timeEnd",         selectedEndTime);
-        data.put("matchTs",         matchTs);
-        data.put("endTs",           endTs);
-        data.put("timestamp",       nowMs);
-        data.put("weekday",         weekday);
-        data.put("stadiumName",     stadium);
-        data.put("stadiumAddress",  selectedAddress);
-        data.put("address",         selectedAddress);
-        data.put("skill",           mySkill);
-        data.put("description",     description);
-        data.put("status",          "OPEN");
-        data.put("region",          myTeamRegion);
-        data.put("createdAt",       Timestamp.now());
+        data.put("teamId",         myTeamId);
+        data.put("teamName",       myTeamName);
+        data.put("logoUrl",        myTeamLogoUrl);
+        data.put("teamLogoUrl",    myTeamLogoUrl);
+        data.put("date",           selectedDate);
+        data.put("time",           selectedStartTime + " ~ " + selectedEndTime);
+        data.put("timeStart",      selectedStartTime);
+        data.put("timeEnd",        selectedEndTime);
+        data.put("matchTs",        matchTs);
+        data.put("endTs",          endTs);
+        data.put("timestamp",      nowMs);
+        data.put("weekday",        weekday);
+        data.put("stadiumName",    stadium);
+        data.put("stadiumAddress", selectedAddress);
+        data.put("address",        selectedAddress);
+        data.put("skill",          mySkill);
+        data.put("description",    description);
+        data.put("status",         "OPEN");
+        data.put("region",         myTeamRegion);
+        data.put("createdAt",      Timestamp.now());
 
         btnSubmit.setEnabled(false);
         FirebaseFirestore.getInstance().collection("matches").add(data)

@@ -1,5 +1,8 @@
 package com.example.soccerclub.adapter;
 
+import android.content.Context;
+import android.graphics.Typeface;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -9,6 +12,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.soccerclub.R;
@@ -35,6 +39,8 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     private Set<String> sessionNewApplicantKeys = Collections.emptySet();
     private final Set<String> flashRows = new HashSet<>();
+
+    // ── 데이터 모델 ───────────────────────────────────────────────────────────────
 
     public static class Item {
         public String postId;
@@ -119,6 +125,8 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         v.animate().alpha(1f).setDuration(140).start();
     }
 
+    // ── RecyclerView ──────────────────────────────────────────────────────────────
+
     @Override public int getItemCount() { return items.size(); }
 
     @Override
@@ -156,6 +164,8 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         }
     }
 
+    // ── 공통 포스트 바인딩 ────────────────────────────────────────────────────────
+
     private static void bindCommonPost(@NonNull View root, @NonNull Item it,
                                        OnItemClickListener cb) {
         TextView tvTeamName  = root.findViewById(R.id.textTeamName);
@@ -166,10 +176,10 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         TextView tvTimestamp = root.findViewById(R.id.textTimestamp);
 
         if (tvTeamName != null)  tvTeamName.setText(AppUtils.safe(it.teamName));
-        if (tvDate != null)      tvDate.setText(DateUtils.appendWeekday(it.date));
-        if (tvTime != null)      tvTime.setText(AppUtils.safe(it.time));
-        if (tvStadium != null)   tvStadium.setText("주소 | " + AppUtils.safe(it.stadium));
-        if (ivLogo != null)      GlideHelper.loadTeamLogo(ivLogo.getContext(), it.teamLogoUrl, ivLogo);
+        if (tvDate     != null)  tvDate.setText(DateUtils.appendWeekday(it.date));
+        if (tvTime     != null)  tvTime.setText(AppUtils.safe(it.time));
+        if (tvStadium  != null)  tvStadium.setText("주소 | " + AppUtils.safe(it.stadium));
+        if (ivLogo     != null)  GlideHelper.loadTeamLogo(ivLogo.getContext(), it.teamLogoUrl, ivLogo);
 
         if (tvTimestamp != null) {
             long ts = it.timestamp > 0 ? it.timestamp
@@ -180,6 +190,8 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
         root.setOnClickListener(v -> { if (cb != null) cb.onPostClicked(it); });
     }
+
+    // ── MineVH (내 모집글 관리) ───────────────────────────────────────────────────
 
     public class MineVH extends RecyclerView.ViewHolder {
         final View includePost, toggleHeader;
@@ -210,7 +222,7 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
             int total = it.applicants == null ? 0 : it.applicants.size();
             if (txtCount != null) txtCount.setText(String.valueOf(total));
-            if (txtNew != null)   txtNew.setVisibility(it.hasSessionNew ? View.VISIBLE : View.GONE);
+            if (txtNew   != null) txtNew.setVisibility(it.hasSessionNew ? View.VISIBLE : View.GONE);
 
             if (toggleHeader != null) {
                 toggleHeader.setOnClickListener(v -> {
@@ -242,12 +254,12 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 View row = LayoutInflater.from(container.getContext())
                         .inflate(R.layout.item_applicant_row, container, false);
 
-                TextView tvNew     = row.findViewById(R.id.textApplicantRowNew);
-                TextView tvName    = row.findViewById(R.id.textApplicantName);
-                TextView tvSkill   = row.findViewById(R.id.textApplicantSkill);
-                ImageView ivLogo   = row.findViewById(R.id.imageApplicantLogo);
-                Button btnAccept   = row.findViewById(R.id.btnAccept);
-                Button btnReject   = row.findViewById(R.id.btnReject);
+                TextView tvNew   = row.findViewById(R.id.textApplicantRowNew);
+                TextView tvName  = row.findViewById(R.id.textApplicantName);
+                TextView tvSkill = row.findViewById(R.id.textApplicantSkill);
+                ImageView ivLogo = row.findViewById(R.id.imageApplicantLogo);
+                Button btnAccept = row.findViewById(R.id.btnAccept);
+                Button btnReject = row.findViewById(R.id.btnReject);
 
                 boolean isNew = sessionNewKeys.contains(rowKey);
                 if (tvNew != null) tvNew.setVisibility(isNew ? View.VISIBLE : View.GONE);
@@ -256,6 +268,11 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 if (tvName  != null) tvName.setText(displayName);
                 if (tvSkill != null) tvSkill.setText("실력: " + (a.skill < 0 ? "-" : a.skill));
                 if (ivLogo  != null) GlideHelper.loadTeamLogo(ivLogo.getContext(), a.logoUrl, ivLogo);
+
+                // ✅ 신청자 이름 클릭 → 프로필 팝업
+                if (tvName != null && !AppUtils.isEmpty(a.applicantUserId)) {
+                    tvName.setOnClickListener(v -> showApplicantProfileDialog(container.getContext(), a));
+                }
 
                 if (btnAccept != null) {
                     btnAccept.setOnClickListener(v -> {
@@ -279,6 +296,8 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         }
     }
 
+    // ── AppliedVH (내가 신청한 글) ────────────────────────────────────────────────
+
     public static class AppliedVH extends RecyclerView.ViewHolder {
         final View includePost;
         final TextView textStatus;
@@ -301,5 +320,61 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 }
             }
         }
+    }
+
+    // ── ✅ 신청자 프로필 팝업 ─────────────────────────────────────────────────────
+
+    private void showApplicantProfileDialog(Context ctx, Applicant a) {
+        LinearLayout layout = new LinearLayout(ctx);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(ctx, 20);
+        layout.setPadding(pad, pad, pad, pad / 2);
+
+        // 프로필 사진
+        ImageView ivProfile = new ImageView(ctx);
+        int size = dp(ctx, 72);
+        LinearLayout.LayoutParams imgParams = new LinearLayout.LayoutParams(size, size);
+        imgParams.gravity = Gravity.CENTER_HORIZONTAL;
+        imgParams.bottomMargin = dp(ctx, 12);
+        ivProfile.setLayoutParams(imgParams);
+        ivProfile.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        ivProfile.setClipToOutline(true);
+        GlideHelper.loadProfile(ctx, a.profileImageUrl, ivProfile);
+        layout.addView(ivProfile);
+
+        // 닉네임
+        addText(ctx, layout, AppUtils.firstNonEmpty(a.nickname, "(알 수 없음)"), 17f, true, 0xFF111111);
+
+        // 실력
+        addText(ctx, layout, "실력  " + (a.skill < 0 ? "-" : String.valueOf(a.skill)), 14f, false, 0xFF555555);
+
+        // 포지션
+        if (!AppUtils.isEmpty(a.position))
+            addText(ctx, layout, "포지션  " + a.position, 14f, false, 0xFF555555);
+
+        // 팀명
+        if (!AppUtils.isEmpty(a.teamName))
+            addText(ctx, layout, "팀  " + a.teamName, 14f, false, 0xFF555555);
+
+        new AlertDialog.Builder(ctx)
+                .setView(layout)
+                .setPositiveButton("닫기", null)
+                .show();
+    }
+
+    private void addText(Context ctx, LinearLayout parent,
+                         String text, float sizeSp, boolean bold, int color) {
+        TextView tv = new TextView(ctx);
+        tv.setText(text);
+        tv.setTextSize(sizeSp);
+        tv.setTextColor(color);
+        tv.setGravity(Gravity.CENTER_HORIZONTAL);
+        if (bold) tv.setTypeface(null, Typeface.BOLD);
+        tv.setPadding(0, dp(ctx, 3), 0, dp(ctx, 3));
+        parent.addView(tv);
+    }
+
+    private int dp(Context ctx, int value) {
+        return Math.round(value * ctx.getResources().getDisplayMetrics().density);
     }
 }

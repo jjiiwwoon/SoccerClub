@@ -61,7 +61,7 @@ public class MyTeamFragment extends Fragment {
     private ImageView teamLogo, teamPhoto, introToggle;
     private TextView teamName, teamIntro, teamRegion, teamSkill, teamAge;
     private TextView teamActivityDay, teamHomeStadiumName, teamHomeStadiumAddress;
-    private Button btnInvite, btnLeaveTeam;
+    private Button btnInvite, btnLeaveTeam, btnEditTeam;
     private LinearLayout playerListLayout, recordSection, nextScheduleContainer;
     private TextView tvGames, tvWins, tvDraws, tvLosses, tvGF, tvGA, tvWinRate, tvSeeDetails;
     private TextView tvMemberTitle, btnSeeAllSchedule;
@@ -77,6 +77,17 @@ public class MyTeamFragment extends Fragment {
 
     private ListenerRegistration recordListener;
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
+
+    // ✅ 팀 정보 수정 후 복귀 시 새로고침
+    private final ActivityResultLauncher<Intent> editTeamLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+                        if (result.getResultCode() == requireActivity().RESULT_OK
+                                && isAdded() && !AppUtils.isEmpty(teamId)) {
+                            getTeamInfo(teamId);
+                        }
+                    });
 
     // ✅ Fix 2: startActivityForResult 제거 → ActivityResultLauncher 사용
     private final ActivityResultLauncher<Intent> photoLauncher =
@@ -125,6 +136,7 @@ public class MyTeamFragment extends Fragment {
         teamHomeStadiumAddress = view.findViewById(R.id.teamHomeStadiumAddress);
         btnInvite              = view.findViewById(R.id.btnInvite);
         btnLeaveTeam           = view.findViewById(R.id.btnLeaveTeam);
+        btnEditTeam            = view.findViewById(R.id.btnEditTeam);
         playerListLayout       = view.findViewById(R.id.playerListLayout);
         recordSection          = view.findViewById(R.id.recordSection);
         tvGames                = view.findViewById(R.id.tvGames);
@@ -225,6 +237,16 @@ public class MyTeamFragment extends Fragment {
 
         if (btnLeaveTeam != null) {
             btnLeaveTeam.setOnClickListener(v -> onClickLeaveTeam());
+        }
+
+        // ✅ 팀 정보 수정 버튼 (주장/부주장에게만 표시 - bindTeamTextFields에서 처리)
+        if (btnEditTeam != null) {
+            btnEditTeam.setOnClickListener(v -> {
+                if (AppUtils.isEmpty(teamId)) return;
+                Intent intent = new Intent(requireContext(), EditTeamActivity.class);
+                intent.putExtra("teamId", teamId);
+                editTeamLauncher.launch(intent);
+            });
         }
 
         return view;
@@ -349,6 +371,9 @@ public class MyTeamFragment extends Fragment {
         boolean isLeader = currentUid.equals(captainUid) || currentUid.equals(viceCaptainUid);
         if (btnInvite != null)
             btnInvite.setVisibility(isLeader ? View.VISIBLE : View.GONE);
+        // ✅ 팀 수정 버튼도 주장/부주장에게만 표시
+        if (btnEditTeam != null)
+            btnEditTeam.setVisibility(isLeader ? View.VISIBLE : View.GONE);
     }
 
     private void startImageLoads(DocumentSnapshot doc) {

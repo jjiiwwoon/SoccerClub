@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Base.Theme.SoccerClub" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/primary</item>
+<resources>
+
+    <!-- 기본 앱 테마 -->
+    <style name="Theme.SoccerClub" parent="Theme.Material3.DayNight.NoActionBar" />
+
+    <!-- ✅ 스플래시 전용 테마 — 상태바/네비게이션 바를 primary 색상으로 통일 -->
+    <style name="Theme.SoccerClub.Splash" parent="Theme.SoccerClub">
+        <item name="android:windowBackground">@color/primary</item>
+        <item name="android:statusBarColor">@color/primary</item>
+        <item name="android:navigationBarColor">@color/primary</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
     </style>
-    <style name="Theme.SoccerClub" parent="Base.Theme.SoccerClub" />
+
 </resources>

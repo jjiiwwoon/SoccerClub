@@ -5,9 +5,12 @@ import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.DrawableRes;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.Nullable;
 
@@ -74,6 +77,7 @@ public class StateLayout extends FrameLayout {
         applyState(false);
     }
 
+    // ── 상태 전환 ─────────────────────────────────────────────────────────────────
     public void showLoading() { current = State.LOADING; applyState(true); }
     public void showContent() { current = State.CONTENT; applyState(true); }
     public void showEmpty()   { current = State.EMPTY;   applyState(true); }
@@ -104,11 +108,52 @@ public class StateLayout extends FrameLayout {
         }
     }
 
+    // ── 빈 화면 커스터마이징 ──────────────────────────────────────────────────────
+
+    /** 메인 메시지 설정 */
     public void setEmptyMessage(CharSequence msg) {
         if (emptyView == null) return;
         View tv = emptyView.findViewById(R.id.txtEmptyMessage);
-        if (tv instanceof TextView) {
-            ((TextView) tv).setText(msg);
+        if (tv instanceof TextView) ((TextView) tv).setText(msg);
+    }
+
+    /** ✅ 서브 메시지 설정 (없으면 숨김) */
+    public void setEmptySubMessage(CharSequence msg) {
+        if (emptyView == null) return;
+        TextView tv = emptyView.findViewById(R.id.txtEmptySubMessage);
+        if (tv == null) return;
+        if (msg == null || msg.length() == 0) {
+            tv.setVisibility(GONE);
+        } else {
+            tv.setText(msg);
+            tv.setVisibility(VISIBLE);
+        }
+    }
+
+    /** ✅ 행동 유도 버튼 설정 (없으면 숨김) */
+    public void setEmptyAction(CharSequence label, OnClickListener listener) {
+        if (emptyView == null) return;
+        Button btn = emptyView.findViewById(R.id.btnEmptyAction);
+        if (btn == null) return;
+        if (label == null || listener == null) {
+            btn.setVisibility(GONE);
+        } else {
+            btn.setText(label);
+            btn.setOnClickListener(listener);
+            btn.setVisibility(VISIBLE);
+        }
+    }
+
+    /** ✅ 아이콘 변경 */
+    public void setEmptyIcon(@DrawableRes int iconRes) {
+        if (emptyView == null) return;
+        ImageView img = emptyView.findViewById(R.id.imgEmptyIcon);
+        if (img == null) return;
+        if (iconRes == 0) {
+            img.setVisibility(GONE);
+        } else {
+            img.setImageResource(iconRes);
+            img.setVisibility(VISIBLE);
         }
     }
 }

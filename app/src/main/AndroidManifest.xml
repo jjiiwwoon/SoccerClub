@@ -24,15 +24,20 @@
             android:name="com.naver.maps.map.CLIENT_ID"
             android:value="YOUR_NAVER_CLIENT_ID" />
 
-        <!-- ==================== auth ==================== -->
+        <!-- ✅ 스플래시 — LAUNCHER로 변경 -->
         <activity
-            android:name=".ui.auth.LoginActivity"
-            android:exported="true">
+            android:name=".ui.auth.SplashActivity"
+            android:exported="true"
+            android:theme="@style/Theme.SoccerClub.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- ==================== auth ==================== -->
+        <!-- ✅ LoginActivity에서 LAUNCHER 제거 -->
+        <activity android:name=".ui.auth.LoginActivity" />
         <activity android:name=".ui.auth.RegisterActivity" />
         <activity android:name=".ui.auth.CreateProfileActivity" />
 
@@ -42,6 +47,7 @@
         <!-- ==================== team ==================== -->
         <activity android:name=".ui.team.TeamDetailActivity" />
         <activity android:name=".ui.team.CreateTeamActivity" />
+        <activity android:name=".ui.team.EditTeamActivity" />
 
         <!-- ==================== recruit ==================== -->
         <activity android:name=".ui.recruit.RecruitDetailActivity" />
@@ -61,7 +67,10 @@
         <activity android:name=".ui.common.RecordsActivity" />
         <activity android:name=".ui.common.ScheduleActivity" />
         <activity android:name=".ui.common.StadiumSearchActivity" />
+
+        <!-- ==================== profile ==================== -->
         <activity android:name=".ui.profile.EditProfileActivity" />
+
     </application>
 
 </manifest>

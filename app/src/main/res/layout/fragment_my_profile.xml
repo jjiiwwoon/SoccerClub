@@ -307,6 +307,19 @@
                 </LinearLayout>
             </LinearLayout>
 
+            <!-- ✅ 로그아웃 버튼 -->
+            <Button
+                android:id="@+id/btnLogout"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/btn_height"
+                android:text="로그아웃"
+                android:textColor="@color/loss"
+                android:backgroundTint="@color/bg_surface"
+                android:textAllCaps="false"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:layout_marginBottom="@dimen/spacing_xl"
+                app:cornerRadius="@dimen/btn_radius"/>
+
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </com.example.soccerclub.common.StateLayout>
