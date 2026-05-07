@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.example.soccerclub.common.StateLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/stateLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:loadingLayout="@layout/view_state_loading"
+    app:emptyLayout="@layout/view_state_empty"
+    android:background="@color/bg_page">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- 상단 헤더 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/page_padding_horizontal"
+            android:background="@color/bg_surface"
+            android:elevation="2dp">
+
+            <Button
+                android:id="@+id/btnBack"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="← 뒤로"
+                android:textAllCaps="false"
+                android:textColor="@color/primary"
+                android:backgroundTint="@android:color/transparent"
+                android:paddingStart="0dp"/>
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:text="가입 신청 목록"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"/>
+        </LinearLayout>
+
+        <!-- 빈 상태 메시지 -->
+        <TextView
+            android:id="@+id/tvEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="대기 중인 가입 신청이 없어요."
+            android:textSize="14sp"
+            android:textColor="@color/text_secondary"
+            android:gravity="center"
+            android:padding="32dp"
+            android:visibility="gone"/>
+
+        <!-- 신청 목록 -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerRequests"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:clipToPadding="false"
+            android:padding="@dimen/page_padding_horizontal"/>
+
+    </LinearLayout>
+</com.example.soccerclub.common.StateLayout>

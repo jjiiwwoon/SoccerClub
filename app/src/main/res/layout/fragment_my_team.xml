@@ -395,6 +395,19 @@
                             app:cornerRadius="@dimen/btn_radius"/>
                     </LinearLayout>
 
+                    <!-- ✅ 가입 신청 목록 버튼 (주장/부주장에게만 표시) -->
+                    <Button
+                        android:id="@+id/btnJoinRequests"
+                        android:layout_width="match_parent"
+                        android:layout_height="@dimen/btn_height"
+                        android:layout_marginBottom="@dimen/spacing_sm"
+                        android:text="가입 신청 목록"
+                        android:textAllCaps="false"
+                        android:textColor="@color/white"
+                        android:backgroundTint="@color/primary"
+                        android:visibility="gone"
+                        app:cornerRadius="@dimen/btn_radius"/>
+
                     <!-- 팀 탈퇴 (전체 멤버) -->
                     <Button
                         android:id="@+id/btnLeaveTeam"

@@ -384,21 +384,38 @@ public class RecruitMatchFragment extends Fragment
                         stopBadgeWatch();
                         return;
                     }
+
                     String myTeam = snap.getString("myTeam");
                     hasTeam  = !AppUtils.isEmpty(myTeam);
                     myTeamId = hasTeam ? myTeam : "";
 
-                    if (hasTeam) {
-                        String captainUid = snap.getString("captainUID");
-                        String viceUid    = snap.getString("viceCaptainUID");
-                        canWrite = uid.equals(captainUid) || uid.equals(viceUid);
-                        startBadgeWatch();
-                    } else {
+                    if (!hasTeam) {
                         canWrite = false;
                         stopBadgeWatch();
                         if (badgeNew != null) badgeNew.setVisibility(View.GONE);
+                        updateActionsEnabledState();
+                        return;
                     }
-                    updateActionsEnabledState();
+
+                    // ✅ captainUID/viceCaptainUID는 profiles가 아닌 teams 문서에서 읽어야 함
+                    db.collection("teams").document(myTeamId).get()
+                            .addOnSuccessListener(teamSnap -> {
+                                if (!isAdded()) return;
+                                if (teamSnap != null && teamSnap.exists()) {
+                                    String captainUid = teamSnap.getString("captainUID");
+                                    String viceUid    = teamSnap.getString("viceCaptainUID");
+                                    canWrite = uid.equals(captainUid) || uid.equals(viceUid);
+                                } else {
+                                    canWrite = false;
+                                }
+                                startBadgeWatch();
+                                updateActionsEnabledState();
+                            })
+                            .addOnFailureListener(err -> {
+                                if (!isAdded()) return;
+                                canWrite = false;
+                                updateActionsEnabledState();
+                            });
                 });
     }
 

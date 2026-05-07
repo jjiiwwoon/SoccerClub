@@ -32,7 +32,9 @@ import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Source;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TeamDetailActivity extends AppCompatActivity {
 
@@ -378,62 +380,42 @@ public class TeamDetailActivity extends AppCompatActivity {
                 });
     }
 
-    // ── 팀 가입 (✅ Fix 4: 트랜잭션으로 skillAverage 원자적 업데이트) ─────────────
-
+    // ✅ Bug 5: 즉시 가입 → joinRequests 서브컬렉션에 신청만 저장
     private void joinTeam() {
         new AlertDialog.Builder(this)
                 .setTitle("팀 가입 신청")
-                .setMessage("이 팀에 가입 신청하시겠어요?")
-                .setPositiveButton("예", (d, i) -> {
+                .setMessage("이 팀에 가입 신청하시겠어요?\n주장이 수락하면 팀원이 됩니다.")
+                .setPositiveButton("신청", (d, i) -> {
 
-                    DocumentReference teamRef    = db.collection("teams").document(teamId);
-                    DocumentReference profileRef = db.collection("profiles").document(currentUid);
+                    db.collection("profiles").document(currentUid).get()
+                            .addOnSuccessListener(profileSnap -> {
+                                String nickname = AppUtils.safe(profileSnap.getString("nickname"));
+                                Long skillL     = profileSnap.getLong("skill");
+                                int  skill      = skillL != null ? skillL.intValue() : -1;
 
-                    db.runTransaction(transaction -> {
-                                DocumentSnapshot profileSnap = transaction.get(profileRef);
-                                DocumentSnapshot teamSnap    = transaction.get(teamRef);
+                                Map<String, Object> request = new HashMap<>();
+                                request.put("uid",       currentUid);
+                                request.put("nickname",  nickname);
+                                request.put("skill",     skill);
+                                request.put("status",    "pending");
+                                request.put("timestamp", System.currentTimeMillis());
 
-                                // 이미 가입된 경우 중복 방지
-                                List<String> members = (List<String>) teamSnap.get("members");
-                                if (members != null && members.contains(currentUid)) {
-                                    throw new RuntimeException("이미 가입된 팀입니다.");
-                                }
-
-                                // 실력 값 읽기
-                                long skill = profileSnap.getLong("skill") != null
-                                        ? profileSnap.getLong("skill") : 0L;
-
-                                // members 배열에 uid 추가
-                                transaction.update(teamRef, "members", FieldValue.arrayUnion(currentUid));
-
-                                // memberCount, skillSum 증가
-                                transaction.update(teamRef, "memberCount", FieldValue.increment(1L));
-                                transaction.update(teamRef, "skillSum",    FieldValue.increment(skill));
-
-                                // skillAverage 재계산
-                                long currentSum   = teamSnap.getLong("skillSum")   != null ? teamSnap.getLong("skillSum")   : 0L;
-                                long currentCount = teamSnap.getLong("memberCount") != null ? teamSnap.getLong("memberCount") : 0L;
-                                long newSum   = currentSum   + skill;
-                                long newCount = currentCount + 1;
-                                int  newAvg   = newCount > 0 ? (int) (newSum / newCount) : 0;
-                                transaction.update(teamRef, "skillAverage", newAvg);
-
-                                // 프로필에 myTeam 기록
-                                transaction.update(profileRef, "myTeam", teamId);
-
-                                return null;
+                                db.collection("teams").document(teamId)
+                                        .collection("joinRequests").document(currentUid)
+                                        .set(request)
+                                        .addOnSuccessListener(v -> {
+                                            CustomToast.success(this,
+                                                    "가입 신청 완료!\n주장의 수락을 기다려주세요.");
+                                            btnJoinTeam.setText("신청 완료");
+                                            btnJoinTeam.setEnabled(false);
+                                        })
+                                        .addOnFailureListener(e ->
+                                                CustomToast.error(this, "신청 실패: " + e.getMessage()));
                             })
-                            .addOnSuccessListener(v -> {
-                                isMyTeam = true;
-                                btnJoinTeam.setVisibility(View.GONE);
-                                CustomToast.success(this, "팀에 가입했어요!");
-                            })
-                            .addOnFailureListener(e -> {
-                                String msg = e.getMessage() != null ? e.getMessage() : "가입에 실패했어요.";
-                                CustomToast.error(this, msg);
-                            });
+                            .addOnFailureListener(e ->
+                                    CustomToast.error(this, "프로필 정보를 불러오지 못했어요."));
                 })
-                .setNegativeButton("아니오", null)
+                .setNegativeButton("취소", null)
                 .show();
     }
 

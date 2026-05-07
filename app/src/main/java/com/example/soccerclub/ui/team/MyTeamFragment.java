@@ -61,7 +61,7 @@ public class MyTeamFragment extends Fragment {
     private ImageView teamLogo, teamPhoto, introToggle;
     private TextView teamName, teamIntro, teamRegion, teamSkill, teamAge;
     private TextView teamActivityDay, teamHomeStadiumName, teamHomeStadiumAddress;
-    private Button btnInvite, btnLeaveTeam, btnEditTeam;
+    private Button btnInvite, btnLeaveTeam, btnEditTeam, btnJoinRequests;
     private LinearLayout playerListLayout, recordSection, nextScheduleContainer;
     private TextView tvGames, tvWins, tvDraws, tvLosses, tvGF, tvGA, tvWinRate, tvSeeDetails;
     private TextView tvMemberTitle, btnSeeAllSchedule;
@@ -137,6 +137,7 @@ public class MyTeamFragment extends Fragment {
         btnInvite              = view.findViewById(R.id.btnInvite);
         btnLeaveTeam           = view.findViewById(R.id.btnLeaveTeam);
         btnEditTeam            = view.findViewById(R.id.btnEditTeam);
+        btnJoinRequests        = view.findViewById(R.id.btnJoinRequests);
         playerListLayout       = view.findViewById(R.id.playerListLayout);
         recordSection          = view.findViewById(R.id.recordSection);
         tvGames                = view.findViewById(R.id.tvGames);
@@ -239,6 +240,16 @@ public class MyTeamFragment extends Fragment {
             btnLeaveTeam.setOnClickListener(v -> onClickLeaveTeam());
         }
 
+        // ✅ 가입 신청 목록 버튼 (주장/부주장에게만 표시)
+        if (btnJoinRequests != null) {
+            btnJoinRequests.setOnClickListener(v -> {
+                if (AppUtils.isEmpty(teamId)) return;
+                Intent intent = new Intent(requireContext(), JoinRequestsActivity.class);
+                intent.putExtra("teamId", teamId);
+                startActivity(intent);
+            });
+        }
+
         // ✅ 팀 정보 수정 버튼 (주장/부주장에게만 표시 - bindTeamTextFields에서 처리)
         if (btnEditTeam != null) {
             btnEditTeam.setOnClickListener(v -> {
@@ -268,6 +279,47 @@ public class MyTeamFragment extends Fragment {
     public void onStop() {
         super.onStop();
         stopUpcomingAutoRefresh();
+    }
+
+    // ✅ Bug 2: show/hide 방식에서 탭이 다시 보일 때 데이터 재로드
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (!hidden && isAdded()) {
+            reloadTeamIfNeeded();
+        }
+    }
+
+    private void reloadTeamIfNeeded() {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
+        String uid = user.getUid();
+
+        FirebaseFirestore.getInstance().collection("profiles").document(uid).get()
+                .addOnSuccessListener(doc -> {
+                    if (!isAdded() || doc == null || !doc.exists()) return;
+                    String latestTeamId = doc.getString("myTeam");
+
+                    if (!AppUtils.isEmpty(latestTeamId) && !latestTeamId.equals(teamId)) {
+                        // 팀이 새로 생겼거나 변경됨
+                        teamId = latestTeamId;
+                        if (state != null) state.showLoading();
+                        getTeamInfo(teamId);
+                        bindRecordSummary(teamId);
+                        loadUpcomingSchedule(teamId);
+                        startUpcomingAutoRefresh();
+                    } else if (AppUtils.isEmpty(latestTeamId) && !AppUtils.isEmpty(teamId)) {
+                        // 팀 탈퇴됨
+                        teamId = null;
+                        if (state != null) {
+                            state.setEmptyMessage("소속된 팀이 없습니다.\n팀에 가입하거나 팀을 생성하세요.");
+                            state.showEmpty();
+                        }
+                    } else if (!AppUtils.isEmpty(latestTeamId)) {
+                        // 같은 팀 — 멤버 변경 등 반영
+                        loadPlayerList(teamId);
+                    }
+                });
     }
 
     @Override
@@ -371,9 +423,11 @@ public class MyTeamFragment extends Fragment {
         boolean isLeader = currentUid.equals(captainUid) || currentUid.equals(viceCaptainUid);
         if (btnInvite != null)
             btnInvite.setVisibility(isLeader ? View.VISIBLE : View.GONE);
-        // ✅ 팀 수정 버튼도 주장/부주장에게만 표시
         if (btnEditTeam != null)
             btnEditTeam.setVisibility(isLeader ? View.VISIBLE : View.GONE);
+        // ✅ 가입 신청 목록도 주장/부주장에게만 표시
+        if (btnJoinRequests != null)
+            btnJoinRequests.setVisibility(isLeader ? View.VISIBLE : View.GONE);
     }
 
     private void startImageLoads(DocumentSnapshot doc) {
@@ -705,23 +759,48 @@ public class MyTeamFragment extends Fragment {
         dialog.show();
     }
 
+    // ✅ Bug 3: chatRoom 문서(participants 포함) 먼저 생성 후 메시지 추가
     private void sendInviteMessage(String receiverUid) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
         String senderUid = user.getUid();
+
         String roomId = senderUid.compareTo(receiverUid) < 0
-                ? senderUid + "_" + receiverUid : receiverUid + "_" + senderUid;
+                ? senderUid + "_" + receiverUid
+                : receiverUid + "_" + senderUid;
 
-        Map<String, Object> message = new HashMap<>();
-        message.put("senderId",    senderUid);
-        message.put("content",     "[팀 초대] 우리 팀에 합류해보세요!");
-        message.put("messageType", "text");
-        message.put("timestamp",   System.currentTimeMillis());
+        long now = System.currentTimeMillis();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        com.google.firebase.firestore.DocumentReference roomRef =
+                db.collection("chatRooms").document(roomId);
 
-        FirebaseFirestore.getInstance().collection("chatRooms").document(roomId)
-                .collection("messages").add(message)
-                .addOnSuccessListener(v ->
-                        CustomToast.success(requireContext(), "초대 메시지를 보냈어요."));
+        Map<String, Object> roomData = new HashMap<>();
+        roomData.put("participants",  java.util.Arrays.asList(senderUid, receiverUid));
+        roomData.put("lastMessage",   "[팀 초대] 우리 팀에 합류해보세요!");
+        roomData.put("lastTimestamp", now);
+
+        roomRef.set(roomData, com.google.firebase.firestore.SetOptions.merge())
+                .addOnSuccessListener(v -> {
+                    Map<String, Object> message = new HashMap<>();
+                    message.put("senderId",    senderUid);
+                    message.put("content",     "[팀 초대] 우리 팀에 합류해보세요!");
+                    message.put("messageType", "text");
+                    message.put("timestamp",   now);
+
+                    roomRef.collection("messages").add(message)
+                            .addOnSuccessListener(d -> {
+                                if (isAdded())
+                                    CustomToast.success(requireContext(), "초대 메시지를 보냈어요.");
+                            })
+                            .addOnFailureListener(e -> {
+                                if (isAdded())
+                                    CustomToast.error(requireContext(), "메시지 전송 실패: " + e.getMessage());
+                            });
+                })
+                .addOnFailureListener(e -> {
+                    if (isAdded())
+                        CustomToast.error(requireContext(), "채팅방 생성 실패: " + e.getMessage());
+                });
     }
 
     // ── 팀 탈퇴 ───────────────────────────────────────────────────────────────────

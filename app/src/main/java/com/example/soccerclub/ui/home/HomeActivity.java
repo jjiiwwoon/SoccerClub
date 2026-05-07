@@ -2,9 +2,14 @@ package com.example.soccerclub.ui.home;
 
 import android.content.res.ColorStateList;
 import android.os.Bundle;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 
@@ -33,6 +38,31 @@ public class HomeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+        // ✅ Edge-to-edge 설정
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+        // ✅ 시스템 바 insets 처리
+        View root = findViewById(R.id.homeLayout);
+        ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+            Insets sys = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+            // 상단 상태바 → 프래그먼트 영역 상단 패딩
+            View container = findViewById(R.id.fragment_container);
+            if (container != null)
+                container.setPadding(0, sys.top, 0, 0);
+
+            // 하단 네비게이션 바 → bottomNavBar 하단 패딩
+            View bottomNav = findViewById(R.id.bottomNavBar);
+            if (bottomNav != null)
+                bottomNav.setPadding(
+                        bottomNav.getPaddingLeft(),
+                        bottomNav.getPaddingTop(),
+                        bottomNav.getPaddingRight(),
+                        sys.bottom);
+
+            return WindowInsetsCompat.CONSUMED;
+        });
 
         btnRecruitMatch = findViewById(R.id.btnRecruitMatch);
         btnMyTeam       = findViewById(R.id.btnMyTeam);
