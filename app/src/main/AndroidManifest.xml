@@ -48,6 +48,7 @@
         <activity android:name=".ui.team.TeamDetailActivity" />
         <activity android:name=".ui.team.CreateTeamActivity" />
         <activity android:name=".ui.team.EditTeamActivity" />
+        <activity android:name=".ui.team.JoinRequestsActivity" />
 
         <!-- ==================== recruit ==================== -->
         <activity android:name=".ui.recruit.RecruitDetailActivity" />
@@ -70,6 +71,10 @@
 
         <!-- ==================== profile ==================== -->
         <activity android:name=".ui.profile.EditProfileActivity" />
+
+        <meta-data
+            android:name="com.naver.maps.map.NCP_KEY_ID"
+            android:value="e5jzg44yn9" />
 
     </application>
 

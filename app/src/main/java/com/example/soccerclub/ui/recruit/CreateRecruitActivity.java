@@ -340,6 +340,7 @@ public class CreateRecruitActivity extends AppCompatActivity {
         data.put("intro",          details);
         data.put("status",         "open");
         data.put("createdBy",      myUid);
+        data.put("authorUid",      myUid); // ✅ ApplicationsListActivity 내 글 탭 조회용
         data.put("createdAt",      com.google.firebase.Timestamp.now());
         data.put("updatedAt",      com.google.firebase.Timestamp.now());
 

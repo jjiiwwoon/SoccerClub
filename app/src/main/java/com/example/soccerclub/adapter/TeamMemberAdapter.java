@@ -34,9 +34,9 @@ public class TeamMemberAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     public TeamMemberAdapter(String captainUid, String viceCaptainUid,
                              String currentUid, OnPlayerLongClickListener listener) {
-        this.captainUid = captainUid;
-        this.viceCaptainUid = viceCaptainUid;
-        this.currentUid = currentUid;
+        this.captainUid        = captainUid;
+        this.viceCaptainUid    = viceCaptainUid;
+        this.currentUid        = currentUid;
         this.longClickListener = listener;
     }
 
@@ -84,10 +84,11 @@ public class TeamMemberAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
         h.tvNickname.setText(TextUtils.isEmpty(item.nickname) ? "이름 없음" : item.nickname);
         h.tvPosition.setText(TextUtils.isEmpty(item.position) ? "-" : item.position);
 
-        boolean isCaptain    = item.uid != null && item.uid.equals(captainUid);
-        boolean isVice       = item.uid != null && item.uid.equals(viceCaptainUid);
-        boolean isCurrent    = item.uid != null && item.uid.equals(currentUid);
+        boolean isCaptain = item.uid != null && item.uid.equals(captainUid);
+        boolean isVice    = item.uid != null && item.uid.equals(viceCaptainUid);
+        boolean isCurrent = item.uid != null && item.uid.equals(currentUid);
 
+        // 역할 배지 표시
         h.tvRole.setVisibility(View.GONE);
         if (isCaptain) {
             h.tvRole.setVisibility(View.VISIBLE);
@@ -99,8 +100,28 @@ public class TeamMemberAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
         GlideHelper.loadProfile(h.ivPhoto.getContext(), item.photoUrl, h.ivPhoto);
 
+        // ✅ 현재 유저의 등급
+        boolean currentIsCaptain = currentUid != null && currentUid.equals(captainUid);
+        boolean currentIsVice    = currentUid != null && currentUid.equals(viceCaptainUid);
+
+        // ✅ 롱클릭 가능 조건
+        // - 주장: 본인 제외 모든 멤버 롱클릭 가능
+        // - 부주장: 일반 멤버만 롱클릭 가능 (주장·부주장에게는 불가)
+        // - 일반 멤버: 롱클릭 불가
+        boolean canLongClick = false;
+        if (!isCurrent) {
+            if (currentIsCaptain) {
+                // 주장은 본인 제외 모두 가능
+                canLongClick = true;
+            } else if (currentIsVice) {
+                // 부주장은 일반 멤버(주장·부주장 아닌 사람)만 가능
+                canLongClick = !isCaptain && !isVice;
+            }
+        }
+
+        final boolean finalCanLongClick = canLongClick;
         h.itemView.setOnLongClickListener(v -> {
-            if (longClickListener != null && isCurrent) {
+            if (longClickListener != null && finalCanLongClick) {
                 longClickListener.onLongClick(item.nickname, item.uid);
                 return true;
             }
@@ -118,7 +139,7 @@ public class TeamMemberAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
     public static class MemberItem {
         public static final int TYPE_HEADER = 0;
         public static final int TYPE_PLAYER = 1;
-        public int type;
+        public int    type;
         public String header;
         public String uid;
         public String nickname;
@@ -133,7 +154,7 @@ public class TeamMemberAdapter extends RecyclerView.Adapter<RecyclerView.ViewHol
 
     static class PlayerViewHolder extends RecyclerView.ViewHolder {
         ImageView ivPhoto;
-        TextView tvNickname, tvPosition, tvRole;
+        TextView  tvNickname, tvPosition, tvRole;
         PlayerViewHolder(@NonNull View v) {
             super(v);
             ivPhoto    = v.findViewById(R.id.ivPhoto);

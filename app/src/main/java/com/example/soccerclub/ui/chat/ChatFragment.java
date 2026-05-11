@@ -75,11 +75,36 @@ public class ChatFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (roomsReg != null) { roomsReg.remove(); roomsReg = null; }
+        stopListener();
+    }
+
+    // ✅ show/hide 방식에서 탭이 다시 보일 때 리스너 재시작
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (!isAdded()) return;
+        if (!hidden) {
+            // 탭이 다시 보일 때 → 리스너 재시작 (새 채팅방 즉시 반영)
+            firstResultHandled = false;
+            listenChatRooms();
+        } else {
+            // 탭이 숨겨질 때 → 리스너 해제 (배터리/네트워크 절약)
+            stopListener();
+        }
+    }
+
+    private void stopListener() {
+        if (roomsReg != null) {
+            roomsReg.remove();
+            roomsReg = null;
+        }
     }
 
     private void listenChatRooms() {
-        if (roomsReg != null) roomsReg.remove();
+        stopListener(); // 기존 리스너 먼저 해제
+
+        if (currentUid == null) return;
+        if (state != null) state.showLoading();
 
         roomsReg = db.collection("chatRooms")
                 .whereArrayContains("participants", currentUid)
@@ -100,6 +125,13 @@ public class ChatFragment extends Fragment {
                         if (item == null) continue;
                         item.setRoomId(doc.getId());
 
+                        // ✅ toObject() 매핑이 불완전할 수 있으므로 직접 읽기
+                        Long lastTs = doc.getLong("lastTimestamp");
+                        if (lastTs != null) item.setLastTimestamp(lastTs);
+
+                        String lastMsg = doc.getString("lastMessage");
+                        if (lastMsg != null) item.setLastMessage(lastMsg);
+
                         List<String> participants = (List<String>) doc.get("participants");
                         String peerUid = null;
                         if (participants != null) {
@@ -110,12 +142,13 @@ public class ChatFragment extends Fragment {
 
                         if (peerUid != null) {
                             final String finalPeerUid = peerUid;
+                            final ChatRoomItem finalItem = item;
                             Task<DocumentSnapshot> metaT = db.collection("profiles")
                                     .document(finalPeerUid).get()
                                     .addOnSuccessListener(p -> {
                                         if (p.exists()) {
-                                            item.setPeerNickname(p.getString("nickname"));
-                                            item.setPeerProfileImage(p.getString("profileImageUrl"));
+                                            finalItem.setPeerNickname(p.getString("nickname"));
+                                            finalItem.setPeerProfileImage(p.getString("profileImageUrl"));
                                         }
                                     });
                             pendingTasks.add(metaT);
@@ -127,6 +160,7 @@ public class ChatFragment extends Fragment {
                             lastReadTs = ((Number) lastRead.get(currentUid)).longValue();
                         }
                         final long finalLastReadTs = lastReadTs;
+                        final ChatRoomItem finalItem2 = item;
 
                         Task<QuerySnapshot> unreadT = db.collection("chatRooms")
                                 .document(doc.getId()).collection("messages")
@@ -139,9 +173,9 @@ public class ChatFragment extends Fragment {
                                         String sender = m.getString("senderId");
                                         if (sender != null && !sender.equals(currentUid)) cnt++;
                                     }
-                                    item.setUnreadCount(cnt);
+                                    finalItem2.setUnreadCount(cnt);
                                 })
-                                .addOnFailureListener(ex -> item.setUnreadCount(0));
+                                .addOnFailureListener(ex -> finalItem2.setUnreadCount(0));
                         pendingTasks.add(unreadT);
 
                         chatRoomList.add(item);
@@ -160,6 +194,9 @@ public class ChatFragment extends Fragment {
                         adapter.notifyDataSetChanged();
                         if (!firstResultHandled) {
                             firstResultHandled = true;
+                            if (state != null) state.showContent();
+                        } else {
+                            // ✅ 이후 업데이트도 content 상태 유지
                             if (state != null) state.showContent();
                         }
                     });

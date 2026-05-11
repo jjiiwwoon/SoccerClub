@@ -71,6 +71,8 @@ public class MyTeamFragment extends Fragment {
 
     // ── 상태 ──────────────────────────────────────────────────────────────────────
     private String teamId = null;
+    private String captainUid = "";      // ✅ 권한 체크용 필드
+    private String viceCaptainUid = "";  // ✅ 권한 체크용 필드
     private String introFullText = "";
     private boolean isIntroExpanded = false;
     private boolean firstImageDrawn = false;
@@ -396,6 +398,10 @@ public class MyTeamFragment extends Fragment {
         String captainUid     = doc.getString("captainUID");
         String viceCaptainUid = doc.getString("viceCaptainUID");
 
+        // ✅ Fragment 필드에 저장 → showPlayerOptionsDialog에서 권한 체크에 사용
+        this.captainUid     = AppUtils.safe(captainUid);
+        this.viceCaptainUid = AppUtils.safe(viceCaptainUid);
+
         // ✅ Fix 3: null 체크 후 uid 접근
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         String currentUid = (user != null) ? user.getUid() : "";
@@ -425,9 +431,26 @@ public class MyTeamFragment extends Fragment {
             btnInvite.setVisibility(isLeader ? View.VISIBLE : View.GONE);
         if (btnEditTeam != null)
             btnEditTeam.setVisibility(isLeader ? View.VISIBLE : View.GONE);
-        // ✅ 가입 신청 목록도 주장/부주장에게만 표시
-        if (btnJoinRequests != null)
+        if (btnJoinRequests != null) {
             btnJoinRequests.setVisibility(isLeader ? View.VISIBLE : View.GONE);
+            // ✅ 가입 신청 배지 — 주장/부주장에게 pending 신청 수 표시
+            if (isLeader && !AppUtils.isEmpty(teamId)) {
+                FirebaseFirestore.getInstance()
+                        .collection("teams").document(teamId)
+                        .collection("joinRequests")
+                        .whereEqualTo("status", "pending")
+                        .get()
+                        .addOnSuccessListener(snap -> {
+                            if (!isAdded()) return;
+                            int count = snap.size();
+                            if (count > 0) {
+                                btnJoinRequests.setText("가입 신청 목록 (" + count + ")");
+                            } else {
+                                btnJoinRequests.setText("가입 신청 목록");
+                            }
+                        });
+            }
+        }
     }
 
     private void startImageLoads(DocumentSnapshot doc) {
@@ -481,6 +504,11 @@ public class MyTeamFragment extends Fragment {
                     String captainUid     = teamDoc.getString("captainUID");
                     String viceCaptainUid = teamDoc.getString("viceCaptainUID");
                     List<String> members  = (List<String>) teamDoc.get("members");
+
+                    // ✅ Fragment 필드 항상 최신 값으로 업데이트
+                    // → 주장/부주장 변경 후 권한 체크가 즉시 반영됨
+                    MyTeamFragment.this.captainUid     = AppUtils.safe(captainUid);
+                    MyTeamFragment.this.viceCaptainUid = AppUtils.safe(viceCaptainUid);
 
                     // ✅ Fix 3: null 체크
                     FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -759,7 +787,7 @@ public class MyTeamFragment extends Fragment {
         dialog.show();
     }
 
-    // ✅ Bug 3: chatRoom 문서(participants 포함) 먼저 생성 후 메시지 추가
+    // ✅ Bug 3 + 팀 초대 수락 버튼: messageType="team_invite" + teamId 포함
     private void sendInviteMessage(String receiverUid) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
@@ -778,13 +806,16 @@ public class MyTeamFragment extends Fragment {
         roomData.put("participants",  java.util.Arrays.asList(senderUid, receiverUid));
         roomData.put("lastMessage",   "[팀 초대] 우리 팀에 합류해보세요!");
         roomData.put("lastTimestamp", now);
+        if (!AppUtils.isEmpty(teamId)) roomData.put("teamId", teamId);
 
         roomRef.set(roomData, com.google.firebase.firestore.SetOptions.merge())
                 .addOnSuccessListener(v -> {
                     Map<String, Object> message = new HashMap<>();
                     message.put("senderId",    senderUid);
                     message.put("content",     "[팀 초대] 우리 팀에 합류해보세요!");
-                    message.put("messageType", "text");
+                    // ✅ "text" → "team_invite" 로 변경 → 수신자에게 수락/거절 버튼 표시
+                    message.put("messageType", "team_invite");
+                    message.put("teamId",      teamId); // 어느 팀인지 함께 전송
                     message.put("timestamp",   now);
 
                     roomRef.collection("messages").add(message)
@@ -914,110 +945,141 @@ public class MyTeamFragment extends Fragment {
         AlertDialog dialog = new AlertDialog.Builder(requireContext(), R.style.CustomDialog)
                 .setView(dialogView).create();
 
-        // ✅ Fix 3: null 체크
+        // ✅ 현재 유저가 주장인지 부주장인지 판단
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         String currentUid = (user != null) ? user.getUid() : "";
 
-        // 주장 위임
+        // 팀 문서에서 captainUID 가져오기 (MyTeamFragment의 필드 captainUid 사용)
+        boolean isCaptain    = currentUid.equals(this.captainUid);
+        boolean isViceCaptain = currentUid.equals(viceCaptainUid);
+
+        // ── 주장 위임 — 주장만 가능 ──────────────────────────────────────────────
         if (btnAssignCaptain != null) {
-            btnAssignCaptain.setVisibility(View.VISIBLE);
-            btnAssignCaptain.setOnClickListener(v -> {
-                dialog.dismiss();
-                if (currentUid.equals(uid)) {
-                    CustomToast.warning(requireContext(), "자기 자신에게는 위임할 수 없어요.");
-                    return;
-                }
-                new AlertDialog.Builder(requireContext())
-                        .setTitle("주장 권한 위임")
-                        .setMessage(nickname + " 님에게 주장 권한을 위임하시겠습니까?")
-                        .setPositiveButton("예", (d, w) ->
-                                FirebaseFirestore.getInstance()
-                                        .collection("teams").document(teamId)
-                                        .update("captainUID", uid)
-                                        .addOnSuccessListener(v2 ->
-                                                CustomToast.success(requireContext(), "주장 권한이 위임됐어요.")))
-                        .setNegativeButton("아니오", null).show();
-            });
+            if (isCaptain) {
+                btnAssignCaptain.setVisibility(View.VISIBLE);
+                btnAssignCaptain.setOnClickListener(v -> {
+                    dialog.dismiss();
+                    if (currentUid.equals(uid)) {
+                        CustomToast.warning(requireContext(), "자기 자신에게는 위임할 수 없어요.");
+                        return;
+                    }
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("주장 권한 위임")
+                            .setMessage(nickname + " 님에게 주장 권한을 위임하시겠습니까?")
+                            .setPositiveButton("예", (d, w) ->
+                                    FirebaseFirestore.getInstance()
+                                            .collection("teams").document(teamId)
+                                            .update("captainUID", uid)
+                                            .addOnSuccessListener(v2 -> {
+                                                CustomToast.success(requireContext(), "주장 권한이 위임됐어요.");
+                                                // ✅ Fragment 필드 즉시 업데이트 → 새 주장이 바로 권한 사용 가능
+                                                MyTeamFragment.this.captainUid = uid;
+                                                loadPlayerList(teamId);
+                                            }))
+                            .setNegativeButton("아니오", null).show();
+                });
+            } else {
+                // 부주장은 주장 위임 불가
+                btnAssignCaptain.setVisibility(View.GONE);
+            }
         }
 
-        // 부주장 지정/해제
+        // ── 부주장 지정/해제 — 주장만 가능 ──────────────────────────────────────
         boolean isVice = uid.equals(viceCaptainUid);
-        if (assignViceText != null)
-            assignViceText.setText(isVice ? "부주장 해제" : "부주장 지정");
         if (btnAssignVice != null) {
-            btnAssignVice.setOnClickListener(v -> {
-                dialog.dismiss();
-                String newVice = isVice ? "" : uid;
-                FirebaseFirestore.getInstance()
-                        .collection("teams").document(teamId)
-                        .update("viceCaptainUID", newVice)
-                        .addOnSuccessListener(v2 ->
+            if (isCaptain) {
+                if (assignViceText != null)
+                    assignViceText.setText(isVice ? "부주장 해제" : "부주장 지정");
+                btnAssignVice.setVisibility(View.VISIBLE);
+                btnAssignVice.setOnClickListener(v -> {
+                    dialog.dismiss();
+                    String newVice = isVice ? "" : uid;
+                    FirebaseFirestore.getInstance()
+                            .collection("teams").document(teamId)
+                            .update("viceCaptainUID", newVice)
+                            .addOnSuccessListener(v2 -> {
                                 CustomToast.success(requireContext(),
-                                        isVice ? "부주장이 해제됐어요." : "부주장으로 지정됐어요."));
-            });
+                                        isVice ? "부주장이 해제됐어요." : "부주장으로 지정됐어요.");
+                                // ✅ Fragment 필드 즉시 업데이트 → 새 부주장이 바로 권한 사용 가능
+                                MyTeamFragment.this.viceCaptainUid = newVice;
+                                loadPlayerList(teamId);
+                            });
+                });
+            } else {
+                // 부주장은 부주장 지정/해제 불가
+                btnAssignVice.setVisibility(View.GONE);
+            }
         }
 
-        // ✅ 강퇴 — 트랜잭션으로 skillAverage 원자적 재계산
+        // ✅ 강퇴 — 부주장은 일반 멤버만 강퇴 가능 (주장·부주장 강퇴 불가)
+        boolean targetIsCaptain = uid.equals(this.captainUid);
+        boolean targetIsVice    = uid.equals(viceCaptainUid);
+
         if (btnKickPlayer != null) {
-            btnKickPlayer.setOnClickListener(v -> {
-                dialog.dismiss();
-                if (currentUid.equals(uid)) {
-                    CustomToast.warning(requireContext(), "자기 자신을 강퇴할 수 없어요.");
-                    return;
-                }
-                new AlertDialog.Builder(requireContext())
-                        .setTitle("팀원 강퇴")
-                        .setMessage(nickname + " 님을 팀에서 강퇴하시겠습니까?")
-                        .setPositiveButton("예", (d, w) -> {
-                            FirebaseFirestore db = FirebaseFirestore.getInstance();
-                            DocumentReference teamRef    = db.collection("teams").document(teamId);
-                            DocumentReference profileRef = db.collection("profiles").document(uid);
+            // 부주장이 주장 또는 부주장을 강퇴하려는 경우 버튼 숨김
+            if (isViceCaptain && (targetIsCaptain || targetIsVice)) {
+                btnKickPlayer.setVisibility(View.GONE);
+            } else {
+                btnKickPlayer.setOnClickListener(v -> {
+                    dialog.dismiss();
+                    if (currentUid.equals(uid)) {
+                        CustomToast.warning(requireContext(), "자기 자신을 강퇴할 수 없어요.");
+                        return;
+                    }
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("팀원 강퇴")
+                            .setMessage(nickname + " 님을 팀에서 강퇴하시겠습니까?")
+                            .setPositiveButton("예", (d, w) -> {
+                                FirebaseFirestore db = FirebaseFirestore.getInstance();
+                                DocumentReference teamRef    = db.collection("teams").document(teamId);
+                                DocumentReference profileRef = db.collection("profiles").document(uid);
 
-                            db.runTransaction(transaction -> {
-                                        com.google.firebase.firestore.DocumentSnapshot teamSnap =
-                                                transaction.get(teamRef);
-                                        com.google.firebase.firestore.DocumentSnapshot profSnap =
-                                                transaction.get(profileRef);
+                                db.runTransaction(transaction -> {
+                                            com.google.firebase.firestore.DocumentSnapshot teamSnap =
+                                                    transaction.get(teamRef);
+                                            com.google.firebase.firestore.DocumentSnapshot profSnap =
+                                                    transaction.get(profileRef);
 
-                                        long skill = profSnap.getLong("skill") != null
-                                                ? profSnap.getLong("skill") : 0L;
+                                            long skill = profSnap.getLong("skill") != null
+                                                    ? profSnap.getLong("skill") : 0L;
 
-                                        transaction.update(teamRef, "members",
-                                                FieldValue.arrayRemove(uid));
-                                        transaction.update(teamRef, "memberCount",
-                                                FieldValue.increment(-1L));
-                                        transaction.update(teamRef, "skillSum",
-                                                FieldValue.increment(-skill));
+                                            transaction.update(teamRef, "members",
+                                                    FieldValue.arrayRemove(uid));
+                                            transaction.update(teamRef, "memberCount",
+                                                    FieldValue.increment(-1L));
+                                            transaction.update(teamRef, "skillSum",
+                                                    FieldValue.increment(-skill));
 
-                                        long curSum   = teamSnap.getLong("skillSum")    != null
-                                                ? teamSnap.getLong("skillSum")    : 0L;
-                                        long curCount = teamSnap.getLong("memberCount") != null
-                                                ? teamSnap.getLong("memberCount") : 1L;
-                                        long newSum   = Math.max(0, curSum - skill);
-                                        long newCount = Math.max(0, curCount - 1);
-                                        int  newAvg   = newCount > 0 ? (int)(newSum / newCount) : 0;
-                                        transaction.update(teamRef, "skillAverage", newAvg);
+                                            long curSum   = teamSnap.getLong("skillSum")    != null
+                                                    ? teamSnap.getLong("skillSum")    : 0L;
+                                            long curCount = teamSnap.getLong("memberCount") != null
+                                                    ? teamSnap.getLong("memberCount") : 1L;
+                                            long newSum   = Math.max(0, curSum - skill);
+                                            long newCount = Math.max(0, curCount - 1);
+                                            int  newAvg   = newCount > 0 ? (int)(newSum / newCount) : 0;
+                                            transaction.update(teamRef, "skillAverage", newAvg);
 
-                                        if (uid.equals(teamSnap.getString("viceCaptainUID"))) {
-                                            transaction.update(teamRef, "viceCaptainUID", "");
-                                        }
+                                            if (uid.equals(teamSnap.getString("viceCaptainUID"))) {
+                                                transaction.update(teamRef, "viceCaptainUID", "");
+                                            }
 
-                                        transaction.update(profileRef, "myTeam", null);
-                                        return null;
-                                    })
-                                    .addOnSuccessListener(v2 -> {
-                                        if (!isAdded()) return;
-                                        CustomToast.success(requireContext(), nickname + "님을 강퇴했어요.");
-                                        loadPlayerList(teamId);
-                                    })
-                                    .addOnFailureListener(e -> {
-                                        if (!isAdded()) return;
-                                        CustomToast.error(requireContext(),
-                                                "강퇴에 실패했어요: " + e.getMessage());
-                                    });
-                        })
-                        .setNegativeButton("아니오", null).show();
-            });
+                                            transaction.update(profileRef, "myTeam", null);
+                                            return null;
+                                        })
+                                        .addOnSuccessListener(v2 -> {
+                                            if (!isAdded()) return;
+                                            CustomToast.success(requireContext(), nickname + "님을 강퇴했어요.");
+                                            loadPlayerList(teamId);
+                                        })
+                                        .addOnFailureListener(e -> {
+                                            if (!isAdded()) return;
+                                            CustomToast.error(requireContext(),
+                                                    "강퇴에 실패했어요: " + e.getMessage());
+                                        });
+                            })
+                            .setNegativeButton("아니오", null).show();
+                });
+            } // else 닫기 (부주장이 주장/부주장 강퇴 불가 조건)
         }
 
         dialog.show();

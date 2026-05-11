@@ -138,44 +138,67 @@ public class ChatRoomActivity extends AppCompatActivity {
                 .addSnapshotListener((snapshots, e) -> {
                     if (e != null || snapshots == null) return;
 
-                    boolean added = false;
-                    for (DocumentChange dc : snapshots.getDocumentChanges()) {
-                        if (dc.getType() == DocumentChange.Type.ADDED) {
-                            ChatMessageAdapter.ChatMessage msg =
-                                    new ChatMessageAdapter.ChatMessage();
-                            msg.senderId  = dc.getDocument().getString("senderId");
-                            msg.text      = dc.getDocument().getString("content");
-                            Long ts = dc.getDocument().getLong("timestamp");
-                            msg.timestamp = ts != null ? ts : 0L;
-                            messageList.add(msg);
-                            adapter.notifyItemInserted(messageList.size() - 1);
-                            added = true;
+                    // ✅ 매번 스냅샷 전체를 다시 빌드 → 항상 Firestore 순서 그대로
+                    List<ChatMessageAdapter.ChatMessage> newList = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc
+                            : snapshots.getDocuments()) {
+                        String existingStatus = null;
+                        for (ChatMessageAdapter.ChatMessage old : messageList) {
+                            if (doc.getId().equals(old.messageDocId)) {
+                                existingStatus = old.inviteStatus;
+                                break;
+                            }
                         }
+                        ChatMessageAdapter.ChatMessage msg =
+                                new ChatMessageAdapter.ChatMessage();
+                        msg.senderId     = doc.getString("senderId");
+                        msg.text         = doc.getString("content");
+                        msg.timestamp    = getSafeTimestamp(doc);
+                        msg.messageType  = doc.getString("messageType");
+                        msg.teamId       = doc.getString("teamId");
+                        msg.messageDocId = doc.getId();
+                        String fsStatus  = doc.getString("inviteStatus");
+                        msg.inviteStatus = fsStatus != null ? fsStatus : existingStatus;
+                        newList.add(msg);
                     }
-                    if (added) {
-                        scrollToBottom();
-                        markRoomRead();
-                    }
+                    messageList.clear();
+                    messageList.addAll(newList);
+                    // ✅ Firestore pending write 등으로 순서가 틀어질 수 있으므로 명시적 정렬
+                    messageList.sort((a, b) -> {
+                        if (a.timestamp == 0 && b.timestamp == 0) return 0;
+                        if (a.timestamp == 0) return 1;  // timestamp 없는 건 맨 뒤
+                        if (b.timestamp == 0) return -1;
+                        return Long.compare(a.timestamp, b.timestamp); // 오름차순
+                    });
+                    adapter.notifyDataSetChanged();
+                    scrollToBottom();
+                    markRoomRead();
                 });
     }
 
     private void sendMessage(String content) {
-        long now = System.currentTimeMillis();
+        long localNow = System.currentTimeMillis();
         Map<String, Object> message = new HashMap<>();
         message.put("senderId",    currentUid);
         message.put("content",     content);
         message.put("messageType", "text");
-        message.put("timestamp",   now);
+        // ✅ 클라이언트 시계 차이로 인한 순서 오류 방지 → 서버 타임스탬프 사용
+        message.put("timestamp",   com.google.firebase.firestore.FieldValue.serverTimestamp());
+        // 로컬 표시용 클라이언트 타임스탬프도 함께 저장
+        message.put("clientTs",    localNow);
 
         db.collection("chatRooms").document(roomId)
                 .collection("messages").add(message)
                 .addOnSuccessListener(d -> {
-                    Map<String, Object> updates = new HashMap<>();
-                    updates.put("lastMessage",  content);
-                    updates.put("lastTimestamp", now);
-                    updates.put("lastRead." + currentUid, now);
+                    // lastMessage, lastTimestamp 업데이트
+                    Map<String, Object> roomUpdates = new HashMap<>();
+                    roomUpdates.put("lastMessage",   content);
+                    roomUpdates.put("lastTimestamp", localNow);
                     db.collection("chatRooms").document(roomId)
-                            .set(updates, SetOptions.merge());
+                            .set(roomUpdates, SetOptions.merge());
+                    // ✅ lastRead.uid 는 update() 로 별도 처리 (dotted path)
+                    db.collection("chatRooms").document(roomId)
+                            .update("lastRead." + currentUid, localNow);
                 });
     }
 
@@ -183,13 +206,28 @@ public class ChatRoomActivity extends AppCompatActivity {
         if (roomId == null || currentUid == null) return;
         long lastTs = messageList.isEmpty() ? System.currentTimeMillis()
                 : messageList.get(messageList.size() - 1).timestamp;
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("lastRead." + currentUid, lastTs > 0 ? lastTs : System.currentTimeMillis());
-        db.collection("chatRooms").document(roomId).set(updates, SetOptions.merge());
+        // ✅ set(merge) → update() 로 변경
+        // dotted path "lastRead.uid"는 update()에서만 중첩 경로로 올바르게 저장됨
+        db.collection("chatRooms").document(roomId)
+                .update("lastRead." + currentUid,
+                        lastTs > 0 ? lastTs : System.currentTimeMillis());
     }
 
     private void scrollToBottom() {
         if (!messageList.isEmpty())
             recyclerChat.scrollToPosition(messageList.size() - 1);
+    }
+
+    // ✅ timestamp 필드가 Long이든 Firestore Timestamp든 안전하게 읽기
+    private long getSafeTimestamp(com.google.firebase.firestore.DocumentSnapshot doc) {
+        try {
+            Object raw = doc.get("timestamp");
+            if (raw == null) return 0L;
+            if (raw instanceof Number) return ((Number) raw).longValue();
+            if (raw instanceof com.google.firebase.Timestamp) {
+                return ((com.google.firebase.Timestamp) raw).toDate().getTime();
+            }
+        } catch (Exception ignored) {}
+        return 0L;
     }
 }

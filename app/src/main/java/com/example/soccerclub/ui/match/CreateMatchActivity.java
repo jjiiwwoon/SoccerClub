@@ -203,6 +203,10 @@ public class CreateMatchActivity extends AppCompatActivity {
         data.put("description",    description);
         data.put("status",         "OPEN");
         data.put("region",         myTeamRegion);
+        String currentUid = FirebaseAuth.getInstance().getCurrentUser() != null
+                ? FirebaseAuth.getInstance().getCurrentUser().getUid() : "";
+        data.put("authorUid",      currentUid); // ✅ 내 글 탭 조회용
+        data.put("createdBy",      currentUid);
         data.put("createdAt",      Timestamp.now());
 
         btnSubmit.setEnabled(false);
