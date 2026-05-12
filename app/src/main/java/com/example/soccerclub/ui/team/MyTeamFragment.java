@@ -632,9 +632,11 @@ public class MyTeamFragment extends Fragment {
         if (!isAdded() || AppUtils.isEmpty(teamId)) return;
         showScheduleLoading(true);
         long now = System.currentTimeMillis();
+
+        // ✅ schedules/{teamId}/events 에서 읽기 — ScheduleActivity와 동일한 구조
         FirebaseFirestore.getInstance()
-                .collection("schedules")
-                .whereEqualTo("teamId", teamId)
+                .collection("schedules").document(teamId)
+                .collection("events")
                 .whereGreaterThan("matchTs", now)
                 .orderBy("matchTs")
                 .limit(1)
@@ -660,10 +662,10 @@ public class MyTeamFragment extends Fragment {
         if (tvHomeName     != null) tvHomeName.setText(AppUtils.safe(doc.getString("homeTeamName")));
         if (tvAwayName     != null) tvAwayName.setText(AppUtils.safe(doc.getString("awayTeamName")));
         if (tvPlace        != null) tvPlace.setText(AppUtils.safe(doc.getString("stadiumName")));
-        if (tvAddress      != null) tvAddress.setText(AppUtils.safe(doc.getString("stadiumAddress")));
+        if (tvAddress      != null) tvAddress.setText(AppUtils.safe(doc.getString("address")));
 
-        String homeLogo = doc.getString("homeTeamLogoUrl");
-        String awayLogo = doc.getString("awayTeamLogoUrl");
+        String homeLogo = doc.getString("homeLogoUrl");
+        String awayLogo = doc.getString("awayLogoUrl");
         if (imgHomeLogo != null && !AppUtils.isEmpty(homeLogo) && isAdded())
             Glide.with(this).load(homeLogo).circleCrop().into(imgHomeLogo);
         if (imgAwayLogo != null && !AppUtils.isEmpty(awayLogo) && isAdded())

@@ -306,6 +306,19 @@ public class MatchDetailActivity extends AppCompatActivity {
                 .addOnSuccessListener(v -> {
                     db.collection("matches").document(matchId)
                             .update("lastApplicantTs", now);
+
+                    // ✅ teams/{teamId}/matchApplications/{matchId} 에 저장
+                    // → 팀 관점에서 신청한 시합 목록 조회 가능 (인덱스 불필요)
+                    Map<String, Object> teamApp = new HashMap<>();
+                    teamApp.put("matchId",      matchId);
+                    teamApp.put("postType",     "match");
+                    teamApp.put("status",       "pending");
+                    teamApp.put("timestamp",    now);
+                    teamApp.put("applicantUid", currentUid); // 신청한 주장 uid
+                    db.collection("teams").document(myTeamId)
+                            .collection("matchApplications").document(matchId)
+                            .set(teamApp);
+
                     CustomToast.success(this, "신청 완료! 상대 팀의 확인을 기다려 주세요.");
                     applyState = APPLY_ALREADY;
                     btnApply.setText("신청 완료");
@@ -329,6 +342,15 @@ public class MatchDetailActivity extends AppCompatActivity {
                 .addOnSuccessListener(v -> {
                     db.collection("matches").document(matchId)
                             .update("lastApplicantTs", now);
+
+                    // ✅ teams/{teamId}/matchApplications 상태도 업데이트
+                    Map<String, Object> teamApp = new HashMap<>();
+                    teamApp.put("status",    "pending");
+                    teamApp.put("timestamp", now);
+                    db.collection("teams").document(myTeamId)
+                            .collection("matchApplications").document(matchId)
+                            .set(teamApp, com.google.firebase.firestore.SetOptions.merge());
+
                     CustomToast.success(this, "재신청 완료!");
                     applyState = APPLY_ALREADY;
                     btnApply.setText("신청 완료");

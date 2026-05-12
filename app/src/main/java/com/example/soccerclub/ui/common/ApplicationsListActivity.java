@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.soccerclub.R;
 import com.example.soccerclub.adapter.ApplicationsAdapter;
+import com.example.soccerclub.common.CustomToast;
 import com.example.soccerclub.ui.chat.ChatRoomActivity;
 import com.example.soccerclub.util.AppUtils;
 import com.google.android.gms.tasks.Task;
@@ -41,8 +42,9 @@ public class ApplicationsListActivity extends AppCompatActivity {
     private boolean mineSelected = true;
     private String  typeFilter   = "all";
 
-    private String currentUid = "";
-    private String myTeamId   = "";
+    private String currentUid   = "";
+    private String myTeamId     = "";
+    private boolean profileLoaded = false; // ✅ 프로필 로딩 완료 플래그
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private final Map<String, Long> sessionMaxTs = new LinkedHashMap<>();
@@ -100,13 +102,24 @@ public class ApplicationsListActivity extends AppCompatActivity {
             typeFilter = "match"; setTypeSelected("match"); loadData();
         });
 
-        // 프로필 로딩 후 loadData
+        // ✅ 프로필 로딩 완료 후 loadData (myTeamId 세팅 보장)
         db.collection("profiles").document(currentUid).get()
                 .addOnSuccessListener(doc -> {
                     myTeamId = AppUtils.safe(doc.getString("myTeam"));
+                    profileLoaded = true;
                     loadData();
                 })
-                .addOnFailureListener(e -> loadData());
+                .addOnFailureListener(e -> {
+                    profileLoaded = true;
+                    loadData();
+                });
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // ✅ 프로필 로딩 완료된 후에만 새로고침 (myTeamId 보장)
+        if (profileLoaded && !AppUtils.isEmpty(currentUid)) loadData();
     }
 
     private void loadData() {
@@ -213,34 +226,50 @@ public class ApplicationsListActivity extends AppCompatActivity {
     // ── 신청한 글 탭 ─────────────────────────────────────────────────────────────
 
     private void loadApplied() {
-        List<Task<QuerySnapshot>> waits = new ArrayList<>();
+        List<Task<?>> allTasks = new ArrayList<>();
+        final Map<String, ApplicationsAdapter.Item> dedup = new LinkedHashMap<>();
 
-        // ✅ Fix 3: "applicantUserId" 와 "userId" 둘 다 검색
-        waits.add(db.collectionGroup("applicants")
-                .whereEqualTo("applicantUserId", currentUid).get());
-        waits.add(db.collectionGroup("applicants")
-                .whereEqualTo("userId", currentUid).get());
+        // ✅ 선수 모집 신청 — profiles/{uid}/applications (개인 기준)
+        // postType + timestamp 복합 인덱스 필요 (Firebase 콘솔에서 생성)
+        Task<com.google.firebase.firestore.QuerySnapshot> recruitTask =
+                db.collection("profiles").document(currentUid)
+                        .collection("applications")
+                        .whereEqualTo("postType", "recruit")
+                        .orderBy("timestamp", Query.Direction.DESCENDING)
+                        .get();
 
-        // 팀 기준 신청도 포함
+        // ✅ 시합 신청 — teams/{myTeamId}/matchApplications (팀 기준, 인덱스 불필요)
+        List<Task<com.google.firebase.firestore.QuerySnapshot>> tasks = new ArrayList<>();
+        tasks.add(recruitTask);
+        final Task<com.google.firebase.firestore.QuerySnapshot> finalMatchTask;
         if (!AppUtils.isEmpty(myTeamId)) {
-            waits.add(db.collectionGroup("applicants")
-                    .whereEqualTo("teamId", myTeamId).get());
+            finalMatchTask = db.collection("teams").document(myTeamId)
+                    .collection("matchApplications")
+                    .orderBy("timestamp", Query.Direction.DESCENDING)
+                    .get();
+            tasks.add(finalMatchTask);
+        } else {
+            finalMatchTask = null;
         }
 
-        Tasks.whenAllSuccess(waits).addOnSuccessListener(res -> {
-            Map<String, ApplicationsAdapter.Item> dedup = new LinkedHashMap<>();
+        Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
             List<Task<DocumentSnapshot>> postGets = new ArrayList<>();
 
-            for (Object r : res) {
-                QuerySnapshot qs = (QuerySnapshot) r;
-                for (DocumentSnapshot ap : qs.getDocuments()) {
-                    String path     = ap.getReference().getPath();
-                    boolean isMatch = path.contains("/matches/");
-                    if ("recruit".equals(typeFilter) && isMatch)  continue;
-                    if ("match".equals(typeFilter)   && !isMatch) continue;
+            for (int i = 0; i < results.size(); i++) {
+                com.google.firebase.firestore.QuerySnapshot qs =
+                        (com.google.firebase.firestore.QuerySnapshot) results.get(i);
+                // ✅ finalMatchTask 사용 (effectively final)
+                boolean isMatchTask = (finalMatchTask != null && i == tasks.indexOf(finalMatchTask));
 
-                    String postId   = ap.getReference().getParent().getParent().getId();
-                    String postType = isMatch ? POST_MATCH : POST_RECRUIT;
+                for (DocumentSnapshot ap : qs.getDocuments()) {
+                    String postId   = isMatchTask
+                            ? ap.getString("matchId")
+                            : ap.getString("postId");
+                    String postType = isMatchTask ? POST_MATCH : POST_RECRUIT;
+
+                    if (AppUtils.isEmpty(postId)) continue;
+                    if ("recruit".equals(typeFilter) && POST_MATCH.equals(postType)) continue;
+                    if ("match".equals(typeFilter)   && POST_RECRUIT.equals(postType)) continue;
                     if (dedup.containsKey(postId)) continue;
 
                     ApplicationsAdapter.Item it = new ApplicationsAdapter.Item();
@@ -251,7 +280,7 @@ public class ApplicationsListActivity extends AppCompatActivity {
                     it.timestamp = ts != null ? ts : 0L;
                     dedup.put(postId, it);
 
-                    String coll = isMatch ? "matches" : "recruitPosts";
+                    String coll = POST_MATCH.equals(postType) ? "matches" : "recruitPosts";
                     postGets.add(db.collection(coll).document(postId).get());
                 }
             }
@@ -281,20 +310,88 @@ public class ApplicationsListActivity extends AppCompatActivity {
                 list.sort((a, b) -> Long.compare(b.matchTs, a.matchTs));
                 adapter.setItems(list, ApplicationsAdapter.TYPE_APPLIED);
             });
-        });
+        }).addOnFailureListener(e ->
+                adapter.setItems(Collections.emptyList(), ApplicationsAdapter.TYPE_APPLIED));
     }
 
     // ── 수락 / 거절 ───────────────────────────────────────────────────────────────
 
     private void handleAccept(ApplicationsAdapter.Item post, ApplicationsAdapter.Applicant applicant) {
         String coll = POST_MATCH.equals(post.postType) ? "matches" : "recruitPosts";
+
         db.collection(coll).document(post.postId)
                 .collection("applicants").document(applicant.applicantDocId)
                 .update("status", "accepted")
                 .addOnSuccessListener(v -> {
                     adapter.updateApplicantStatus(post.postId, applicant.applicantDocId, "accepted");
-                    openChat(applicant.applicantUserId);
+
+                    if (POST_MATCH.equals(post.postType)) {
+                        // 시합: teams/{awayTeamId}/matchApplications 상태 업데이트
+                        if (!AppUtils.isEmpty(applicant.teamId)) {
+                            db.collection("teams").document(applicant.teamId)
+                                    .collection("matchApplications").document(post.postId)
+                                    .update("status", "accepted");
+                        }
+                        registerSchedule(post, applicant);
+                    } else {
+                        // 선수 모집: profiles/{uid}/applications 상태 업데이트
+                        if (!AppUtils.isEmpty(applicant.applicantUserId)) {
+                            db.collection("profiles").document(applicant.applicantUserId)
+                                    .collection("applications").document(post.postId)
+                                    .update("status", "accepted");
+                        }
+                        // ✅ 팀원 모집 수락 시 팀에 합류 처리
+                        joinTeamMember(applicant);
+                    }
+
+                    String msg = POST_MATCH.equals(post.postType)
+                            ? "시합 신청을 수락했어요 ✅ 일정을 확인해주세요!"
+                            : "모집 신청을 수락했어요 ✅ 채팅으로 소통해요!";
+                    openChatWithMessage(applicant.applicantUserId, msg);
                 });
+    }
+
+    // ✅ 팀원 모집 수락 → runTransaction으로 팀 합류 처리
+    private void joinTeamMember(ApplicationsAdapter.Applicant applicant) {
+        if (AppUtils.isEmpty(myTeamId) || AppUtils.isEmpty(applicant.applicantUserId)) return;
+
+        com.google.firebase.firestore.DocumentReference teamRef =
+                db.collection("teams").document(myTeamId);
+        com.google.firebase.firestore.DocumentReference profileRef =
+                db.collection("profiles").document(applicant.applicantUserId);
+
+        db.runTransaction(transaction -> {
+                    com.google.firebase.firestore.DocumentSnapshot teamSnap    = transaction.get(teamRef);
+                    com.google.firebase.firestore.DocumentSnapshot profileSnap = transaction.get(profileRef);
+
+                    // 이미 팀원인지 확인
+                    java.util.List<String> members = (java.util.List<String>) teamSnap.get("members");
+                    if (members != null && members.contains(applicant.applicantUserId)) return null;
+
+                    long skill = profileSnap.getLong("skill") != null
+                            ? profileSnap.getLong("skill") : 0L;
+
+                    // members 추가 + skillAverage 재계산
+                    transaction.update(teamRef, "members",
+                            com.google.firebase.firestore.FieldValue.arrayUnion(applicant.applicantUserId));
+                    transaction.update(teamRef, "memberCount",
+                            com.google.firebase.firestore.FieldValue.increment(1L));
+                    transaction.update(teamRef, "skillSum",
+                            com.google.firebase.firestore.FieldValue.increment(skill));
+
+                    long curSum   = teamSnap.getLong("skillSum")    != null ? teamSnap.getLong("skillSum")   : 0L;
+                    long curCount = teamSnap.getLong("memberCount") != null ? teamSnap.getLong("memberCount") : 0L;
+                    int  newAvg   = (curCount + 1) > 0 ? (int)((curSum + skill) / (curCount + 1)) : 0;
+                    transaction.update(teamRef, "skillAverage", newAvg);
+
+                    // 프로필에 myTeam 설정
+                    transaction.update(profileRef, "myTeam", myTeamId);
+
+                    return null;
+                }).addOnSuccessListener(v ->
+                        CustomToast.success(this, applicant.nickname + "님이 팀에 합류했어요!"))
+                .addOnFailureListener(e ->
+                        CustomToast.error(this, "팀 합류 처리 실패: " + e.getMessage()));
     }
 
     private void handleReject(ApplicationsAdapter.Item post, ApplicationsAdapter.Applicant applicant) {
@@ -302,32 +399,141 @@ public class ApplicationsListActivity extends AppCompatActivity {
         db.collection(coll).document(post.postId)
                 .collection("applicants").document(applicant.applicantDocId)
                 .update("status", "rejected")
-                .addOnSuccessListener(v ->
-                        adapter.updateApplicantStatus(
-                                post.postId, applicant.applicantDocId, "rejected"));
+                .addOnSuccessListener(v -> {
+                    adapter.updateApplicantStatus(post.postId, applicant.applicantDocId, "rejected");
+
+                    if (POST_MATCH.equals(post.postType)) {
+                        if (!AppUtils.isEmpty(applicant.teamId)) {
+                            db.collection("teams").document(applicant.teamId)
+                                    .collection("matchApplications").document(post.postId)
+                                    .update("status", "rejected");
+                        }
+                    } else {
+                        if (!AppUtils.isEmpty(applicant.applicantUserId)) {
+                            db.collection("profiles").document(applicant.applicantUserId)
+                                    .collection("applications").document(post.postId)
+                                    .update("status", "rejected");
+                        }
+                    }
+
+                    // ✅ 채팅방 이동 + 거절 메시지 전송
+                    String msg = POST_MATCH.equals(post.postType)
+                            ? "시합 신청을 거절했어요 ❌ 다음 기회에 만나요!"
+                            : "모집 신청을 거절했어요 ❌ 다음 기회에 만나요!";
+                    openChatWithMessage(applicant.applicantUserId, msg);
+                });
     }
 
-    private void openChat(String otherUid) {
+    // ✅ 양팀 일정 등록 (시합 수락 시)
+    private void registerSchedule(ApplicationsAdapter.Item post,
+                                  ApplicationsAdapter.Applicant applicant) {
+        db.collection("matches").document(post.postId).get()
+                .addOnSuccessListener(matchDoc -> {
+                    if (!matchDoc.exists()) return;
+
+                    String homeTeamId   = AppUtils.safe(matchDoc.getString("teamId"));
+                    String homeTeamName = AppUtils.safe(matchDoc.getString("teamName"));
+                    String homeLogoUrl  = AppUtils.firstNonEmpty(
+                            matchDoc.getString("logoUrl"), matchDoc.getString("teamLogoUrl"));
+                    String awayTeamId   = AppUtils.safe(applicant.teamId);
+                    String awayTeamName = AppUtils.safe(applicant.teamName);
+                    String awayLogoUrl  = AppUtils.safe(applicant.logoUrl);
+                    String date    = AppUtils.safe(matchDoc.getString("date"));
+                    String time    = AppUtils.safe(matchDoc.getString("time"));
+                    String stadium = AppUtils.firstNonEmpty(
+                            matchDoc.getString("stadiumName"),
+                            matchDoc.getString("stadiumAddress"),
+                            matchDoc.getString("address"));
+                    Long matchTsL  = matchDoc.getLong("matchTs");
+                    long ts        = matchTsL != null ? matchTsL : System.currentTimeMillis();
+
+                    if (AppUtils.isEmpty(homeTeamId) || AppUtils.isEmpty(awayTeamId)) {
+                        CustomToast.warning(this, "팀 정보가 없어 일정 등록에 실패했어요.");
+                        return;
+                    }
+
+                    // 공통 일정 데이터
+                    Map<String, Object> base = new LinkedHashMap<>();
+                    base.put("matchId",       post.postId);
+                    base.put("homeTeamId",    homeTeamId);
+                    base.put("homeTeamName",  homeTeamName);
+                    base.put("homeLogoUrl",   homeLogoUrl);
+                    base.put("awayTeamId",    awayTeamId);
+                    base.put("awayTeamName",  awayTeamName);
+                    base.put("awayLogoUrl",   awayLogoUrl);
+                    base.put("date",          date);
+                    base.put("time",          time);
+                    base.put("stadiumName",   stadium);
+                    base.put("address",       stadium);
+                    base.put("matchTs",       ts);
+                    base.put("endTs",         ts + 5400000L); // +90분
+                    base.put("status",        "confirmed");
+
+                    // ✅ schedules/{homeTeamId}/events/{matchId} — ScheduleActivity 구조에 맞춤
+                    Map<String, Object> homeEvent = new LinkedHashMap<>(base);
+                    homeEvent.put("opponentTeamName", awayTeamName);
+                    homeEvent.put("opponentLogoUrl",  awayLogoUrl);
+                    homeEvent.put("isHome",           true);
+                    db.collection("schedules").document(homeTeamId)
+                            .collection("events").document(post.postId)
+                            .set(homeEvent)
+                            .addOnSuccessListener(r ->
+                                    CustomToast.success(this, "시합 일정이 등록됐어요!"));
+
+                    // ✅ schedules/{awayTeamId}/events/{matchId}
+                    Map<String, Object> awayEvent = new LinkedHashMap<>(base);
+                    awayEvent.put("opponentTeamName", homeTeamName);
+                    awayEvent.put("opponentLogoUrl",  homeLogoUrl);
+                    awayEvent.put("isHome",           false);
+                    db.collection("schedules").document(awayTeamId)
+                            .collection("events").document(post.postId)
+                            .set(awayEvent);
+
+                    // 시합 글 상태 CONFIRMED로 변경
+                    db.collection("matches").document(post.postId)
+                            .update("status", "CONFIRMED");
+                })
+                .addOnFailureListener(e ->
+                        CustomToast.error(this, "일정 등록 실패: " + e.getMessage()));
+    }
+
+    private void openChatWithMessage(String otherUid, String message) {
         if (AppUtils.isEmpty(otherUid) || AppUtils.isEmpty(currentUid)) return;
         String roomId = currentUid.compareTo(otherUid) < 0
                 ? currentUid + "_" + otherUid
                 : otherUid + "_" + currentUid;
         long now = System.currentTimeMillis();
         DocumentReference roomRef = db.collection("chatRooms").document(roomId);
+
         Map<String, Object> base = new LinkedHashMap<>();
         base.put("participants",  Arrays.asList(currentUid, otherUid));
-        base.put("lastMessage",   "");
+        base.put("lastMessage",   AppUtils.isEmpty(message) ? "" : message);
         base.put("lastTimestamp", now);
+
         roomRef.get().addOnSuccessListener(snap -> {
-            Task<?> t = snap.exists()
-                    ? roomRef.update("lastTimestamp", now)
+            Task<?> roomTask = snap.exists()
+                    ? roomRef.update("lastMessage", base.get("lastMessage"), "lastTimestamp", now)
                     : roomRef.set(base);
-            t.addOnSuccessListener(v -> {
+            roomTask.addOnSuccessListener(v -> {
+                // ✅ 메시지가 있으면 채팅방에 전송
+                if (!AppUtils.isEmpty(message)) {
+                    Map<String, Object> msg = new LinkedHashMap<>();
+                    msg.put("senderId",    currentUid);
+                    msg.put("content",     message);
+                    msg.put("messageType", "text");
+                    msg.put("timestamp",   now);
+                    roomRef.collection("messages").add(msg);
+                }
+                // 채팅방으로 이동
                 Intent intent = new Intent(this, ChatRoomActivity.class);
                 intent.putExtra("roomId", roomId);
                 startActivity(intent);
             });
         });
+    }
+
+    private void openChat(String otherUid) {
+        openChatWithMessage(otherUid, "");
     }
 
     // ── 헬퍼 ─────────────────────────────────────────────────────────────────────

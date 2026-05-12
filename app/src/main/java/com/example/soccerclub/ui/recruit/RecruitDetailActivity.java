@@ -428,6 +428,19 @@ public class RecruitDetailActivity extends AppCompatActivity {
             apData.put("skill",           mySkill);
             apData.put("applicantUserId", currentUid);
             tr.set(apRef, apData, SetOptions.merge());
+
+            // ✅ profiles/{uid}/applications 에도 저장 → 인덱스 없이 내 신청 조회 가능
+            DocumentReference myAppRef = db.collection("profiles")
+                    .document(currentUid)
+                    .collection("applications")
+                    .document(recruitId);
+            Map<String, Object> myApp = new HashMap<>();
+            myApp.put("postId",    recruitId);
+            myApp.put("postType",  "recruit");
+            myApp.put("status",    "pending");
+            myApp.put("timestamp", now);
+            tr.set(myAppRef, myApp, SetOptions.merge());
+
             return null;
 
         }).addOnSuccessListener(v -> {

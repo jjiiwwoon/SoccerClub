@@ -215,15 +215,28 @@ public class CreateRecruitActivity extends AppCompatActivity {
             if (isRegular) applyTeamToRegularUI();
         });
 
-        txtDate.setOnClickListener(v -> pickDate());
-        txtTime.setOnClickListener(v -> showTimeRangePicker());
+        // 용병 모집 필드
+        txtDate.setOnClickListener(v -> pickMercenaryDate());
+        txtTime.setOnClickListener(v -> showTimeRangePicker(false));
         txtAddressSearch.setOnClickListener(v ->
                 addressSearchLauncher.launch(new Intent(this, StadiumSearchActivity.class)));
 
-        btnLoadFromSchedule.setOnClickListener(v ->
-                CustomToast.info(this, "일정 불러오기 기능은 준비 중이에요."));
+        // ✅ 일정에서 가져오기 — 용병 쪽에서만 사용
+        if (btnLoadFromSchedule != null) {
+            btnLoadFromSchedule.setOnClickListener(v ->
+                    CustomToast.info(this, "일정 불러오기 기능은 준비 중이에요."));
+        }
 
         btnSubmit.setOnClickListener(v -> submit());
+    }
+
+    // ✅ 용병 모집용 날짜 선택
+    private void pickMercenaryDate() {
+        Calendar c = Calendar.getInstance();
+        new DatePickerDialog(this, (view, y, m, d) -> {
+            selectedDate = String.format("%04d-%02d-%02d", y, m + 1, d);
+            if (txtDate != null) txtDate.setText(DateUtils.appendWeekday(selectedDate));
+        }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
     }
 
     private void fetchMyProfileThenTeam() {
@@ -250,37 +263,61 @@ public class CreateRecruitActivity extends AppCompatActivity {
     }
 
     private void applyTeamToRegularUI() {
-        if (tvRegularStadium != null)
-            tvRegularStadium.setText(AppUtils.isEmpty(myHomeStadiumName) ? "주활동구장 미설정" : myHomeStadiumName);
+        // ✅ 구장 - 팀 정보로 기본 세팅 (클릭하면 변경 가능)
+        if (tvRegularStadium != null) {
+            tvRegularStadium.setText(AppUtils.isEmpty(myHomeStadiumName) ? "주활동구장 미설정 (탭하여 설정)" : myHomeStadiumName);
+            tvRegularStadium.setOnClickListener(v ->
+                    addressSearchLauncher.launch(new Intent(this, StadiumSearchActivity.class)));
+        }
         if (tvRegularAddress != null)
             tvRegularAddress.setText(AppUtils.isEmpty(myStadiumAddress) ? "주소 미설정" : myStadiumAddress);
 
         stadiumName = myHomeStadiumName;
         stadiumAddr = myStadiumAddress;
 
+        // ✅ 시간 - 팀 정보로 기본 세팅 (클릭하면 변경 가능)
         String timeRange = (!AppUtils.isEmpty(myTimeStart) && !AppUtils.isEmpty(myTimeEnd))
                 ? myTimeStart + " ~ " + myTimeEnd : "";
         selectedStartTime = myTimeStart;
         selectedEndTime   = myTimeEnd;
-        if (tvRegularTime != null)
-            tvRegularTime.setText(AppUtils.isEmpty(timeRange) ? "시간 미설정" : timeRange);
+        if (tvRegularTime != null) {
+            tvRegularTime.setText(AppUtils.isEmpty(timeRange) ? "시간 미설정 (탭하여 설정)" : timeRange);
+            tvRegularTime.setOnClickListener(v -> showTimeRangePicker(true));
+        }
+
+        // ✅ 날짜 - 팀 활동일 기본 세팅 (클릭하면 변경 가능)
+        if (tvRegularDate != null) {
+            if (!AppUtils.isEmpty(myActivityDay)) {
+                selectedDate = myActivityDay;
+                tvRegularDate.setText(DateUtils.appendWeekday(myActivityDay));
+            } else {
+                tvRegularDate.setText("활동 날짜 선택 (탭하여 설정)");
+            }
+            tvRegularDate.setOnClickListener(v -> pickRegularDate());
+        }
     }
 
-    private void pickDate() {
+    // ✅ 팀원 모집용 날짜 선택
+    private void pickRegularDate() {
         Calendar c = Calendar.getInstance();
         new DatePickerDialog(this, (view, y, m, d) -> {
             selectedDate = String.format("%04d-%02d-%02d", y, m + 1, d);
-            if (txtDate != null) txtDate.setText(DateUtils.appendWeekday(selectedDate));
+            if (tvRegularDate != null) tvRegularDate.setText(DateUtils.appendWeekday(selectedDate));
         }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
     }
 
-    private void showTimeRangePicker() {
+    // ✅ 시간 선택 (isRegular: true면 tvRegularTime, false면 txtTime 업데이트)
+    private void showTimeRangePicker(boolean isRegular) {
         Calendar c = Calendar.getInstance();
         new android.app.TimePickerDialog(this, (v, h, min) -> {
             selectedStartTime = String.format("%02d:%02d", h, min);
             selectedEndTime   = DateUtils.addHours(selectedStartTime, 2);
             String range = selectedStartTime + " ~ " + selectedEndTime;
-            if (txtTime != null) txtTime.setText(range);
+            if (isRegular) {
+                if (tvRegularTime != null) tvRegularTime.setText(range);
+            } else {
+                if (txtTime != null) txtTime.setText(range);
+            }
         }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true).show();
     }
 
@@ -289,19 +326,26 @@ public class CreateRecruitActivity extends AppCompatActivity {
 
         if (isRegular) {
             if (AppUtils.isEmpty(myTeamId)) { CustomToast.error(this, "팀 정보를 불러오지 못했습니다."); return; }
-            if (AppUtils.isEmpty(selectedDate)) { CustomToast.info(this, "활동 날짜가 설정되지 않았습니다."); return; }
+            // ✅ 날짜 없으면 오늘 날짜로 기본 설정
+            if (AppUtils.isEmpty(selectedDate)) {
+                Calendar c = Calendar.getInstance();
+                selectedDate = String.format("%04d-%02d-%02d",
+                        c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH));
+                if (tvRegularDate != null) tvRegularDate.setText(DateUtils.appendWeekday(selectedDate));
+            }
             if (AppUtils.isEmpty(selectedStartTime) || AppUtils.isEmpty(selectedEndTime)) {
-                CustomToast.info(this, "팀 활동시간이 설정되지 않았습니다."); return;
+                // 시간 미설정이면 기본값 00:00 ~ 02:00
+                selectedStartTime = "00:00";
+                selectedEndTime   = "02:00";
             }
             if (AppUtils.isEmpty(stadiumName)) stadiumName = myHomeStadiumName;
             if (AppUtils.isEmpty(stadiumAddr)) stadiumAddr = myStadiumAddress;
         } else {
+            // ✅ 용병 모집 - 날짜/시간/장소 선택 사항
             stadiumName = editStadium != null ? editStadium.getText().toString().trim() : "";
-            if (AppUtils.isEmpty(selectedDate)) { CustomToast.info(this, "날짜를 선택하세요."); return; }
-            if (AppUtils.isEmpty(selectedStartTime) || AppUtils.isEmpty(selectedEndTime)) {
-                CustomToast.info(this, "시간을 선택하세요."); return;
-            }
-            if (AppUtils.isEmpty(stadiumName)) { CustomToast.info(this, "시합장소를 입력하세요."); return; }
+            // 날짜 없으면 빈 값으로 저장 (선택 사항)
+            if (AppUtils.isEmpty(selectedStartTime)) selectedStartTime = "";
+            if (AppUtils.isEmpty(selectedEndTime))   selectedEndTime   = "";
         }
 
         String details = editDetails != null ? editDetails.getText().toString().trim() : "";

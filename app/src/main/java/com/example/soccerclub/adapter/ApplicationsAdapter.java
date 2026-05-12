@@ -274,19 +274,37 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     tvName.setOnClickListener(v -> showApplicantProfileDialog(container.getContext(), a));
                 }
 
+                // ✅ 이미 수락/거절된 경우 버튼 숨기기
+                String apStatus = AppUtils.safe(a.status).toLowerCase(Locale.ROOT);
+                boolean alreadyHandled = apStatus.equals("accepted") || apStatus.equals("rejected");
+
                 if (btnAccept != null) {
-                    btnAccept.setOnClickListener(v -> {
-                        v.setEnabled(false);
-                        flash(v);
-                        if (listener != null) listener.onApplicantAccept(it, a);
-                    });
+                    if (alreadyHandled) {
+                        btnAccept.setVisibility(View.GONE);
+                    } else {
+                        btnAccept.setVisibility(View.VISIBLE);
+                        btnAccept.setOnClickListener(v -> {
+                            btnAccept.setVisibility(View.GONE);
+                            if (btnReject != null) btnReject.setVisibility(View.GONE);
+                            a.status = "accepted"; // 로컬 상태 즉시 업데이트
+                            flash(v);
+                            if (listener != null) listener.onApplicantAccept(it, a);
+                        });
+                    }
                 }
                 if (btnReject != null) {
-                    btnReject.setOnClickListener(v -> {
-                        v.setEnabled(false);
-                        flash(v);
-                        if (listener != null) listener.onApplicantReject(it, a);
-                    });
+                    if (alreadyHandled) {
+                        btnReject.setVisibility(View.GONE);
+                    } else {
+                        btnReject.setVisibility(View.VISIBLE);
+                        btnReject.setOnClickListener(v -> {
+                            if (btnAccept != null) btnAccept.setVisibility(View.GONE);
+                            btnReject.setVisibility(View.GONE);
+                            a.status = "rejected"; // 로컬 상태 즉시 업데이트
+                            flash(v);
+                            if (listener != null) listener.onApplicantReject(it, a);
+                        });
+                    }
                 }
 
                 if (ApplicationsAdapter.this.flashRows.remove(rowKey)) flash(row);

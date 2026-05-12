@@ -83,12 +83,6 @@
                 android:layout_marginTop="@dimen/spacing_xs"
                 android:textSize="@dimen/text_sm" android:textColor="@color/text_hint"/>
 
-            <Button android:id="@+id/btnLoadFromSchedule"
-                android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_sm"
-                android:text="일정에서 불러오기" android:textAllCaps="false"
-                android:textColor="@color/primary" android:backgroundTint="@color/primary_light"
-                app:cornerRadius="@dimen/btn_radius"/>
         </LinearLayout>
 
         <!-- 용병 컨테이너 -->
@@ -155,6 +149,16 @@
                     android:clickable="true" android:focusable="true"
                     android:layout_marginStart="@dimen/spacing_sm"/>
             </LinearLayout>
+
+            <!-- ✅ 일정에서 불러오기 — 용병 모집에서만 사용 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLoadFromSchedule"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:text="일정에서 불러오기" android:textAllCaps="false"
+                android:textColor="@color/primary" android:backgroundTint="@color/primary_light"
+                app:cornerRadius="@dimen/btn_radius"/>
+
         </LinearLayout>
 
         <!-- 구분선 -->
