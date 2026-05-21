@@ -21,6 +21,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -31,23 +32,24 @@ import com.example.soccerclub.R;
 import com.example.soccerclub.adapter.TeamMemberAdapter;
 import com.example.soccerclub.common.CustomToast;
 import com.example.soccerclub.common.StateLayout;
+import com.example.soccerclub.model.Team;
 import com.example.soccerclub.ui.common.RecordsActivity;
 import com.example.soccerclub.ui.common.ScheduleActivity;
 import com.example.soccerclub.util.AppUtils;
+import com.example.soccerclub.util.DateUtils;
+import com.example.soccerclub.viewmodel.MyTeamViewModel;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
-import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.Source;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,41 +59,45 @@ import java.util.concurrent.Executors;
 public class MyTeamFragment extends Fragment {
 
     // ── 뷰 ────────────────────────────────────────────────────────────────────────
-    private StateLayout state;
-    private ImageView teamLogo, teamPhoto, introToggle;
-    private TextView teamName, teamIntro, teamRegion, teamSkill, teamAge;
-    private TextView teamActivityDay, teamHomeStadiumName, teamHomeStadiumAddress;
-    private Button btnInvite, btnLeaveTeam, btnEditTeam, btnJoinRequests;
+    private StateLayout  state;
+    private ImageView    teamLogo, teamPhoto, introToggle;
+    private TextView     teamName, teamIntro, teamRegion, teamSkill, teamAge;
+    private TextView     teamActivityDay, teamHomeStadiumName, teamHomeStadiumAddress;
+    private Button       btnInvite, btnLeaveTeam, btnEditTeam, btnJoinRequests;
     private LinearLayout playerListLayout, recordSection, nextScheduleContainer;
-    private TextView tvGames, tvWins, tvDraws, tvLosses, tvGF, tvGA, tvWinRate, tvSeeDetails;
-    private TextView tvMemberTitle, btnSeeAllSchedule;
-    private View nextScheduleCard, scheduleContent, scheduleLoading;
-    private TextView tvNextDateChip, tvHomeName, tvAwayName, tvPlace, tvAddress;
-    private ImageView imgHomeLogo, imgAwayLogo;
+    private TextView     tvGames, tvWins, tvDraws, tvLosses, tvGF, tvGA, tvWinRate, tvSeeDetails;
+    private TextView     tvMemberTitle, btnSeeAllSchedule;
+    private View         nextScheduleCard, scheduleContent, scheduleLoading;
+    private TextView     tvNextDateChip, tvHomeName, tvAwayName, tvPlace, tvAddress;
+    private ImageView    imgHomeLogo, imgAwayLogo;
 
     // ── 상태 ──────────────────────────────────────────────────────────────────────
-    private String teamId = null;
-    private String captainUid = "";      // ✅ 권한 체크용 필드
-    private String viceCaptainUid = "";  // ✅ 권한 체크용 필드
-    private String introFullText = "";
+    private String  teamId         = null;
+    private String  captainUid     = "";
+    private String  viceCaptainUid = "";
+    private String  introFullText  = "";
     private boolean isIntroExpanded = false;
-    private boolean firstImageDrawn = false;
 
-    private ListenerRegistration recordListener;
     private final Handler uiHandler = new Handler(Looper.getMainLooper());
 
-    // ✅ 팀 정보 수정 후 복귀 시 새로고침
+    // ── ViewModel ────────────────────────────────────────────────────────────────
+    private MyTeamViewModel viewModel;
+
+    // ── ActivityResultLauncher ────────────────────────────────────────────────────
+
     private final ActivityResultLauncher<Intent> editTeamLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     result -> {
-                        if (result.getResultCode() == requireActivity().RESULT_OK
-                                && isAdded() && !AppUtils.isEmpty(teamId)) {
-                            getTeamInfo(teamId);
+                        if (result.getResultCode() == requireActivity().RESULT_OK && isAdded()) {
+                            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                            if (user != null && viewModel != null) {
+                                if (state != null) state.showLoading();
+                                viewModel.reload(user.getUid());
+                            }
                         }
                     });
 
-    // ✅ Fix 2: startActivityForResult 제거 → ActivityResultLauncher 사용
     private final ActivityResultLauncher<Intent> photoLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
@@ -109,14 +115,16 @@ public class MyTeamFragment extends Fragment {
     private final Runnable upcomingRefreshRunnable = new Runnable() {
         @Override
         public void run() {
-            if (isAdded() && !AppUtils.isEmpty(teamId)) {
-                loadUpcomingSchedule(teamId);
+            if (isAdded() && viewModel != null && !AppUtils.isEmpty(teamId)) {
+                // ✅ 수정: refreshNextSchedule(teamId) 호출
+                viewModel.refreshNextSchedule(teamId);
                 uiHandler.postDelayed(this, 30_000);
             }
         }
     };
 
-    // ── onCreateView ──────────────────────────────────────────────────────────────
+    // ── 생명주기 ──────────────────────────────────────────────────────────────────
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -164,423 +172,339 @@ public class MyTeamFragment extends Fragment {
         imgHomeLogo            = view.findViewById(R.id.imgHomeLogo);
         imgAwayLogo            = view.findViewById(R.id.imgAwayLogo);
 
-        state.showLoading();
+        if (state != null) state.showLoading();
         if (nextScheduleCard != null) nextScheduleCard.setVisibility(View.GONE);
 
-        // 소개 토글
-        introToggle.setOnClickListener(v -> {
-            isIntroExpanded = !isIntroExpanded;
-            if (isIntroExpanded) {
-                teamIntro.setMaxLines(Integer.MAX_VALUE);
-                teamIntro.setEllipsize(null);
-                introToggle.setImageResource(R.drawable.ic_arrow_up);
-            } else {
-                teamIntro.setMaxLines(10);
-                teamIntro.setEllipsize(TextUtils.TruncateAt.END);
-                introToggle.setImageResource(R.drawable.ic_arrow_down);
-            }
-        });
-
-        // ✅ Fix 2: startActivityForResult → photoLauncher
-        teamPhoto.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_PICK);
-            intent.setType("image/*");
-            photoLauncher.launch(intent);
-        });
-
-        // ✅ Fix 3: getCurrentUser() null 체크 → NPE 방어
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) {
-            state.setEmptyMessage("로그인이 필요합니다.");
-            state.showEmpty();
-            return view;
-        }
-        String currentUid = user.getUid();
-
-        FirebaseFirestore.getInstance().collection("profiles").document(currentUid)
-                .get()
-                .addOnSuccessListener(doc -> {
-                    if (!isAdded()) return;
-                    if (doc.exists()) {
-                        teamId = doc.getString("myTeam");
-                        if (!AppUtils.isEmpty(teamId)) {
-                            getTeamInfo(teamId);
-                        } else {
-                            state.setEmptyMessage("소속된 팀이 없습니다.\n팀에 가입하거나 팀을 생성하세요.");
-                            state.showEmpty();
-                        }
-                    }
-                })
-                .addOnFailureListener(e -> {
-                    if (!isAdded()) return;
-                    CustomToast.error(requireContext(), "프로필을 불러오지 못했어요.");
-                    state.showEmpty();
-                });
-
-        if (tvSeeDetails != null) {
-            tvSeeDetails.setOnClickListener(v -> {
-                Intent intent = new Intent(getContext(), RecordsActivity.class);
-                intent.putExtra("myTeamId", teamId);
-                startActivity(intent);
+        if (introToggle != null) {
+            introToggle.setOnClickListener(v -> {
+                isIntroExpanded = !isIntroExpanded;
+                if (teamIntro != null) {
+                    teamIntro.setMaxLines(isIntroExpanded ? Integer.MAX_VALUE : 10);
+                    teamIntro.setEllipsize(isIntroExpanded ? null : TextUtils.TruncateAt.END);
+                }
+                introToggle.setImageResource(isIntroExpanded
+                        ? R.drawable.ic_arrow_up : R.drawable.ic_arrow_down);
             });
         }
 
-        if (btnSeeAllSchedule != null) {
-            btnSeeAllSchedule.setOnClickListener(v ->
-                    startActivity(new Intent(getContext(), ScheduleActivity.class)));
-        }
-        if (nextScheduleCard != null) {
-            nextScheduleCard.setOnClickListener(v ->
-                    startActivity(new Intent(getContext(), ScheduleActivity.class)));
-        }
-
-        if (btnInvite != null) {
-            btnInvite.setOnClickListener(v -> showInviteDialog());
-        }
-
-        if (btnLeaveTeam != null) {
-            btnLeaveTeam.setOnClickListener(v -> onClickLeaveTeam());
-        }
-
-        // ✅ 가입 신청 목록 버튼 (주장/부주장에게만 표시)
-        if (btnJoinRequests != null) {
-            btnJoinRequests.setOnClickListener(v -> {
-                if (AppUtils.isEmpty(teamId)) return;
-                Intent intent = new Intent(requireContext(), JoinRequestsActivity.class);
-                intent.putExtra("teamId", teamId);
-                startActivity(intent);
-            });
-        }
-
-        // ✅ 팀 정보 수정 버튼 (주장/부주장에게만 표시 - bindTeamTextFields에서 처리)
-        if (btnEditTeam != null) {
-            btnEditTeam.setOnClickListener(v -> {
-                if (AppUtils.isEmpty(teamId)) return;
-                Intent intent = new Intent(requireContext(), EditTeamActivity.class);
-                intent.putExtra("teamId", teamId);
-                editTeamLauncher.launch(intent);
+        if (teamPhoto != null) {
+            teamPhoto.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_PICK);
+                intent.setType("image/*");
+                photoLauncher.launch(intent);
             });
         }
 
         return view;
     }
 
-    // ── 생명주기 ──────────────────────────────────────────────────────────────────
-
     @Override
-    public void onStart() {
-        super.onStart();
-        if (!AppUtils.isEmpty(teamId)) {
-            bindRecordSummary(teamId);
-            loadUpcomingSchedule(teamId);
-            startUpcomingAutoRefresh();
-        }
-    }
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-    @Override
-    public void onStop() {
-        super.onStop();
-        stopUpcomingAutoRefresh();
-    }
-
-    // ✅ Bug 2: show/hide 방식에서 탭이 다시 보일 때 데이터 재로드
-    @Override
-    public void onHiddenChanged(boolean hidden) {
-        super.onHiddenChanged(hidden);
-        if (!hidden && isAdded()) {
-            reloadTeamIfNeeded();
-        }
-    }
-
-    private void reloadTeamIfNeeded() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) return;
-        String uid = user.getUid();
+        if (user == null) {
+            if (state != null) { state.setEmptyMessage("로그인이 필요합니다."); state.showEmpty(); }
+            return;
+        }
 
-        FirebaseFirestore.getInstance().collection("profiles").document(uid).get()
-                .addOnSuccessListener(doc -> {
-                    if (!isAdded() || doc == null || !doc.exists()) return;
-                    String latestTeamId = doc.getString("myTeam");
+        viewModel = new ViewModelProvider(this).get(MyTeamViewModel.class);
 
-                    if (!AppUtils.isEmpty(latestTeamId) && !latestTeamId.equals(teamId)) {
-                        // 팀이 새로 생겼거나 변경됨
-                        teamId = latestTeamId;
-                        if (state != null) state.showLoading();
-                        getTeamInfo(teamId);
-                        bindRecordSummary(teamId);
-                        loadUpcomingSchedule(teamId);
-                        startUpcomingAutoRefresh();
-                    } else if (AppUtils.isEmpty(latestTeamId) && !AppUtils.isEmpty(teamId)) {
-                        // 팀 탈퇴됨
-                        teamId = null;
-                        if (state != null) {
-                            state.setEmptyMessage("소속된 팀이 없습니다.\n팀에 가입하거나 팀을 생성하세요.");
-                            state.showEmpty();
-                        }
-                    } else if (!AppUtils.isEmpty(latestTeamId)) {
-                        // 같은 팀 — 멤버 변경 등 반영
-                        loadPlayerList(teamId);
-                    }
-                });
+        viewModel.hasNoTeam.observe(getViewLifecycleOwner(), noTeam -> {
+            if (noTeam != null && noTeam && state != null) {
+                state.setEmptyMessage("소속된 팀이 없습니다.\n팀에 가입하거나 팀을 생성하세요.");
+                state.showEmpty();
+            }
+        });
+
+        viewModel.teamInfo.observe(getViewLifecycleOwner(), team -> {
+            if (team == null) return;
+            teamId = team.getTeamId();
+            bindTeamInfo(team);
+            setupButtonsForTeam(team, user.getUid());
+            startUpcomingAutoRefresh();
+        });
+
+        viewModel.teamStats.observe(getViewLifecycleOwner(), doc -> {
+            if (doc != null && doc.exists()) bindRecordSummary(doc);
+        });
+
+        viewModel.nextSchedule.observe(getViewLifecycleOwner(), doc -> {
+            showScheduleLoading(false);
+            bindNextSchedule(doc);
+        });
+
+        viewModel.memberProfiles.observe(getViewLifecycleOwner(), profiles -> {
+            if (profiles != null) bindMemberList(profiles);
+        });
+
+        viewModel.isLoading.observe(getViewLifecycleOwner(), loading -> {
+            if (loading != null && loading && state != null) state.showLoading();
+        });
+
+        viewModel.loadIfNeeded(user.getUid());
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (!AppUtils.isEmpty(teamId)) startUpcomingAutoRefresh();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        stopUpcomingAutoRefresh();
     }
 
     @Override
     public void onDestroyView() {
-        if (recordListener != null) {
-            recordListener.remove();
-            recordListener = null;
-        }
+        stopUpcomingAutoRefresh();
         super.onDestroyView();
     }
 
-    // ── 자동 새로고침 ─────────────────────────────────────────────────────────────
+    // ── UI 바인딩 — 팀 기본 정보 ─────────────────────────────────────────────────
 
-    private void startUpcomingAutoRefresh() {
-        uiHandler.removeCallbacks(upcomingRefreshRunnable);
-        uiHandler.postDelayed(upcomingRefreshRunnable, 30_000);
-    }
+    private void bindTeamInfo(Team team) {
+        captainUid     = AppUtils.safe(team.getCaptainUID());
+        viceCaptainUid = AppUtils.safe(team.getViceCaptainUID());
 
-    private void stopUpcomingAutoRefresh() {
-        uiHandler.removeCallbacks(upcomingRefreshRunnable);
-    }
+        if (teamName != null) teamName.setText(AppUtils.safe(team.getTeamName()));
 
-    // ── 팀 정보 로드 ──────────────────────────────────────────────────────────────
-
-    private void getTeamInfo(String teamId) {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        firstImageDrawn = false;
-
-        db.collection("teams").document(teamId)
-                .get(Source.CACHE)
-                .addOnSuccessListener(cacheSnap -> {
-                    if (!isAdded() || cacheSnap == null || !cacheSnap.exists()) return;
-                    bindTeamTextFields(cacheSnap);
-                    startImageLoads(cacheSnap);
-                });
-
-        db.collection("teams").document(teamId)
-                .get(Source.SERVER)
-                .addOnSuccessListener(doc -> {
-                    if (!isAdded() || doc == null || !doc.exists()) {
-                        state.setEmptyMessage("팀 정보를 찾을 수 없어요.");
-                        state.showEmpty();
-                        return;
-                    }
-                    bindTeamTextFields(doc);
-                    startImageLoads(doc);
-                    loadPlayerList(teamId);
-                    bindRecordSummary(teamId);
-                    loadUpcomingSchedule(teamId);
-
-                    uiHandler.postDelayed(() -> {
-                        if (!firstImageDrawn && isAdded()) state.showContent();
-                    }, 600);
-                })
-                .addOnFailureListener(e -> {
-                    if (!isAdded()) return;
-                    CustomToast.error(requireContext(), "팀 정보를 불러오지 못했어요.");
-                    state.setEmptyMessage("팀 정보를 불러오지 못했어요.");
-                    state.showEmpty();
-                });
-    }
-
-    private void bindTeamTextFields(DocumentSnapshot doc) {
-        String teamNameStr    = doc.getString("teamName");
-        String intro          = doc.getString("intro");
-        String region         = doc.getString("region");
-        String skill          = doc.getString("skill");
-        String ageRange       = doc.getString("ageRange");
-        String activityDayVal = doc.getString("activityDay");
-        String homeStadName   = doc.getString("homeStadiumName");
-        String stadAddr       = doc.getString("stadium");
-        String timeStart      = doc.getString("timeStart");
-        String timeEnd        = doc.getString("timeEnd");
-        String captainUid     = doc.getString("captainUID");
-        String viceCaptainUid = doc.getString("viceCaptainUID");
-
-        // ✅ Fragment 필드에 저장 → showPlayerOptionsDialog에서 권한 체크에 사용
-        this.captainUid     = AppUtils.safe(captainUid);
-        this.viceCaptainUid = AppUtils.safe(viceCaptainUid);
-
-        // ✅ Fix 3: null 체크 후 uid 접근
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        String currentUid = (user != null) ? user.getUid() : "";
-
-        teamName.setText(AppUtils.safe(teamNameStr));
-        introFullText = AppUtils.safe(intro);
-        teamIntro.setText(introFullText);
-        teamRegion.setText(AppUtils.safe(region));
-        teamSkill.setText(AppUtils.safe(skill));
-        teamAge.setText(AppUtils.safe(ageRange));
-
-        String activityDisplay = null;
-        if (!AppUtils.isEmpty(activityDayVal)) {
-            activityDisplay = (!AppUtils.isEmpty(timeStart) && !AppUtils.isEmpty(timeEnd))
-                    ? activityDayVal + " | " + timeStart + " ~ " + timeEnd
-                    : activityDayVal;
-        } else if (!AppUtils.isEmpty(timeStart) && !AppUtils.isEmpty(timeEnd)) {
-            activityDisplay = timeStart + " ~ " + timeEnd;
+        introFullText = AppUtils.safe(team.getIntro());
+        if (teamIntro != null) {
+            teamIntro.setText(introFullText);
+            teamIntro.setMaxLines(10);
+            teamIntro.setEllipsize(TextUtils.TruncateAt.END);
+            isIntroExpanded = false;
         }
 
-        setTextOrGone(teamActivityDay,        activityDisplay);
-        setTextOrGone(teamHomeStadiumName,    homeStadName);
-        setTextOrGone(teamHomeStadiumAddress, stadAddr);
+        if (teamRegion != null) teamRegion.setText(AppUtils.safe(team.getRegion()));
+        if (teamAge    != null) teamAge.setText(AppUtils.safe(team.getAgeRange()));
 
-        boolean isLeader = currentUid.equals(captainUid) || currentUid.equals(viceCaptainUid);
-        if (btnInvite != null)
-            btnInvite.setVisibility(isLeader ? View.VISIBLE : View.GONE);
-        if (btnEditTeam != null)
-            btnEditTeam.setVisibility(isLeader ? View.VISIBLE : View.GONE);
-        if (btnJoinRequests != null) {
-            btnJoinRequests.setVisibility(isLeader ? View.VISIBLE : View.GONE);
-            // ✅ 가입 신청 배지 — 주장/부주장에게 pending 신청 수 표시
-            if (isLeader && !AppUtils.isEmpty(teamId)) {
-                FirebaseFirestore.getInstance()
-                        .collection("teams").document(teamId)
-                        .collection("joinRequests")
-                        .whereEqualTo("status", "pending")
-                        .get()
-                        .addOnSuccessListener(snap -> {
-                            if (!isAdded()) return;
-                            int count = snap.size();
-                            if (count > 0) {
-                                btnJoinRequests.setText("가입 신청 목록 (" + count + ")");
-                            } else {
-                                btnJoinRequests.setText("가입 신청 목록");
-                            }
-                        });
+        Integer avg = team.getSkillAverage();
+        if (teamSkill != null)
+            teamSkill.setText(avg != null && avg > 0 ? String.valueOf(avg) : "-");
+
+        String day    = AppUtils.safe(team.getActivityDay());
+        String tStart = AppUtils.safe(team.getTimeStart());
+        String tEnd   = AppUtils.safe(team.getTimeEnd());
+        String actDisplay = null;
+        if (!AppUtils.isEmpty(day)) {
+            actDisplay = (!AppUtils.isEmpty(tStart) && !AppUtils.isEmpty(tEnd))
+                    ? day + " | " + tStart + " ~ " + tEnd : day;
+        } else if (!AppUtils.isEmpty(tStart) && !AppUtils.isEmpty(tEnd)) {
+            actDisplay = tStart + " ~ " + tEnd;
+        }
+        setTextOrGone(teamActivityDay, actDisplay);
+        setTextOrGone(teamHomeStadiumName, team.getStadium());
+
+        loadTeamImages(team);
+        if (state != null) state.showContent();
+    }
+
+    private void loadTeamImages(Team team) {
+        if (!isAdded()) return;
+        String logoUrl = AppUtils.safe(team.getLogoUrl());
+        RequestOptions opts = new RequestOptions()
+                .diskCacheStrategy(DiskCacheStrategy.ALL).override(400, 400);
+
+        if (teamPhoto != null) teamPhoto.setImageResource(R.drawable.default_team_photo);
+
+        if (teamLogo != null) {
+            if (!AppUtils.isEmpty(logoUrl)) {
+                Glide.with(this).load(logoUrl).apply(opts)
+                        .placeholder(R.drawable.ic_shield_gray).into(teamLogo);
+            } else {
+                teamLogo.setImageResource(R.drawable.ic_shield_gray);
             }
         }
     }
 
-    private void startImageLoads(DocumentSnapshot doc) {
-        if (!isAdded()) return;
-        String photoUrl = doc.getString("teamPhotoUrl");
-        String logoUrl  = doc.getString("logoUrl");
+    // ── UI 바인딩 — 버튼 권한 설정 ───────────────────────────────────────────────
 
-        RequestOptions opts = new RequestOptions()
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .override(800, 800);
+    private void setupButtonsForTeam(Team team, String currentUid) {
+        boolean isCaptain    = currentUid.equals(captainUid);
+        boolean isVice       = currentUid.equals(viceCaptainUid);
+        boolean isPrivileged = isCaptain || isVice;
 
-        if (!AppUtils.isEmpty(photoUrl)) {
-            Glide.with(requireContext()).load(photoUrl).apply(opts)
-                    .placeholder(R.drawable.default_team_photo)
-                    .listener(new com.bumptech.glide.request.RequestListener<android.graphics.drawable.Drawable>() {
-                        @Override
-                        public boolean onLoadFailed(@Nullable com.bumptech.glide.load.engine.GlideException e,
-                                                    Object m, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> t, boolean b) {
-                            if (!firstImageDrawn && isAdded()) { firstImageDrawn = true; state.showContent(); }
-                            return false;
-                        }
-                        @Override
-                        public boolean onResourceReady(android.graphics.drawable.Drawable r,
-                                                       Object m, com.bumptech.glide.request.target.Target<android.graphics.drawable.Drawable> t,
-                                                       com.bumptech.glide.load.DataSource ds, boolean b) {
-                            if (!firstImageDrawn && isAdded()) { firstImageDrawn = true; state.showContent(); }
-                            return false;
-                        }
-                    }).into(teamPhoto);
-        } else {
-            teamPhoto.setImageResource(R.drawable.default_team_photo);
-            if (!firstImageDrawn && isAdded()) { firstImageDrawn = true; state.showContent(); }
+        if (btnInvite != null) {
+            btnInvite.setVisibility(isPrivileged ? View.VISIBLE : View.GONE);
+            btnInvite.setOnClickListener(v -> showInviteDialog());
         }
-
-        if (!AppUtils.isEmpty(logoUrl)) {
-            Glide.with(requireContext()).load(logoUrl).apply(opts)
-                    .placeholder(R.drawable.ic_shield_gray).into(teamLogo);
-        } else {
-            teamLogo.setImageResource(R.drawable.ic_shield_gray);
+        if (btnLeaveTeam != null) {
+            btnLeaveTeam.setVisibility(isCaptain ? View.GONE : View.VISIBLE);
+            btnLeaveTeam.setOnClickListener(v -> showLeaveTeamDialog(currentUid));
+        }
+        if (btnEditTeam != null) {
+            btnEditTeam.setVisibility(isCaptain ? View.VISIBLE : View.GONE);
+            btnEditTeam.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), EditTeamActivity.class);
+                intent.putExtra("teamId", teamId);
+                editTeamLauncher.launch(intent);
+            });
+        }
+        if (btnJoinRequests != null) {
+            btnJoinRequests.setVisibility(isPrivileged ? View.VISIBLE : View.GONE);
+            btnJoinRequests.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), JoinRequestsActivity.class);
+                intent.putExtra("teamId", teamId);
+                startActivity(intent);
+            });
+        }
+        if (tvSeeDetails != null) {
+            tvSeeDetails.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), RecordsActivity.class);
+                intent.putExtra("teamId", teamId);
+                startActivity(intent);
+            });
+        }
+        if (btnSeeAllSchedule != null) {
+            btnSeeAllSchedule.setOnClickListener(v -> {
+                Intent intent = new Intent(requireContext(), ScheduleActivity.class);
+                intent.putExtra("teamId", teamId);
+                startActivity(intent);
+            });
         }
     }
 
-    // ── 멤버 리스트 ───────────────────────────────────────────────────────────────
+    // ── UI 바인딩 — 전적 통계 ────────────────────────────────────────────────────
 
-    private void loadPlayerList(String teamId) {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("teams").document(teamId).get()
-                .addOnSuccessListener(teamDoc -> {
-                    if (!isAdded() || !teamDoc.exists()) return;
+    private void bindRecordSummary(DocumentSnapshot doc) {
+        if (!isAdded()) return;
+        long games  = AppUtils.safeLong(doc.getLong("games"),       0L);
+        long wins   = AppUtils.safeLong(doc.getLong("wins"),        0L);
+        long draws  = AppUtils.safeLong(doc.getLong("draws"),       0L);
+        long losses = AppUtils.safeLong(doc.getLong("losses"),      0L);
+        long gf     = AppUtils.safeLong(doc.getLong("goalsFor"),    0L);
+        long ga     = AppUtils.safeLong(doc.getLong("goalsAgainst"),0L);
 
-                    String captainUid     = teamDoc.getString("captainUID");
-                    String viceCaptainUid = teamDoc.getString("viceCaptainUID");
-                    List<String> members  = (List<String>) teamDoc.get("members");
+        if (tvGames  != null) tvGames.setText(String.valueOf(games));
+        if (tvWins   != null) tvWins.setText(String.valueOf(wins));
+        if (tvDraws  != null) tvDraws.setText(String.valueOf(draws));
+        if (tvLosses != null) tvLosses.setText(String.valueOf(losses));
+        if (tvGF     != null) tvGF.setText(String.valueOf(gf));
+        if (tvGA     != null) tvGA.setText(String.valueOf(ga));
+        if (tvWinRate != null)
+            tvWinRate.setText(games > 0 ? Math.round((wins * 100f) / games) + "%" : "-");
+        if (recordSection != null) recordSection.setVisibility(View.VISIBLE);
+    }
 
-                    // ✅ Fragment 필드 항상 최신 값으로 업데이트
-                    // → 주장/부주장 변경 후 권한 체크가 즉시 반영됨
-                    MyTeamFragment.this.captainUid     = AppUtils.safe(captainUid);
-                    MyTeamFragment.this.viceCaptainUid = AppUtils.safe(viceCaptainUid);
+    // ── UI 바인딩 — 다음 일정 ────────────────────────────────────────────────────
 
-                    // ✅ Fix 3: null 체크
-                    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                    String currentUid = (user != null) ? user.getUid() : "";
+    private void bindNextSchedule(@Nullable DocumentSnapshot doc) {
+        if (!isAdded() || nextScheduleCard == null) return;
 
-                    if (members == null || members.isEmpty()) return;
+        if (doc == null || !doc.exists()) {
+            nextScheduleCard.setVisibility(View.GONE);
+            showNoScheduleMessage();
+            return;
+        }
 
-                    RecyclerView recyclerView = getView() != null
-                            ? getView().findViewById(R.id.recyclerViewMembers) : null;
-                    if (recyclerView == null) return;
+        nextScheduleCard.setVisibility(View.VISIBLE);
+        if (nextScheduleContainer != null) nextScheduleContainer.removeAllViews();
 
-                    db.collection("profiles").whereIn("__name__", members).get()
-                            .addOnSuccessListener(profileSnap -> {
-                                if (!isAdded()) return;
+        String date         = doc.getString("date");
+        String time         = doc.getString("time");
+        String homeTeamName = doc.getString("homeTeamName");
+        String awayTeamName = doc.getString("awayTeamName");
+        String homeLogo     = doc.getString("homeTeamLogoUrl");
+        String awayLogo     = doc.getString("awayTeamLogoUrl");
+        String stadiumName  = AppUtils.firstNonEmpty(
+                doc.getString("stadiumName"), doc.getString("stadium"));
+        String address      = AppUtils.firstNonEmpty(
+                doc.getString("stadiumAddress"), doc.getString("address"));
 
-                                List<DocumentSnapshot> fwDocs = new ArrayList<>(),
-                                        mfDocs = new ArrayList<>(),
-                                        dfDocs = new ArrayList<>(),
-                                        gkDocs = new ArrayList<>();
+        if (tvNextDateChip != null) {
+            String dateDisplay = AppUtils.isEmpty(date) ? "" : DateUtils.appendWeekday(date);
+            String timeDisplay = AppUtils.isEmpty(time) ? "" : " " + time;
+            tvNextDateChip.setText(dateDisplay + timeDisplay);
+        }
+        if (tvHomeName != null) tvHomeName.setText(AppUtils.safe(homeTeamName));
+        if (tvAwayName != null) tvAwayName.setText(AppUtils.safe(awayTeamName));
+        if (tvPlace    != null) tvPlace.setText(AppUtils.safe(stadiumName));
+        if (tvAddress  != null) tvAddress.setText(AppUtils.safe(address));
 
-                                for (DocumentSnapshot p : profileSnap.getDocuments()) {
-                                    String pos = p.getString("position");
-                                    if (AppUtils.isEmpty(pos)) { mfDocs.add(p); continue; }
-                                    switch (pos.trim().toUpperCase()) {
-                                        case "FW": fwDocs.add(p); break;
-                                        case "MF": mfDocs.add(p); break;
-                                        case "DF": dfDocs.add(p); break;
-                                        case "GK": gkDocs.add(p); break;
-                                        default:   mfDocs.add(p);
-                                    }
-                                }
+        if (imgHomeLogo != null && !AppUtils.isEmpty(homeLogo))
+            Glide.with(this).load(homeLogo).placeholder(R.drawable.ic_shield_gray).into(imgHomeLogo);
+        if (imgAwayLogo != null && !AppUtils.isEmpty(awayLogo))
+            Glide.with(this).load(awayLogo).placeholder(R.drawable.ic_shield_gray).into(imgAwayLogo);
+    }
 
-                                List<TeamMemberAdapter.MemberItem> items = new ArrayList<>();
-                                addPositionGroup(items, "FW (" + fwDocs.size() + ")", fwDocs);
-                                addPositionGroup(items, "MF (" + mfDocs.size() + ")", mfDocs);
-                                addPositionGroup(items, "DF (" + dfDocs.size() + ")", dfDocs);
-                                addPositionGroup(items, "GK (" + gkDocs.size() + ")", gkDocs);
+    private void showNoScheduleMessage() {
+        if (nextScheduleContainer == null) return;
+        nextScheduleContainer.removeAllViews();
+        TextView msg = new TextView(requireContext());
+        msg.setText("예정된 일정이 없습니다.");
+        msg.setTextSize(14f);
+        msg.setTextColor(0xFF6B7280);
+        msg.setGravity(android.view.Gravity.CENTER);
+        msg.setPadding(0, dp(24), 0, dp(24));
+        nextScheduleContainer.addView(msg);
+    }
 
-                                if (tvMemberTitle != null)
-                                    tvMemberTitle.setText("팀 멤버 (" + profileSnap.size() + ")");
+    private void showScheduleLoading(boolean show) {
+        if (scheduleLoading != null) scheduleLoading.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (scheduleContent != null) scheduleContent.setVisibility(show ? View.GONE : View.VISIBLE);
+    }
 
-                                final String cap  = captainUid;
-                                final String vice = viceCaptainUid;
-                                final String uid  = currentUid;
+    // ── UI 바인딩 — 멤버 목록 ────────────────────────────────────────────────────
 
-                                TeamMemberAdapter adapter = new TeamMemberAdapter(cap, vice, uid,
-                                        (nickname, memberUid) ->
-                                                db.collection("teams").document(teamId).get()
-                                                        .addOnSuccessListener(s -> {
-                                                            String latestVice = s != null
-                                                                    ? s.getString("viceCaptainUID") : vice;
-                                                            showPlayerOptionsDialog(nickname, memberUid,
-                                                                    teamId, latestVice,
-                                                                    new TextView(requireContext()));
-                                                        }));
+    private void bindMemberList(List<DocumentSnapshot> profiles) {
+        if (!isAdded()) return;
+        RecyclerView recyclerView = getView() != null
+                ? getView().findViewById(R.id.recyclerViewMembers) : null;
+        if (recyclerView == null) return;
 
-                                GridLayoutManager lm = new GridLayoutManager(requireContext(), 2);
-                                lm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
-                                    @Override
-                                    public int getSpanSize(int pos) {
-                                        return adapter.getItemViewType(pos) == TeamMemberAdapter.TYPE_HEADER ? 2 : 1;
-                                    }
-                                });
-                                recyclerView.setLayoutManager(lm);
-                                adapter.setItems(items);
-                                recyclerView.setAdapter(adapter);
-                            })
-                            .addOnFailureListener(e -> {
-                                if (isAdded())
-                                    CustomToast.error(requireContext(), "선수 정보를 불러오지 못했어요.");
-                            });
-                });
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        String currentUid = user != null ? user.getUid() : "";
+
+        List<DocumentSnapshot> fwDocs = new ArrayList<>(), mfDocs = new ArrayList<>(),
+                dfDocs = new ArrayList<>(), gkDocs = new ArrayList<>();
+
+        for (DocumentSnapshot p : profiles) {
+            String pos = p.getString("position");
+            if (AppUtils.isEmpty(pos)) { mfDocs.add(p); continue; }
+            switch (pos.trim().toUpperCase()) {
+                case "FW": fwDocs.add(p); break;
+                case "MF": mfDocs.add(p); break;
+                case "DF": dfDocs.add(p); break;
+                case "GK": gkDocs.add(p); break;
+                default:   mfDocs.add(p);
+            }
+        }
+
+        List<TeamMemberAdapter.MemberItem> items = new ArrayList<>();
+        addPositionGroup(items, "FW (" + fwDocs.size() + ")", fwDocs);
+        addPositionGroup(items, "MF (" + mfDocs.size() + ")", mfDocs);
+        addPositionGroup(items, "DF (" + dfDocs.size() + ")", dfDocs);
+        addPositionGroup(items, "GK (" + gkDocs.size() + ")", gkDocs);
+
+        if (tvMemberTitle != null) tvMemberTitle.setText("팀 멤버 (" + profiles.size() + ")");
+
+        final String cap  = captainUid;
+        final String vice = viceCaptainUid;
+
+        TeamMemberAdapter adapter = new TeamMemberAdapter(cap, vice, currentUid,
+                (nickname, memberUid) ->
+                        FirebaseFirestore.getInstance()
+                                .collection("teams").document(teamId).get()
+                                .addOnSuccessListener(s -> {
+                                    String latestVice = s != null
+                                            ? AppUtils.safe(s.getString("viceCaptainUID")) : vice;
+                                    showPlayerOptionsDialog(nickname, memberUid,
+                                            teamId, latestVice, new TextView(requireContext()));
+                                }));
+
+        GridLayoutManager lm = new GridLayoutManager(requireContext(), 2);
+        lm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
+            @Override public int getSpanSize(int pos) {
+                return adapter.getItemViewType(pos) == TeamMemberAdapter.TYPE_HEADER ? 2 : 1;
+            }
+        });
+        recyclerView.setLayoutManager(lm);
+        adapter.setItems(items);
+        recyclerView.setAdapter(adapter);
     }
 
     private void addPositionGroup(List<TeamMemberAdapter.MemberItem> items,
@@ -599,158 +523,17 @@ public class MyTeamFragment extends Fragment {
         }
     }
 
-    // ── 전적 요약 ─────────────────────────────────────────────────────────────────
+    // ── 사용자 액션 다이얼로그 ────────────────────────────────────────────────────
 
-    private void bindRecordSummary(String teamId) {
-        if (recordListener != null) recordListener.remove();
-        recordListener = FirebaseFirestore.getInstance()
-                .collection("teamStats").document(teamId)
-                .addSnapshotListener((doc, e) -> {
-                    if (!isAdded() || doc == null || !doc.exists()) return;
-                    long games  = AppUtils.safeLong(doc.getLong("games"), 0L);
-                    long wins   = AppUtils.safeLong(doc.getLong("wins"), 0L);
-                    long draws  = AppUtils.safeLong(doc.getLong("draws"), 0L);
-                    long losses = AppUtils.safeLong(doc.getLong("losses"), 0L);
-                    long gf     = AppUtils.safeLong(doc.getLong("goalsFor"), 0L);
-                    long ga     = AppUtils.safeLong(doc.getLong("goalsAgainst"), 0L);
-
-                    if (tvGames  != null) tvGames.setText(String.valueOf(games));
-                    if (tvWins   != null) tvWins.setText(String.valueOf(wins));
-                    if (tvDraws  != null) tvDraws.setText(String.valueOf(draws));
-                    if (tvLosses != null) tvLosses.setText(String.valueOf(losses));
-                    if (tvGF     != null) tvGF.setText(String.valueOf(gf));
-                    if (tvGA     != null) tvGA.setText(String.valueOf(ga));
-                    if (tvWinRate != null)
-                        tvWinRate.setText(games > 0
-                                ? Math.round((wins * 100f) / games) + "%" : "-");
-                });
-    }
-
-    // ── 다가오는 일정 ─────────────────────────────────────────────────────────────
-
-    private void loadUpcomingSchedule(String teamId) {
-        if (!isAdded() || AppUtils.isEmpty(teamId)) return;
-        showScheduleLoading(true);
-        long now = System.currentTimeMillis();
-
-        // ✅ schedules/{teamId}/events 에서 읽기 — ScheduleActivity와 동일한 구조
-        FirebaseFirestore.getInstance()
-                .collection("schedules").document(teamId)
-                .collection("events")
-                .whereGreaterThan("matchTs", now)
-                .orderBy("matchTs")
-                .limit(1)
-                .get()
-                .addOnSuccessListener(qs -> {
-                    if (!isAdded()) return;
-                    showScheduleLoading(false);
-                    if (qs == null || qs.isEmpty()) {
-                        if (nextScheduleCard != null) nextScheduleCard.setVisibility(View.GONE);
-                        showNoUpcomingMessage();
-                        return;
-                    }
-                    bindUpcomingCard(qs.getDocuments().get(0));
-                    if (nextScheduleCard != null) nextScheduleCard.setVisibility(View.VISIBLE);
-                })
-                .addOnFailureListener(e -> {
-                    if (isAdded()) showScheduleLoading(false);
-                });
-    }
-
-    private void bindUpcomingCard(DocumentSnapshot doc) {
-        if (tvNextDateChip != null) tvNextDateChip.setText(AppUtils.safe(doc.getString("date")));
-        if (tvHomeName     != null) tvHomeName.setText(AppUtils.safe(doc.getString("homeTeamName")));
-        if (tvAwayName     != null) tvAwayName.setText(AppUtils.safe(doc.getString("awayTeamName")));
-        if (tvPlace        != null) tvPlace.setText(AppUtils.safe(doc.getString("stadiumName")));
-        if (tvAddress      != null) tvAddress.setText(AppUtils.safe(doc.getString("address")));
-
-        String homeLogo = doc.getString("homeLogoUrl");
-        String awayLogo = doc.getString("awayLogoUrl");
-        if (imgHomeLogo != null && !AppUtils.isEmpty(homeLogo) && isAdded())
-            Glide.with(this).load(homeLogo).circleCrop().into(imgHomeLogo);
-        if (imgAwayLogo != null && !AppUtils.isEmpty(awayLogo) && isAdded())
-            Glide.with(this).load(awayLogo).circleCrop().into(imgAwayLogo);
-    }
-
-    private void showNoUpcomingMessage() {
-        if (nextScheduleContainer == null) return;
-        nextScheduleContainer.removeAllViews();
-        TextView msg = new TextView(requireContext());
-        msg.setText("예정된 경기가 없어요.");
-        msg.setTextSize(14f);
-        msg.setTextColor(0xFF6B7280);
-        msg.setGravity(android.view.Gravity.CENTER);
-        msg.setPadding(0, dp(24), 0, dp(24));
-        nextScheduleContainer.addView(msg);
-    }
-
-    private void showScheduleLoading(boolean show) {
-        if (scheduleLoading != null) scheduleLoading.setVisibility(show ? View.VISIBLE : View.GONE);
-        if (scheduleContent != null) scheduleContent.setVisibility(show ? View.GONE : View.VISIBLE);
-    }
-
-    // ── 팀 사진 업로드 ────────────────────────────────────────────────────────────
-
-    // ✅ Fix 2+3: ProgressDialog 제거 → 버튼 비활성화 + ExecutorService로 백그라운드 처리
-    private void uploadTeamPhotoToFirebase(Uri imageUri) {
-        if (AppUtils.isEmpty(teamId) || imageUri == null || !isAdded()) return;
-
-        teamPhoto.setEnabled(false);
-        CustomToast.info(requireContext(), "업로드 중...");
-
-        ExecutorService exec = Executors.newSingleThreadExecutor();
-        exec.execute(() -> {
-            try {
-                InputStream is = requireContext().getContentResolver().openInputStream(imageUri);
-                if (is == null) throw new IOException("InputStream null");
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                byte[] buf = new byte[4096];
-                int len;
-                while ((len = is.read(buf)) != -1) baos.write(buf, 0, len);
-                byte[] bytes = baos.toByteArray();
-
-                FirebaseStorage.getInstance().getReference()
-                        .child("team_photos/" + teamId + ".jpg")
-                        .putBytes(bytes)
-                        .addOnSuccessListener(t -> t.getStorage().getDownloadUrl()
-                                .addOnSuccessListener(uri -> {
-                                    if (!isAdded()) return;
-                                    FirebaseFirestore.getInstance()
-                                            .collection("teams").document(teamId)
-                                            .update("teamPhotoUrl", uri.toString())
-                                            .addOnSuccessListener(v -> {
-                                                if (!isAdded()) return;
-                                                if (teamPhoto != null) teamPhoto.setEnabled(true);
-                                                CustomToast.success(requireContext(), "팀 사진이 변경됐어요.");
-                                            })
-                                            .addOnFailureListener(e -> {
-                                                if (!isAdded()) return;
-                                                if (teamPhoto != null) teamPhoto.setEnabled(true);
-                                                CustomToast.error(requireContext(), "저장 실패: " + e.getMessage());
-                                            });
-                                }))
-                        .addOnFailureListener(e -> {
-                            if (!isAdded()) return;
-                            if (teamPhoto != null) teamPhoto.setEnabled(true);
-                            CustomToast.error(requireContext(), "업로드 실패: " + e.getMessage());
-                        });
-            } catch (IOException e) {
-                if (getActivity() != null) {
-                    getActivity().runOnUiThread(() -> {
-                        if (!isAdded()) return;
-                        if (teamPhoto != null) teamPhoto.setEnabled(true);
-                        CustomToast.error(requireContext(), "이미지 처리 실패: " + e.getMessage());
-                    });
-                }
-            }
-        });
-    }
-
-    // ── 팀 초대 다이얼로그 ────────────────────────────────────────────────────────
-
+    /**
+     * ✅ 수정: dialog_invite 레이아웃 없음 → 코드로 직접 생성
+     * 원본 SoccerClub 방식 그대로 복원
+     */
     private void showInviteDialog() {
-        // 레이아웃 없이 코드로 직접 생성
-        android.widget.EditText editNickname = new android.widget.EditText(requireContext());
+        if (!isAdded()) return;
+
+        // 레이아웃 파일 없이 코드로 직접 EditText 생성
+        EditText editNickname = new EditText(requireContext());
         editNickname.setHint("닉네임 입력");
         int pad = dp(16);
         editNickname.setPadding(pad, pad / 2, pad, pad / 2);
@@ -758,12 +541,12 @@ public class MyTeamFragment extends Fragment {
         final AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle("팀원 초대")
                 .setView(editNickname)
-                .setPositiveButton("초대 보내기", null) // 아래에서 직접 처리
+                .setPositiveButton("초대 보내기", null) // show 이후 처리
                 .setNegativeButton("취소", null)
                 .create();
 
         dialog.setOnShowListener(dlg -> {
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v2 -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
                 String nickname = editNickname.getText().toString().trim();
                 if (nickname.isEmpty()) {
                     CustomToast.warning(requireContext(), "닉네임을 입력해 주세요.");
@@ -781,7 +564,7 @@ public class MyTeamFragment extends Fragment {
                                 CustomToast.warning(requireContext(), "해당 닉네임의 유저가 없어요.");
                             }
                         })
-                        .addOnFailureListener(err ->
+                        .addOnFailureListener(e ->
                                 CustomToast.error(requireContext(), "검색에 실패했어요."));
             });
         });
@@ -789,7 +572,6 @@ public class MyTeamFragment extends Fragment {
         dialog.show();
     }
 
-    // ✅ Bug 3 + 팀 초대 수락 버튼: messageType="team_invite" + teamId 포함
     private void sendInviteMessage(String receiverUid) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user == null) return;
@@ -805,7 +587,7 @@ public class MyTeamFragment extends Fragment {
                 db.collection("chatRooms").document(roomId);
 
         Map<String, Object> roomData = new HashMap<>();
-        roomData.put("participants",  java.util.Arrays.asList(senderUid, receiverUid));
+        roomData.put("participants",  Arrays.asList(senderUid, receiverUid));
         roomData.put("lastMessage",   "[팀 초대] 우리 팀에 합류해보세요!");
         roomData.put("lastTimestamp", now);
         if (!AppUtils.isEmpty(teamId)) roomData.put("teamId", teamId);
@@ -815,276 +597,208 @@ public class MyTeamFragment extends Fragment {
                     Map<String, Object> message = new HashMap<>();
                     message.put("senderId",    senderUid);
                     message.put("content",     "[팀 초대] 우리 팀에 합류해보세요!");
-                    // ✅ "text" → "team_invite" 로 변경 → 수신자에게 수락/거절 버튼 표시
                     message.put("messageType", "team_invite");
-                    message.put("teamId",      teamId); // 어느 팀인지 함께 전송
+                    message.put("teamId",      teamId);
                     message.put("timestamp",   now);
 
                     roomRef.collection("messages").add(message)
                             .addOnSuccessListener(d -> {
                                 if (isAdded())
                                     CustomToast.success(requireContext(), "초대 메시지를 보냈어요.");
-                            })
-                            .addOnFailureListener(e -> {
-                                if (isAdded())
-                                    CustomToast.error(requireContext(), "메시지 전송 실패: " + e.getMessage());
                             });
-                })
-                .addOnFailureListener(e -> {
-                    if (isAdded())
-                        CustomToast.error(requireContext(), "채팅방 생성 실패: " + e.getMessage());
                 });
     }
 
-    // ── 팀 탈퇴 ───────────────────────────────────────────────────────────────────
-
-    // ✅ 탈퇴 — 트랜잭션으로 skillAverage 원자적 재계산
-    private void onClickLeaveTeam() {
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user == null) return;
-        String currentUid = user.getUid();
-
+    private void showLeaveTeamDialog(String currentUid) {
+        if (!isAdded()) return;
         new AlertDialog.Builder(requireContext())
-                .setTitle("팀 탈퇴 확인")
-                .setMessage("정말 팀에서 탈퇴하시겠습니까?")
-                .setPositiveButton("예", (d, i) -> {
-                    FirebaseFirestore db = FirebaseFirestore.getInstance();
-
-                    db.collection("profiles").document(currentUid).get()
-                            .addOnSuccessListener(profileSnap -> {
-                                String tid = profileSnap.getString("myTeam");
-                                if (AppUtils.isEmpty(tid)) {
-                                    CustomToast.info(requireContext(), "소속된 팀이 없어요.");
-                                    return;
-                                }
-
-                                DocumentReference teamRef    = db.collection("teams").document(tid);
-                                DocumentReference profileRef = db.collection("profiles").document(currentUid);
-
-                                db.runTransaction(transaction -> {
-                                            com.google.firebase.firestore.DocumentSnapshot teamSnap =
-                                                    transaction.get(teamRef);
-                                            com.google.firebase.firestore.DocumentSnapshot profSnap =
-                                                    transaction.get(profileRef);
-
-                                            // 주장은 탈퇴 불가
-                                            String captainUid = teamSnap.getString("captainUID");
-                                            if (currentUid.equals(captainUid)) {
-                                                throw new RuntimeException(
-                                                        "팀장은 탈퇴할 수 없어요.\n먼저 '주장 위임'을 해 주세요.");
-                                            }
-
-                                            // 실력 값
-                                            long skill = profSnap.getLong("skill") != null
-                                                    ? profSnap.getLong("skill") : 0L;
-
-                                            // members 배열에서 제거
-                                            transaction.update(teamRef, "members",
-                                                    FieldValue.arrayRemove(currentUid));
-                                            // memberCount, skillSum 감소
-                                            transaction.update(teamRef, "memberCount",
-                                                    FieldValue.increment(-1L));
-                                            transaction.update(teamRef, "skillSum",
-                                                    FieldValue.increment(-skill));
-
-                                            // skillAverage 재계산
-                                            long curSum   = teamSnap.getLong("skillSum")    != null
-                                                    ? teamSnap.getLong("skillSum")    : 0L;
-                                            long curCount = teamSnap.getLong("memberCount") != null
-                                                    ? teamSnap.getLong("memberCount") : 1L;
-                                            long newSum   = Math.max(0, curSum - skill);
-                                            long newCount = Math.max(0, curCount - 1);
-                                            int  newAvg   = newCount > 0 ? (int)(newSum / newCount) : 0;
-                                            transaction.update(teamRef, "skillAverage", newAvg);
-
-                                            // 부주장이면 해제
-                                            if (currentUid.equals(
-                                                    teamSnap.getString("viceCaptainUID"))) {
-                                                transaction.update(teamRef, "viceCaptainUID", "");
-                                            }
-
-                                            // 프로필 myTeam 초기화
-                                            transaction.update(profileRef, "myTeam", null);
-                                            return null;
-                                        })
-                                        .addOnSuccessListener(v -> {
-                                            if (!isAdded()) return;
-                                            CustomToast.success(requireContext(), "팀에서 탈퇴했어요.");
-                                            teamId = null;
-                                            if (nextScheduleCard != null)
-                                                nextScheduleCard.setVisibility(View.GONE);
-                                            state.setEmptyMessage("소속된 팀이 없습니다.\n팀에 가입하거나 팀을 생성하세요.");
-                                            state.showEmpty();
-                                        })
-                                        .addOnFailureListener(e -> {
-                                            if (!isAdded()) return;
-                                            String msg = e.getMessage() != null
-                                                    ? e.getMessage() : "탈퇴에 실패했어요.";
-                                            CustomToast.error(requireContext(), msg);
-                                        });
-                            })
-                            .addOnFailureListener(e ->
-                                    CustomToast.error(requireContext(), "프로필 정보를 불러오지 못했어요."));
-                })
-                .setNegativeButton("아니오", null)
+                .setTitle("팀 탈퇴")
+                .setMessage("정말로 팀에서 탈퇴하시겠습니까?")
+                .setPositiveButton("탈퇴", (d, i) -> leaveTeam(currentUid))
+                .setNegativeButton("취소", null)
                 .show();
     }
 
-    // ── 선수 옵션 다이얼로그 ──────────────────────────────────────────────────────
+    private void leaveTeam(String currentUid) {
+        if (AppUtils.isEmpty(teamId) || !isAdded()) return;
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("teams").document(teamId)
+                .update("members", FieldValue.arrayRemove(currentUid))
+                .addOnSuccessListener(v ->
+                        db.collection("profiles").document(currentUid)
+                                .update("myTeam", "")
+                                .addOnSuccessListener(v2 -> {
+                                    if (!isAdded()) return;
+                                    CustomToast.success(requireContext(), "팀에서 탈퇴했습니다.");
+                                    teamId = null;
+                                    if (state != null) {
+                                        state.setEmptyMessage("소속된 팀이 없습니다.\n팀에 가입하거나 팀을 생성하세요.");
+                                        state.showEmpty();
+                                    }
+                                }))
+                .addOnFailureListener(e -> {
+                    if (!isAdded()) return;
+                    CustomToast.error(requireContext(), "탈퇴에 실패했어요. 다시 시도해 주세요.");
+                });
+    }
 
-    private void showPlayerOptionsDialog(String nickname, String uid, String teamId,
-                                         String viceCaptainUid, TextView playerViceTag) {
-        View dialogView = LayoutInflater.from(getContext())
+    private void showPlayerOptionsDialog(String nickname, String memberUid,
+                                         String teamId, String latestVice,
+                                         TextView playerViceTag) {
+        if (!isAdded()) return;
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null || !user.getUid().equals(captainUid)) return;
+        String currentUid = user.getUid();
+
+        View dialogView = LayoutInflater.from(requireContext())
                 .inflate(R.layout.dialog_player_options, null);
-        TextView txtName           = dialogView.findViewById(R.id.txtPlayerName);
-        LinearLayout btnAssignVice    = dialogView.findViewById(R.id.btnAssignVice);
-        LinearLayout btnKickPlayer    = dialogView.findViewById(R.id.btnKickPlayer);
-        LinearLayout btnAssignCaptain = dialogView.findViewById(R.id.btnAssignCaptain);
-        TextView assignViceText    = dialogView.findViewById(R.id.txtAssignViceText);
+        TextView     txtName       = dialogView.findViewById(R.id.txtPlayerName);
+        LinearLayout btnAssignVice = dialogView.findViewById(R.id.btnAssignVice);
+        LinearLayout btnKickPlayer = dialogView.findViewById(R.id.btnKickPlayer);
+        LinearLayout btnAssignCap  = dialogView.findViewById(R.id.btnAssignCaptain);
+        TextView     viceText      = dialogView.findViewById(R.id.txtAssignViceText);
 
-        txtName.setText(nickname);
+        if (txtName != null) txtName.setText(nickname);
 
-        AlertDialog dialog = new AlertDialog.Builder(requireContext(), R.style.CustomDialog)
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setView(dialogView).create();
 
-        // ✅ 현재 유저가 주장인지 부주장인지 판단
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        String currentUid = (user != null) ? user.getUid() : "";
-
-        // 팀 문서에서 captainUID 가져오기 (MyTeamFragment의 필드 captainUid 사용)
-        boolean isCaptain    = currentUid.equals(this.captainUid);
-        boolean isViceCaptain = currentUid.equals(viceCaptainUid);
-
-        // ── 주장 위임 — 주장만 가능 ──────────────────────────────────────────────
-        if (btnAssignCaptain != null) {
-            if (isCaptain) {
-                btnAssignCaptain.setVisibility(View.VISIBLE);
-                btnAssignCaptain.setOnClickListener(v -> {
-                    dialog.dismiss();
-                    if (currentUid.equals(uid)) {
-                        CustomToast.warning(requireContext(), "자기 자신에게는 위임할 수 없어요.");
-                        return;
-                    }
-                    new AlertDialog.Builder(requireContext())
-                            .setTitle("주장 권한 위임")
-                            .setMessage(nickname + " 님에게 주장 권한을 위임하시겠습니까?")
-                            .setPositiveButton("예", (d, w) ->
-                                    FirebaseFirestore.getInstance()
-                                            .collection("teams").document(teamId)
-                                            .update("captainUID", uid)
-                                            .addOnSuccessListener(v2 -> {
-                                                CustomToast.success(requireContext(), "주장 권한이 위임됐어요.");
-                                                // ✅ Fragment 필드 즉시 업데이트 → 새 주장이 바로 권한 사용 가능
-                                                MyTeamFragment.this.captainUid = uid;
-                                                loadPlayerList(teamId);
-                                            }))
-                            .setNegativeButton("아니오", null).show();
-                });
-            } else {
-                // 부주장은 주장 위임 불가
-                btnAssignCaptain.setVisibility(View.GONE);
-            }
-        }
-
-        // ── 부주장 지정/해제 — 주장만 가능 ──────────────────────────────────────
-        boolean isVice = uid.equals(viceCaptainUid);
-        if (btnAssignVice != null) {
-            if (isCaptain) {
-                if (assignViceText != null)
-                    assignViceText.setText(isVice ? "부주장 해제" : "부주장 지정");
-                btnAssignVice.setVisibility(View.VISIBLE);
-                btnAssignVice.setOnClickListener(v -> {
-                    dialog.dismiss();
-                    String newVice = isVice ? "" : uid;
-                    FirebaseFirestore.getInstance()
-                            .collection("teams").document(teamId)
-                            .update("viceCaptainUID", newVice)
-                            .addOnSuccessListener(v2 -> {
-                                CustomToast.success(requireContext(),
-                                        isVice ? "부주장이 해제됐어요." : "부주장으로 지정됐어요.");
-                                // ✅ Fragment 필드 즉시 업데이트 → 새 부주장이 바로 권한 사용 가능
-                                MyTeamFragment.this.viceCaptainUid = newVice;
-                                loadPlayerList(teamId);
-                            });
-                });
-            } else {
-                // 부주장은 부주장 지정/해제 불가
-                btnAssignVice.setVisibility(View.GONE);
-            }
-        }
-
-        // ✅ 강퇴 — 부주장은 일반 멤버만 강퇴 가능 (주장·부주장 강퇴 불가)
-        boolean targetIsCaptain = uid.equals(this.captainUid);
-        boolean targetIsVice    = uid.equals(viceCaptainUid);
-
-        if (btnKickPlayer != null) {
-            // 부주장이 주장 또는 부주장을 강퇴하려는 경우 버튼 숨김
-            if (isViceCaptain && (targetIsCaptain || targetIsVice)) {
-                btnKickPlayer.setVisibility(View.GONE);
-            } else {
-                btnKickPlayer.setOnClickListener(v -> {
-                    dialog.dismiss();
-                    if (currentUid.equals(uid)) {
-                        CustomToast.warning(requireContext(), "자기 자신을 강퇴할 수 없어요.");
-                        return;
-                    }
-                    new AlertDialog.Builder(requireContext())
-                            .setTitle("팀원 강퇴")
-                            .setMessage(nickname + " 님을 팀에서 강퇴하시겠습니까?")
-                            .setPositiveButton("예", (d, w) -> {
-                                FirebaseFirestore db = FirebaseFirestore.getInstance();
-                                DocumentReference teamRef    = db.collection("teams").document(teamId);
-                                DocumentReference profileRef = db.collection("profiles").document(uid);
-
-                                db.runTransaction(transaction -> {
-                                            com.google.firebase.firestore.DocumentSnapshot teamSnap =
-                                                    transaction.get(teamRef);
-                                            com.google.firebase.firestore.DocumentSnapshot profSnap =
-                                                    transaction.get(profileRef);
-
-                                            long skill = profSnap.getLong("skill") != null
-                                                    ? profSnap.getLong("skill") : 0L;
-
-                                            transaction.update(teamRef, "members",
-                                                    FieldValue.arrayRemove(uid));
-                                            transaction.update(teamRef, "memberCount",
-                                                    FieldValue.increment(-1L));
-                                            transaction.update(teamRef, "skillSum",
-                                                    FieldValue.increment(-skill));
-
-                                            long curSum   = teamSnap.getLong("skillSum")    != null
-                                                    ? teamSnap.getLong("skillSum")    : 0L;
-                                            long curCount = teamSnap.getLong("memberCount") != null
-                                                    ? teamSnap.getLong("memberCount") : 1L;
-                                            long newSum   = Math.max(0, curSum - skill);
-                                            long newCount = Math.max(0, curCount - 1);
-                                            int  newAvg   = newCount > 0 ? (int)(newSum / newCount) : 0;
-                                            transaction.update(teamRef, "skillAverage", newAvg);
-
-                                            if (uid.equals(teamSnap.getString("viceCaptainUID"))) {
-                                                transaction.update(teamRef, "viceCaptainUID", "");
-                                            }
-
-                                            transaction.update(profileRef, "myTeam", null);
-                                            return null;
-                                        })
+        if (btnAssignCap != null) {
+            btnAssignCap.setVisibility(View.VISIBLE);
+            btnAssignCap.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (currentUid.equals(memberUid)) {
+                    CustomToast.warning(requireContext(), "자기 자신에게는 위임할 수 없어요."); return;
+                }
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("주장 권한 위임")
+                        .setMessage(nickname + " 님에게 주장 권한을 위임하시겠습니까?")
+                        .setPositiveButton("위임", (d, i) ->
+                                FirebaseFirestore.getInstance()
+                                        .collection("teams").document(teamId)
+                                        .update("captainUID", memberUid)
                                         .addOnSuccessListener(v2 -> {
                                             if (!isAdded()) return;
-                                            CustomToast.success(requireContext(), nickname + "님을 강퇴했어요.");
-                                            loadPlayerList(teamId);
+                                            captainUid = memberUid;
+                                            CustomToast.success(requireContext(), "주장 권한이 위임됐어요.");
                                         })
-                                        .addOnFailureListener(e -> {
-                                            if (!isAdded()) return;
-                                            CustomToast.error(requireContext(),
-                                                    "강퇴에 실패했어요: " + e.getMessage());
-                                        });
-                            })
-                            .setNegativeButton("아니오", null).show();
-                });
-            } // else 닫기 (부주장이 주장/부주장 강퇴 불가 조건)
+                                        .addOnFailureListener(e ->
+                                                CustomToast.error(requireContext(), "위임에 실패했어요.")))
+                        .setNegativeButton("취소", null).show();
+            });
+        }
+
+        if (btnAssignVice != null) {
+            boolean isCurrentVice = memberUid.equals(latestVice);
+            if (viceText != null) viceText.setText(isCurrentVice ? "부주장 해제" : "부주장 지정");
+            btnAssignVice.setOnClickListener(v -> {
+                dialog.dismiss();
+                String newVice = isCurrentVice ? "" : memberUid;
+                FirebaseFirestore.getInstance()
+                        .collection("teams").document(teamId)
+                        .update("viceCaptainUID", newVice)
+                        .addOnSuccessListener(v2 -> {
+                            if (!isAdded()) return;
+                            viceCaptainUid = newVice;
+                            CustomToast.success(requireContext(),
+                                    isCurrentVice ? "부주장이 해제됐어요." : "부주장으로 지정됐어요.");
+                        })
+                        .addOnFailureListener(e ->
+                                CustomToast.error(requireContext(), "변경에 실패했어요."));
+            });
+        }
+
+        if (btnKickPlayer != null) {
+            btnKickPlayer.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (currentUid.equals(memberUid)) {
+                    CustomToast.warning(requireContext(), "자기 자신은 강퇴할 수 없어요."); return;
+                }
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("팀원 강퇴")
+                        .setMessage(nickname + " 님을 팀에서 강퇴하시겠습니까?")
+                        .setPositiveButton("강퇴", (d2, i) -> kickMember(memberUid, nickname))
+                        .setNegativeButton("취소", null).show();
+            });
         }
 
         dialog.show();
+    }
+
+    private void kickMember(String memberUid, String nickname) {
+        if (AppUtils.isEmpty(teamId) || !isAdded()) return;
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("teams").document(teamId)
+                .update("members", FieldValue.arrayRemove(memberUid))
+                .addOnSuccessListener(v -> {
+                    db.collection("profiles").document(memberUid).update("myTeam", "");
+                    if (!isAdded()) return;
+                    CustomToast.success(requireContext(), nickname + " 님을 강퇴했어요.");
+                    if (viewModel != null) {
+                        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                        if (user != null) viewModel.reload(user.getUid());
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (!isAdded()) return;
+                    CustomToast.error(requireContext(), "강퇴에 실패했어요.");
+                });
+    }
+
+    // ── 팀 사진 업로드 ────────────────────────────────────────────────────────────
+
+    private void uploadTeamPhotoToFirebase(Uri imageUri) {
+        if (AppUtils.isEmpty(teamId) || imageUri == null || !isAdded()) return;
+        if (teamPhoto != null) teamPhoto.setEnabled(false);
+        CustomToast.info(requireContext(), "업로드 중...");
+
+        ExecutorService exec = Executors.newSingleThreadExecutor();
+        exec.execute(() -> {
+            try {
+                InputStream is = requireContext().getContentResolver().openInputStream(imageUri);
+                if (is == null) throw new IOException("InputStream null");
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                byte[] buf = new byte[4096]; int len;
+                while ((len = is.read(buf)) != -1) baos.write(buf, 0, len);
+                byte[] bytes = baos.toByteArray();
+
+                FirebaseStorage.getInstance().getReference()
+                        .child("team_photos/" + teamId + ".jpg")
+                        .putBytes(bytes)
+                        .addOnSuccessListener(t -> t.getStorage().getDownloadUrl()
+                                .addOnSuccessListener(uri -> {
+                                    if (!isAdded()) return;
+                                    FirebaseFirestore.getInstance()
+                                            .collection("teams").document(teamId)
+                                            .update("teamPhotoUrl", uri.toString())
+                                            .addOnSuccessListener(v -> {
+                                                if (!isAdded()) return;
+                                                if (teamPhoto != null) teamPhoto.setEnabled(true);
+                                                CustomToast.success(requireContext(), "팀 사진이 변경됐어요.");
+                                            });
+                                }))
+                        .addOnFailureListener(e -> {
+                            if (!isAdded()) return;
+                            if (teamPhoto != null) teamPhoto.setEnabled(true);
+                            CustomToast.error(requireContext(), "업로드에 실패했어요.");
+                        });
+            } catch (Exception e) {
+                if (!isAdded()) return;
+                if (teamPhoto != null) teamPhoto.setEnabled(true);
+                CustomToast.error(requireContext(), "파일을 읽지 못했어요.");
+            }
+        });
+    }
+
+    // ── 자동 새로고침 ─────────────────────────────────────────────────────────────
+
+    private void startUpcomingAutoRefresh() {
+        uiHandler.removeCallbacks(upcomingRefreshRunnable);
+        uiHandler.postDelayed(upcomingRefreshRunnable, 30_000);
+    }
+
+    private void stopUpcomingAutoRefresh() {
+        uiHandler.removeCallbacks(upcomingRefreshRunnable);
     }
 
     // ── 헬퍼 ─────────────────────────────────────────────────────────────────────
@@ -1095,7 +809,7 @@ public class MyTeamFragment extends Fragment {
         else { tv.setVisibility(View.VISIBLE); tv.setText(value); }
     }
 
-    private int dp(int v) {
-        return Math.round(v * requireContext().getResources().getDisplayMetrics().density);
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 }

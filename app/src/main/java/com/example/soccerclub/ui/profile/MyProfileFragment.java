@@ -1,9 +1,7 @@
 package com.example.soccerclub.ui.profile;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -16,58 +14,66 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.GlideException;
-import com.bumptech.glide.request.RequestListener;
-import com.bumptech.glide.request.target.Target;
 import com.example.soccerclub.R;
 import com.example.soccerclub.common.CustomToast;
 import com.example.soccerclub.common.StateLayout;
 import com.example.soccerclub.ui.auth.LoginActivity;
 import com.example.soccerclub.ui.team.TeamDetailActivity;
 import com.example.soccerclub.util.AppUtils;
+import com.example.soccerclub.viewmodel.ProfileViewModel;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
+/**
+ * 내 프로필 화면.
+ *
+ * ✅ 패키지: com.example.soccerclub.ui.profile
+ * → ui/profile/ 폴더에 배치하세요.
+ *
+ * [변경 전] Fragment 가 직접 하던 일
+ *   - AtomicInteger pendingOps 로 3개 비동기 작업 수동 동기화
+ *   - contentShown 플래그로 중복 showContent() 방지
+ *   - profiles / teams / teamStats Firestore 직접 호출
+ *
+ * [변경 후] Fragment 가 하는 일
+ *   - ProfileViewModel 의 LiveData 3개 observe 만 담당
+ *   - pendingOps, contentShown 완전 제거
+ */
 public class MyProfileFragment extends Fragment {
 
-    private static final boolean WAIT_IMAGES = true;
-
+    // ── 뷰 ────────────────────────────────────────────────────────────────────────
     private StateLayout state;
-    private ImageView profileImageView, teamLogo, toggleIntroArrow;
-    private TextView textNickname, textAge, textPositionBox, textSkill, textFoot;
-    private TextView textHeight, textWeight, textPlayerType, textIntroContent, textTeam;
-    private TextView statsTeamGames, statsTeamGoals, statsTeamAssists;
-    private TextView statsMercGames, statsMercGoals, statsMercAssists;
+    private ImageView   profileImageView, teamLogo, toggleIntroArrow;
+    private TextView    textNickname, textAge, textPositionBox, textSkill, textFoot;
+    private TextView    textHeight, textWeight, textPlayerType, textIntroContent, textTeam;
+    private TextView    statsTeamGames, statsTeamGoals, statsTeamAssists;
+    private TextView    statsMercGames, statsMercGoals, statsMercAssists;
 
     private boolean isIntroExpanded = false;
-    private String currentUid = null;
-    private String myTeamId = null;
 
-    private final AtomicInteger pendingOps = new AtomicInteger(0);
-    private volatile boolean contentShown = false;
+    // ── ViewModel ────────────────────────────────────────────────────────────────
+    private ProfileViewModel viewModel;
 
-    private FirebaseFirestore db;
-    private FirebaseAuth auth;
-
-    // 편집 화면에서 돌아왔을 때 프로필 새로고침
+    // ── 프로필 편집 후 새로고침 ───────────────────────────────────────────────────
     private final ActivityResultLauncher<Intent> editProfileLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
                     result -> {
-                        if (result.getResultCode() == Activity.RESULT_OK && isUiSafe()) {
-                            contentShown = false;
-                            pendingOps.set(0);
-                            if (state != null) state.showLoading();
-                            loadUserProfile();
+                        if (result.getResultCode() == Activity.RESULT_OK) {
+                            FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+                            if (user != null && viewModel != null) {
+                                if (state != null) state.showLoading();
+                                viewModel.reload(user.getUid());
+                            }
                         }
                     });
+
+    // ── 생명주기 ──────────────────────────────────────────────────────────────────
 
     @Nullable
     @Override
@@ -76,332 +82,179 @@ public class MyProfileFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_my_profile, container, false);
 
-        state            = view.findViewById(R.id.state);
-        profileImageView = view.findViewById(R.id.profileImageView);
-        textNickname     = view.findViewById(R.id.textNickname);
-        textAge          = view.findViewById(R.id.textAge);
-        textPositionBox  = view.findViewById(R.id.textPositionBox);
-        textSkill        = view.findViewById(R.id.textSkill);
-        textFoot         = view.findViewById(R.id.textFoot);
-        textHeight       = view.findViewById(R.id.textHeight);
-        textWeight       = view.findViewById(R.id.textWeight);
-        textPlayerType   = view.findViewById(R.id.textPlayerType);
-        textIntroContent = view.findViewById(R.id.textIntroContent);
-        toggleIntroArrow = view.findViewById(R.id.toggleIntroArrow);
-        textTeam         = view.findViewById(R.id.textTeam);
-        teamLogo         = view.findViewById(R.id.teamLogo);
-
-        statsTeamGames   = view.findViewById(R.id.statsTeamGames);
-        statsTeamGoals   = view.findViewById(R.id.statsTeamGoals);
-        statsTeamAssists = view.findViewById(R.id.statsTeamAssists);
-        statsMercGames   = view.findViewById(R.id.statsMercGames);
-        statsMercGoals   = view.findViewById(R.id.statsMercGoals);
-        statsMercAssists = view.findViewById(R.id.statsMercAssists);
-
-        db   = FirebaseFirestore.getInstance();
-        auth = FirebaseAuth.getInstance();
+        state             = view.findViewById(R.id.state);
+        profileImageView  = view.findViewById(R.id.profileImageView);
+        textNickname      = view.findViewById(R.id.textNickname);
+        textAge           = view.findViewById(R.id.textAge);
+        textPositionBox   = view.findViewById(R.id.textPositionBox);
+        textSkill         = view.findViewById(R.id.textSkill);
+        textFoot          = view.findViewById(R.id.textFoot);
+        textHeight        = view.findViewById(R.id.textHeight);
+        textWeight        = view.findViewById(R.id.textWeight);
+        textPlayerType    = view.findViewById(R.id.textPlayerType);
+        textIntroContent  = view.findViewById(R.id.textIntroContent);
+        toggleIntroArrow  = view.findViewById(R.id.toggleIntroArrow);
+        textTeam          = view.findViewById(R.id.textTeam);
+        teamLogo          = view.findViewById(R.id.teamLogo);
+        statsTeamGames    = view.findViewById(R.id.statsTeamGames);
+        statsTeamGoals    = view.findViewById(R.id.statsTeamGoals);
+        statsTeamAssists  = view.findViewById(R.id.statsTeamAssists);
+        statsMercGames    = view.findViewById(R.id.statsMercGames);
+        statsMercGoals    = view.findViewById(R.id.statsMercGoals);
+        statsMercAssists  = view.findViewById(R.id.statsMercAssists);
 
         if (state != null) state.showLoading();
-
-        toggleIntroArrow.setRotation(0f);
-        toggleIntroArrow.setOnClickListener(v -> toggleIntro());
-
-        View.OnClickListener teamClick = v -> openTeamOrWarn();
-        teamLogo.setOnClickListener(teamClick);
-        textTeam.setOnClickListener(teamClick);
-
-        // 편집 버튼
-        View btnEditProfile = view.findViewById(R.id.btnEditProfile);
-        if (btnEditProfile != null) {
-            btnEditProfile.setOnClickListener(v ->
-                    editProfileLauncher.launch(
-                            new Intent(requireContext(), EditProfileActivity.class)));
-        }
-
-        // ✅ 로그아웃 버튼
-        View btnLogout = view.findViewById(R.id.btnLogout);
-        if (btnLogout != null) {
-            btnLogout.setOnClickListener(v -> showLogoutConfirm());
-        }
-
-        loadUserProfile();
         return view;
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        reloadUserStatsOnly();
-    }
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-    // ── 로그아웃 ──────────────────────────────────────────────────────────────────
-
-    // ✅ 로그아웃 확인 다이얼로그
-    private void showLogoutConfirm() {
-        new AlertDialog.Builder(requireContext())
-                .setTitle("로그아웃")
-                .setMessage("정말 로그아웃 하시겠어요?")
-                .setPositiveButton("로그아웃", (d, i) -> {
-                    auth.signOut();
-                    // 로그인 화면으로 이동 + 백스택 전부 제거
-                    Intent intent = new Intent(requireContext(), LoginActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                })
-                .setNegativeButton("취소", null)
-                .show();
-    }
-
-    // ── 프로필 로드 ───────────────────────────────────────────────────────────────
-
-    private void loadUserProfile() {
-        if (auth.getCurrentUser() == null) {
-            if (state != null) state.showEmpty();
-            if (isUiSafe()) CustomToast.error(getContext(), "로그인이 필요해요.");
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
+            startActivity(new Intent(requireContext(), LoginActivity.class));
             return;
         }
 
-        currentUid = auth.getCurrentUser().getUid();
-        contentShown = false;
-        pendingOps.set(0);
-        addWait(1);
+        viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
 
-        db.collection("profiles").document(currentUid).get()
-                .addOnSuccessListener(doc -> {
-                    if (!isUiSafe()) return;
-                    if (!doc.exists()) {
-                        if (state != null) state.showEmpty();
-                        CustomToast.info(getContext(), "프로필 정보가 없어요.");
-                        doneOne();
-                        return;
-                    }
+        // ── LiveData 구독 ─────────────────────────────────────────────────────────
 
-                    bindProfileFields(doc);
+        // 1) 프로필
+        viewModel.profile.observe(getViewLifecycleOwner(), doc -> {
+            if (doc == null || !doc.exists()) {
+                if (state != null) state.showEmpty();
+                return;
+            }
+            bindProfileFields(doc);
+            loadProfileImage(doc.getString("profileImageUrl"));
+            if (state != null) state.showContent();
+        });
 
-                    String profileImageUrl = doc.getString("profileImageUrl");
-                    myTeamId = doc.getString("myTeam");
-
-                    loadProfileImage(profileImageUrl);
-                    loadTeamInfo();
-                    loadUserStats();
-
-                    doneOne();
-                    tryShowImmediatelyIfNoWait();
-                })
-                .addOnFailureListener(e -> {
-                    if (!isUiSafe()) return;
-                    if (state != null) state.showEmpty();
-                    CustomToast.error(getContext(), "프로필 불러오기 실패했어요.");
+        // 2) 팀 정보
+        viewModel.teamInfo.observe(getViewLifecycleOwner(), team -> {
+            if (team == null) {
+                showNoTeamPlaceholder();
+                return;
+            }
+            if (textTeam != null) textTeam.setText(AppUtils.safe(team.getTeamName()));
+            if (teamLogo != null) {
+                String logoUrl = team.getLogoUrl();
+                if (!AppUtils.isEmpty(logoUrl)) {
+                    Glide.with(this).load(logoUrl).circleCrop().into(teamLogo);
+                }
+                teamLogo.setOnClickListener(v -> {
+                    Intent i = new Intent(requireContext(), TeamDetailActivity.class);
+                    i.putExtra("teamId", team.getTeamId());
+                    startActivity(i);
                 });
+            }
+        });
+
+        // 3) 통계
+        viewModel.teamStats.observe(getViewLifecycleOwner(), doc -> {
+            if (doc != null && doc.exists()) bindStats(doc);
+        });
+
+        // 로딩 상태
+        viewModel.isLoading.observe(getViewLifecycleOwner(), loading -> {
+            if (loading != null && loading && state != null) state.showLoading();
+        });
+
+        // 최초 로드
+        viewModel.loadIfNeeded(user.getUid());
     }
 
+    // ── 바인딩 ────────────────────────────────────────────────────────────────────
+
     private void bindProfileFields(DocumentSnapshot doc) {
-        String nickname   = doc.getString("nickname");
-        Long ageLong      = doc.getLong("age");
-        String position   = doc.getString("position");
-        Long skillLong    = doc.getLong("skill");
-        String foot       = doc.getString("foot");
-        String intro      = doc.getString("introduction");
-        Long h            = doc.getLong("height");
-        Long w            = doc.getLong("weight");
+        String nickname    = doc.getString("nickname");
+        Long   ageLong     = doc.getLong("age");
+        String position    = doc.getString("position");
+        Long   skillLong   = doc.getLong("skill");
+        String foot        = doc.getString("foot");
+        String intro       = doc.getString("introduction");
+        Long   h           = doc.getLong("height");
+        Long   w           = doc.getLong("weight");
         String playerType  = doc.getString("playerType");
         String playerLevel = doc.getString("playerLevel");
 
-        textNickname.setText(!TextUtils.isEmpty(nickname) ? nickname : "닉네임 없음");
-        textAge.setText(ageLong != null ? ageLong + "세" : "-");
-        textPositionBox.setText(!TextUtils.isEmpty(position) ? position : "-");
-        textSkill.setText(skillLong != null ? String.valueOf(skillLong) : "-");
-        textFoot.setText(!TextUtils.isEmpty(foot) ? foot : "-");
-        textHeight.setText(h != null ? h + "cm" : "-");
-        textWeight.setText(w != null ? w + "kg" : "-");
-        textIntroContent.setText(!TextUtils.isEmpty(intro) ? intro : "자기소개 없음");
-        textIntroContent.setMaxLines(2);
-        isIntroExpanded = false;
-        toggleIntroArrow.setRotation(0f);
+        if (textNickname    != null) textNickname.setText(!TextUtils.isEmpty(nickname) ? nickname : "닉네임 없음");
+        if (textAge         != null) textAge.setText(ageLong != null ? ageLong + "세" : "-");
+        if (textPositionBox != null) textPositionBox.setText(!TextUtils.isEmpty(position) ? position : "-");
+        if (textSkill       != null) textSkill.setText(skillLong != null ? String.valueOf(skillLong) : "-");
+        if (textFoot        != null) textFoot.setText(!TextUtils.isEmpty(foot) ? foot : "-");
+        if (textHeight      != null) textHeight.setText(h != null ? h + "cm" : "-");
+        if (textWeight      != null) textWeight.setText(w != null ? w + "kg" : "-");
 
-        if ("비선출".equals(playerType)) {
-            textPlayerType.setText("비선출");
-        } else if ("선출".equals(playerType) && !TextUtils.isEmpty(playerLevel)) {
-            textPlayerType.setText(playerLevel);
-        } else if ("선출".equals(playerType)) {
-            textPlayerType.setText("선출");
-        } else {
-            textPlayerType.setText("-");
+        if (textIntroContent != null) {
+            textIntroContent.setText(!TextUtils.isEmpty(intro) ? intro : "자기소개 없음");
+            textIntroContent.setMaxLines(2);
+            isIntroExpanded = false;
+            if (toggleIntroArrow != null) toggleIntroArrow.setRotation(0f);
+        }
+
+        if (textPlayerType != null) {
+            if ("비선출".equals(playerType))
+                textPlayerType.setText("비선출");
+            else if ("선출".equals(playerType) && !TextUtils.isEmpty(playerLevel))
+                textPlayerType.setText(playerLevel);
+            else if ("선출".equals(playerType))
+                textPlayerType.setText("선출");
+            else
+                textPlayerType.setText("-");
+        }
+
+        // 소개글 토글
+        if (toggleIntroArrow != null && textIntroContent != null) {
+            toggleIntroArrow.setOnClickListener(v -> {
+                isIntroExpanded = !isIntroExpanded;
+                textIntroContent.setMaxLines(isIntroExpanded ? Integer.MAX_VALUE : 2);
+                toggleIntroArrow.setRotation(isIntroExpanded ? 180f : 0f);
+            });
+        }
+
+        // 프로필 편집 버튼
+        View btnEdit = getView() != null ? getView().findViewById(R.id.btnEditProfile) : null;
+        if (btnEdit != null) {
+            btnEdit.setOnClickListener(v ->
+                    editProfileLauncher.launch(
+                            new Intent(requireContext(), EditProfileActivity.class)));
         }
     }
 
+    private void bindStats(DocumentSnapshot doc) {
+        long teamGames   = AppUtils.safeLong(doc.getLong("teamGames"),   0L);
+        long teamGoals   = AppUtils.safeLong(doc.getLong("teamGoals"),   0L);
+        long teamAssists = AppUtils.safeLong(doc.getLong("teamAssists"), 0L);
+        long mercGames   = AppUtils.safeLong(doc.getLong("mercGames"),   0L);
+        long mercGoals   = AppUtils.safeLong(doc.getLong("mercGoals"),   0L);
+        long mercAssists = AppUtils.safeLong(doc.getLong("mercAssists"), 0L);
+
+        if (statsTeamGames   != null) statsTeamGames.setText(String.valueOf(teamGames));
+        if (statsTeamGoals   != null) statsTeamGoals.setText(String.valueOf(teamGoals));
+        if (statsTeamAssists != null) statsTeamAssists.setText(String.valueOf(teamAssists));
+        if (statsMercGames   != null) statsMercGames.setText(String.valueOf(mercGames));
+        if (statsMercGoals   != null) statsMercGoals.setText(String.valueOf(mercGoals));
+        if (statsMercAssists != null) statsMercAssists.setText(String.valueOf(mercAssists));
+    }
+
     private void loadProfileImage(String url) {
+        if (profileImageView == null) return;
         if (!TextUtils.isEmpty(url)) {
-            if (WAIT_IMAGES) addWait(1);
-            Glide.with(this).load(url)
+            Glide.with(this)
+                    .load(url)
                     .placeholder(R.drawable.ic_person_placeholder)
-                    .listener(new RequestListener<Drawable>() {
-                        @Override
-                        public boolean onLoadFailed(@Nullable GlideException e, Object model,
-                                                    Target<Drawable> t, boolean first) {
-                            if (WAIT_IMAGES) doneOne();
-                            return false;
-                        }
-                        @Override
-                        public boolean onResourceReady(Drawable r, Object model,
-                                                       Target<Drawable> t,
-                                                       com.bumptech.glide.load.DataSource ds,
-                                                       boolean first) {
-                            if (WAIT_IMAGES) doneOne();
-                            return false;
-                        }
-                    })
+                    .circleCrop()
                     .into(profileImageView);
         } else {
             profileImageView.setImageResource(R.drawable.ic_person_placeholder);
         }
     }
 
-    private void loadTeamInfo() {
-        if (AppUtils.isEmpty(myTeamId)) {
-            showNoTeamPlaceholder();
-            return;
-        }
-        addWait(1);
-        db.collection("teams").document(myTeamId).get()
-                .addOnSuccessListener(teamDoc -> {
-                    if (!isUiSafe()) { doneOne(); return; }
-                    if (teamDoc.exists()) {
-                        String teamName = teamDoc.getString("teamName");
-                        String logoUrl  = teamDoc.getString("logoUrl");
-                        textTeam.setText(!TextUtils.isEmpty(teamName) ? teamName : "-");
-                        teamLogo.setVisibility(View.VISIBLE);
-                        if (!TextUtils.isEmpty(logoUrl)) {
-                            if (WAIT_IMAGES) addWait(1);
-                            Glide.with(this).load(logoUrl)
-                                    .placeholder(R.drawable.ic_shield_gray)
-                                    .listener(new RequestListener<Drawable>() {
-                                        @Override
-                                        public boolean onLoadFailed(@Nullable GlideException e,
-                                                                    Object model, Target<Drawable> t, boolean first) {
-                                            if (WAIT_IMAGES) doneOne();
-                                            return false;
-                                        }
-                                        @Override
-                                        public boolean onResourceReady(Drawable r, Object model,
-                                                                       Target<Drawable> t,
-                                                                       com.bumptech.glide.load.DataSource ds, boolean first) {
-                                            if (WAIT_IMAGES) doneOne();
-                                            return false;
-                                        }
-                                    })
-                                    .into(teamLogo);
-                        } else {
-                            teamLogo.setImageResource(R.drawable.ic_shield_gray);
-                        }
-                    } else {
-                        showNoTeamPlaceholder();
-                    }
-                    doneOne();
-                })
-                .addOnFailureListener(e -> {
-                    if (!isUiSafe()) return;
-                    showNoTeamPlaceholder();
-                    doneOne();
-                });
-    }
-
-    private void loadUserStats() {
-        addWait(1);
-        db.collection("userStats").document(currentUid).get()
-                .addOnSuccessListener(us -> {
-                    if (!isUiSafe()) { doneOne(); return; }
-                    long tg = 0, tgo = 0, ta = 0, mg = 0, mgo = 0, ma = 0;
-                    if (us.exists()) {
-                        tg  = AppUtils.safeLong(us.getLong("teamGames"), 0L);
-                        tgo = AppUtils.safeLong(us.getLong("teamGoals"), 0L);
-                        ta  = AppUtils.safeLong(us.getLong("teamAssists"), 0L);
-                        mg  = AppUtils.safeLong(us.getLong("mercGames"), 0L);
-                        mgo = AppUtils.safeLong(us.getLong("mercGoals"), 0L);
-                        ma  = AppUtils.safeLong(us.getLong("mercAssists"), 0L);
-                    }
-                    statsTeamGames.setText(String.valueOf(tg));
-                    statsTeamGoals.setText(String.valueOf(tgo));
-                    if (statsTeamAssists != null) statsTeamAssists.setText(String.valueOf(ta));
-                    if (statsMercGames   != null) statsMercGames.setText(String.valueOf(mg));
-                    if (statsMercGoals   != null) statsMercGoals.setText(String.valueOf(mgo));
-                    if (statsMercAssists != null) statsMercAssists.setText(String.valueOf(ma));
-                    doneOne();
-                })
-                .addOnFailureListener(e -> {
-                    if (!isUiSafe()) return;
-                    statsTeamGames.setText("0");
-                    statsTeamGoals.setText("0");
-                    doneOne();
-                });
-    }
-
-    private void reloadUserStatsOnly() {
-        if (!isUiSafe() || auth.getCurrentUser() == null) return;
-        db.collection("userStats").document(auth.getCurrentUser().getUid()).get()
-                .addOnSuccessListener(us -> {
-                    if (!isUiSafe() || !us.exists()) return;
-                    long tg  = AppUtils.safeLong(us.getLong("teamGames"), 0L);
-                    long tgo = AppUtils.safeLong(us.getLong("teamGoals"), 0L);
-                    long ta  = AppUtils.safeLong(us.getLong("teamAssists"), 0L);
-                    long mg  = AppUtils.safeLong(us.getLong("mercGames"), 0L);
-                    long mgo = AppUtils.safeLong(us.getLong("mercGoals"), 0L);
-                    long ma  = AppUtils.safeLong(us.getLong("mercAssists"), 0L);
-                    statsTeamGames.setText(String.valueOf(tg));
-                    statsTeamGoals.setText(String.valueOf(tgo));
-                    if (statsTeamAssists != null) statsTeamAssists.setText(String.valueOf(ta));
-                    if (statsMercGames   != null) statsMercGames.setText(String.valueOf(mg));
-                    if (statsMercGoals   != null) statsMercGoals.setText(String.valueOf(mgo));
-                    if (statsMercAssists != null) statsMercAssists.setText(String.valueOf(ma));
-                });
-    }
-
     private void showNoTeamPlaceholder() {
-        textTeam.setText("소속팀 없음");
-        teamLogo.setVisibility(View.VISIBLE);
-        teamLogo.setImageResource(R.drawable.ic_shield_gray);
-    }
-
-    private void toggleIntro() {
-        if (isIntroExpanded) {
-            textIntroContent.setMaxLines(2);
-            toggleIntroArrow.animate().rotation(0f).setDuration(200).start();
-        } else {
-            textIntroContent.setMaxLines(Integer.MAX_VALUE);
-            toggleIntroArrow.animate().rotation(180f).setDuration(200).start();
-        }
-        isIntroExpanded = !isIntroExpanded;
-    }
-
-    private void openTeamOrWarn() {
-        if (!isUiSafe()) return;
-        Context ctx = getContext();
-        if (!AppUtils.isEmpty(myTeamId)) {
-            Intent intent = new Intent(ctx, TeamDetailActivity.class);
-            intent.putExtra("teamId", myTeamId);
-            startActivity(intent);
-        } else {
-            CustomToast.info(ctx, "소속된 팀이 없어요.");
-        }
-    }
-
-    private void addWait(int count) { if (count > 0) pendingOps.addAndGet(count); }
-
-    private void doneOne() {
-        int left = pendingOps.decrementAndGet();
-        maybeShowContent(left);
-    }
-
-    private void maybeShowContent(int left) {
-        if (!contentShown && left <= 0) {
-            contentShown = true;
-            if (isUiSafe() && state != null) state.showContent();
-        }
-    }
-
-    private void tryShowImmediatelyIfNoWait() { maybeShowContent(pendingOps.get()); }
-
-    private boolean isUiSafe() {
-        return isAdded() && getView() != null && getContext() != null;
+        if (textTeam != null) textTeam.setText("소속 팀 없음");
+        if (teamLogo != null) teamLogo.setImageResource(R.drawable.ic_shield_gray);
     }
 }

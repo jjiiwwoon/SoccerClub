@@ -2,7 +2,6 @@ package com.example.soccerclub.ui.chat;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -10,6 +9,7 @@ import android.view.ViewGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -18,30 +18,44 @@ import com.example.soccerclub.adapter.ChatRoomItemAdapter;
 import com.example.soccerclub.common.CustomToast;
 import com.example.soccerclub.common.StateLayout;
 import com.example.soccerclub.model.ChatRoomItem;
-import com.google.android.gms.tasks.Task;
-import com.google.android.gms.tasks.Tasks;
+import com.example.soccerclub.viewmodel.ChatViewModel;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentSnapshot;
-import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.ListenerRegistration;
-import com.google.firebase.firestore.Query;
-import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
+/**
+ * 채팅방 목록 화면.
+ *
+ * [변경 전] Fragment 가 직접 하던 일
+ *   - FirebaseFirestore db 직접 사용
+ *   - ListenerRegistration roomsReg 직접 보관/해제
+ *   - firstResultHandled 플래그 직접 관리
+ *   - listenChatRooms() 에서 채팅방/프로필/안읽음 3중 Firestore 호출
+ *   - onHiddenChanged 에서 리스너 수동 on/off
+ *
+ * [변경 후] Fragment 가 하는 일
+ *   - viewModel.chatRooms observe → adapter 업데이트
+ *   - viewModel.isLoading / isEmpty observe → StateLayout 제어
+ *   - onHiddenChanged → viewModel.startListening / stopListening 위임
+ *
+ * Firestore 코드가 Fragment 에 단 한 줄도 없다.
+ */
 public class ChatFragment extends Fragment {
 
-    private RecyclerView recyclerChatList;
+    // ── 뷰 ────────────────────────────────────────────────────────────────────────
+    private RecyclerView       recyclerChatList;
     private ChatRoomItemAdapter adapter;
-    private final List<ChatRoomItem> chatRoomList = new ArrayList<>();
+    private StateLayout         state;
 
-    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
-    private String currentUid;
-    private ListenerRegistration roomsReg;
-    private StateLayout state;
-    private boolean firstResultHandled = false;
+    // ── ViewModel ────────────────────────────────────────────────────────────────
+    private ChatViewModel viewModel;
+
+    // ── UID ──────────────────────────────────────────────────────────────────────
+    private String currentUid = null;
+
+    // ── 생명주기 ──────────────────────────────────────────────────────────────────
 
     @Nullable
     @Override
@@ -55,156 +69,83 @@ public class ChatFragment extends Fragment {
 
         if (state != null) state.showLoading();
 
-        recyclerChatList.setLayoutManager(new LinearLayoutManager(getContext()));
-        adapter = new ChatRoomItemAdapter(chatRoomList, getContext(), this::onChatRoomClick);
+        // adapter 초기화 — 빈 리스트로 시작
+        List<ChatRoomItem> emptyList = new ArrayList<>();
+        adapter = new ChatRoomItemAdapter(emptyList, requireContext(), this::onChatRoomClick);
+        recyclerChatList.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerChatList.setAdapter(adapter);
 
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-        currentUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : null;
-
-        if (currentUid == null) {
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) {
             CustomToast.error(requireContext(), "로그인 정보를 확인할 수 없어요.");
             if (state != null) state.showEmpty();
-        } else {
-            listenChatRooms();
+            return view;
         }
+        currentUid = user.getUid();
 
         return view;
     }
 
     @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        stopListener();
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        if (currentUid == null) return;
+
+        viewModel = new ViewModelProvider(this).get(ChatViewModel.class);
+
+        // ── LiveData 구독 ─────────────────────────────────────────────────────────
+
+        viewModel.chatRooms.observe(getViewLifecycleOwner(), rooms -> {
+            // ChatRoomItemAdapter 가 내부 리스트를 직접 참조하는 구조이므로
+            // clear + addAll 후 notifyDataSetChanged 호출
+            adapter.updateRooms(rooms != null ? rooms : new ArrayList<>());
+        });
+
+        viewModel.isLoading.observe(getViewLifecycleOwner(), loading -> {
+            if (state == null) return;
+            if (loading) state.showLoading();
+        });
+
+        viewModel.isEmpty.observe(getViewLifecycleOwner(), empty -> {
+            if (state == null) return;
+            if (empty) state.showEmpty();
+            else       state.showContent();
+        });
+
+        // 최초 리스너 시작
+        viewModel.startListening(currentUid);
     }
 
-    // ✅ show/hide 방식에서 탭이 다시 보일 때 리스너 재시작
+    @Override
+    public void onDestroyView() {
+        // Fragment 뷰가 파괴될 때 리스너 해제
+        if (viewModel != null) viewModel.stopListening();
+        super.onDestroyView();
+    }
+
+    /**
+     * HomeActivity 가 show/hide 방식으로 탭을 전환하므로
+     * 탭이 숨겨질 때 리스너 해제, 다시 보일 때 재등록.
+     *
+     * [변경 전] Fragment 에서 직접 roomsReg.remove() / listenChatRooms() 호출
+     * [변경 후] viewModel.stopListening() / startListening() 으로 위임
+     */
     @Override
     public void onHiddenChanged(boolean hidden) {
         super.onHiddenChanged(hidden);
-        if (!isAdded()) return;
-        if (!hidden) {
-            // 탭이 다시 보일 때 → 리스너 재시작 (새 채팅방 즉시 반영)
-            firstResultHandled = false;
-            listenChatRooms();
+        if (!isAdded() || viewModel == null) return;
+        if (hidden) {
+            viewModel.stopListening();
         } else {
-            // 탭이 숨겨질 때 → 리스너 해제 (배터리/네트워크 절약)
-            stopListener();
+            viewModel.startListening(currentUid);
         }
     }
 
-    private void stopListener() {
-        if (roomsReg != null) {
-            roomsReg.remove();
-            roomsReg = null;
-        }
-    }
-
-    private void listenChatRooms() {
-        stopListener(); // 기존 리스너 먼저 해제
-
-        if (currentUid == null) return;
-        if (state != null) state.showLoading();
-
-        roomsReg = db.collection("chatRooms")
-                .whereArrayContains("participants", currentUid)
-                .orderBy("lastTimestamp", Query.Direction.DESCENDING)
-                .addSnapshotListener((snap, e) -> {
-                    if (!isAdded()) return;
-                    if (e != null || snap == null) {
-                        Log.e("ChatFragment", "채팅방 로딩 실패: " + (e != null ? e.getMessage() : "null"));
-                        if (!firstResultHandled && state != null) state.showEmpty();
-                        return;
-                    }
-
-                    chatRoomList.clear();
-                    List<Task<?>> pendingTasks = new ArrayList<>();
-
-                    for (DocumentSnapshot doc : snap.getDocuments()) {
-                        ChatRoomItem item = doc.toObject(ChatRoomItem.class);
-                        if (item == null) continue;
-                        item.setRoomId(doc.getId());
-
-                        // ✅ toObject() 매핑이 불완전할 수 있으므로 직접 읽기
-                        Long lastTs = doc.getLong("lastTimestamp");
-                        if (lastTs != null) item.setLastTimestamp(lastTs);
-
-                        String lastMsg = doc.getString("lastMessage");
-                        if (lastMsg != null) item.setLastMessage(lastMsg);
-
-                        List<String> participants = (List<String>) doc.get("participants");
-                        String peerUid = null;
-                        if (participants != null) {
-                            for (String p : participants) {
-                                if (p != null && !p.equals(currentUid)) { peerUid = p; break; }
-                            }
-                        }
-
-                        if (peerUid != null) {
-                            final String finalPeerUid = peerUid;
-                            final ChatRoomItem finalItem = item;
-                            Task<DocumentSnapshot> metaT = db.collection("profiles")
-                                    .document(finalPeerUid).get()
-                                    .addOnSuccessListener(p -> {
-                                        if (p.exists()) {
-                                            finalItem.setPeerNickname(p.getString("nickname"));
-                                            finalItem.setPeerProfileImage(p.getString("profileImageUrl"));
-                                        }
-                                    });
-                            pendingTasks.add(metaT);
-                        }
-
-                        long lastReadTs = 0L;
-                        Map<String, Object> lastRead = (Map<String, Object>) doc.get("lastRead");
-                        if (lastRead != null && lastRead.get(currentUid) instanceof Number) {
-                            lastReadTs = ((Number) lastRead.get(currentUid)).longValue();
-                        }
-                        final long finalLastReadTs = lastReadTs;
-                        final ChatRoomItem finalItem2 = item;
-
-                        Task<QuerySnapshot> unreadT = db.collection("chatRooms")
-                                .document(doc.getId()).collection("messages")
-                                .whereGreaterThan("timestamp", finalLastReadTs)
-                                .orderBy("timestamp", Query.Direction.ASCENDING)
-                                .get()
-                                .addOnSuccessListener(qs -> {
-                                    int cnt = 0;
-                                    for (DocumentSnapshot m : qs.getDocuments()) {
-                                        String sender = m.getString("senderId");
-                                        if (sender != null && !sender.equals(currentUid)) cnt++;
-                                    }
-                                    finalItem2.setUnreadCount(cnt);
-                                })
-                                .addOnFailureListener(ex -> finalItem2.setUnreadCount(0));
-                        pendingTasks.add(unreadT);
-
-                        chatRoomList.add(item);
-                    }
-
-                    if (chatRoomList.isEmpty()) {
-                        if (!isAdded()) return;
-                        adapter.notifyDataSetChanged();
-                        firstResultHandled = true;
-                        if (state != null) state.showEmpty();
-                        return;
-                    }
-
-                    Tasks.whenAllComplete(pendingTasks).addOnCompleteListener(done -> {
-                        if (!isAdded()) return;
-                        adapter.notifyDataSetChanged();
-                        if (!firstResultHandled) {
-                            firstResultHandled = true;
-                            if (state != null) state.showContent();
-                        } else {
-                            // ✅ 이후 업데이트도 content 상태 유지
-                            if (state != null) state.showContent();
-                        }
-                    });
-                });
-    }
+    // ── 클릭 ─────────────────────────────────────────────────────────────────────
 
     private void onChatRoomClick(ChatRoomItem item) {
-        Intent intent = new Intent(getContext(), ChatRoomActivity.class);
+        Intent intent = new Intent(requireContext(), ChatRoomActivity.class);
         intent.putExtra("roomId", item.getRoomId());
         startActivity(intent);
     }

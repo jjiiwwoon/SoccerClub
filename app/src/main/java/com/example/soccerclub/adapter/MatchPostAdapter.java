@@ -2,8 +2,6 @@ package com.example.soccerclub.adapter;
 
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,6 +19,7 @@ import com.example.soccerclub.util.AppUtils;
 import com.example.soccerclub.util.DateUtils;
 import com.example.soccerclub.util.GlideHelper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -36,8 +35,8 @@ public class MatchPostAdapter extends RecyclerView.Adapter<MatchPostAdapter.Matc
     }
 
     public MatchPostAdapter(Context context, List<MatchPost> postList, boolean useRecommendLayout) {
-        this.context = context;
-        this.postList = postList;
+        this.context           = context;
+        this.postList          = postList != null ? postList : new ArrayList<>();
         this.useRecommendLayout = useRecommendLayout;
     }
 
@@ -46,15 +45,24 @@ public class MatchPostAdapter extends RecyclerView.Adapter<MatchPostAdapter.Matc
         notifyDataSetChanged();
     }
 
+    /** 기존 메서드 — 하위 호환 유지 */
     public void setMatchPostList(List<MatchPost> filteredList) {
-        this.postList = filteredList;
+        this.postList = filteredList != null ? filteredList : new ArrayList<>();
+        notifyDataSetChanged();
+    }
+
+    // ✅ MatchViewModel 에서 새 List 를 전달할 때 호출
+    public void updateItems(List<MatchPost> newItems) {
+        this.postList = newItems != null ? newItems : new ArrayList<>();
         notifyDataSetChanged();
     }
 
     @NonNull
     @Override
     public MatchPostViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        int layoutId = useRecommendLayout ? R.layout.recommend_match_item : R.layout.match_post_item;
+        int layoutId = useRecommendLayout
+                ? R.layout.recommend_match_item
+                : R.layout.match_post_item;
         View view = LayoutInflater.from(parent.getContext()).inflate(layoutId, parent, false);
         return new MatchPostViewHolder(view);
     }
@@ -84,7 +92,7 @@ public class MatchPostAdapter extends RecyclerView.Adapter<MatchPostAdapter.Matc
             bindReasons(holder.recoReasonsContainer, post.getMatchId());
         }
 
-        holder.itemRoot.setOnClickListener(v -> {
+        holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), MatchDetailActivity.class);
             intent.putExtra("matchId", post.getMatchId());
             v.getContext().startActivity(intent);
@@ -92,72 +100,40 @@ public class MatchPostAdapter extends RecyclerView.Adapter<MatchPostAdapter.Matc
     }
 
     @Override
-    public int getItemCount() { return postList == null ? 0 : postList.size(); }
+    public int getItemCount() {
+        return postList == null ? 0 : postList.size();
+    }
 
     private void bindReasons(LinearLayout container, String matchId) {
-        if (container == null) return;
-        if (reasonsMap == null || matchId == null || !reasonsMap.containsKey(matchId)) {
-            container.setVisibility(View.GONE);
-            container.removeAllViews();
-            return;
-        }
-        List<String> reasons = reasonsMap.get(matchId);
-        if (reasons == null || reasons.isEmpty()) {
-            container.setVisibility(View.GONE);
-            container.removeAllViews();
-            return;
-        }
-        container.setVisibility(View.VISIBLE);
         container.removeAllViews();
-        int shown = 0;
-        for (String r : reasons) {
-            if (AppUtils.isEmpty(r)) continue;
-            container.addView(makeChip(r.trim()));
-            if (++shown == 3) break;
+        if (reasonsMap == null || matchId == null) return;
+        List<String> reasons = reasonsMap.get(matchId);
+        if (reasons == null) return;
+        int max = Math.min(reasons.size(), 3);
+        for (int i = 0; i < max; i++) {
+            TextView badge = new TextView(container.getContext());
+            badge.setText(reasons.get(i));
+            badge.setTextSize(11f);
+            badge.setPadding(12, 4, 12, 4);
+            container.addView(badge);
         }
-        if (shown == 0) container.setVisibility(View.GONE);
-    }
-
-    private View makeChip(String text) {
-        TextView tv = new TextView(context);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, dp(28));
-        lp.setMarginEnd(dp(6));
-        lp.gravity = android.view.Gravity.CENTER_VERTICAL;
-        tv.setLayoutParams(lp);
-        tv.setText(text);
-        tv.setIncludeFontPadding(false);
-        tv.setTextSize(TypedValue.COMPLEX_UNIT_SP, 11.5f);
-        tv.setTextColor(Color.parseColor("#111111"));
-        tv.setPadding(dp(10), 0, dp(10), 0);
-        tv.setGravity(android.view.Gravity.CENTER);
-        tv.setBackgroundResource(R.drawable.bg_filter_chip_selector);
-        return tv;
-    }
-
-    private int dp(int value) {
-        return (int) TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, value,
-                context.getResources().getDisplayMetrics());
     }
 
     public static class MatchPostViewHolder extends RecyclerView.ViewHolder {
-        View itemRoot;
-        TextView textTeamName, textDate, textTime, textStadium, textSkill, textTimestamp;
-        ImageView imageTeamLogo;
-        LinearLayout recoReasonsContainer;
+        ImageView     imageTeamLogo;
+        TextView      textTeamName, textDate, textTime, textStadium, textSkill, textTimestamp;
+        LinearLayout  recoReasonsContainer;
 
         public MatchPostViewHolder(@NonNull View itemView) {
             super(itemView);
-            itemRoot              = itemView.findViewById(R.id.itemRoot);
-            imageTeamLogo         = itemView.findViewById(R.id.imageTeamLogo);
-            textTeamName          = itemView.findViewById(R.id.textTeamName);
-            textDate              = itemView.findViewById(R.id.textDate);
-            textTime              = itemView.findViewById(R.id.textTime);
-            textStadium           = itemView.findViewById(R.id.textStadium);
-            textSkill             = itemView.findViewById(R.id.textSkill);
-            textTimestamp         = itemView.findViewById(R.id.textTimestamp);
-            recoReasonsContainer  = itemView.findViewById(R.id.recoReasonsContainer);
+            imageTeamLogo        = itemView.findViewById(R.id.imageTeamLogo);
+            textTeamName         = itemView.findViewById(R.id.textTeamName);
+            textDate             = itemView.findViewById(R.id.textDate);
+            textTime             = itemView.findViewById(R.id.textTime);
+            textStadium          = itemView.findViewById(R.id.textStadium);
+            textSkill            = itemView.findViewById(R.id.textSkill);
+            textTimestamp        = itemView.findViewById(R.id.textTimestamp);
+            recoReasonsContainer = itemView.findViewById(R.id.recoReasonsContainer);
         }
     }
 }
