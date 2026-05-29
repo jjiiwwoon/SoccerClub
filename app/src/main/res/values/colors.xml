@@ -61,4 +61,9 @@
     <color name="radio_checked">#1E88E5</color>
     <color name="radio_unchecked">#9AA7B2</color>
 
+    <color name="badge_recruit_text">#1565C0</color>
+    <color name="badge_merc_text">#E65100</color>
+    <color name="primary_10">#1A1565C0</color>
+
+    <color name="bg_secondary">#F5F5F5</color>
 </resources>

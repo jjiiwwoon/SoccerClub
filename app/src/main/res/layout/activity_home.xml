@@ -14,74 +14,17 @@
         android:layout_height="0dp"
         android:layout_weight="1"/>
 
-    <!-- ✅ 하단 네비게이션 — 5개 탭 균등 배분 -->
-    <LinearLayout
+    -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:background="@color/bg_surface"
-        android:elevation="8dp">
+        app:itemIconTint="@color/bottom_nav_color"
+        app:itemTextColor="@color/bottom_nav_color"
+        app:itemRippleColor="@color/primary_10"
+        app:labelVisibilityMode="labeled"
+        app:menu="@menu/bottom_nav_menu"
+        app:elevation="8dp"/>
 
-        <!-- 탭 버튼 행 -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="64dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="4dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnRecruitMatch"
-                style="@style/BottomNavButton"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:text="모집/매치"
-                app:icon="@drawable/ic_recruit"
-                app:iconGravity="top"
-                app:iconSize="@dimen/icon_md"/>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnMyTeam"
-                style="@style/BottomNavButton"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:text="My팀"
-                app:icon="@drawable/ic_team"
-                app:iconGravity="top"
-                app:iconSize="@dimen/icon_md"/>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnOtherTeams"
-                style="@style/BottomNavButton"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:text="팀"
-                app:icon="@drawable/ic_group"
-                app:iconGravity="top"
-                app:iconSize="@dimen/icon_md"/>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnMyProfile"
-                style="@style/BottomNavButton"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:text="내 프로필"
-                app:icon="@drawable/ic_person"
-                app:iconGravity="top"
-                app:iconSize="@dimen/icon_md"/>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnChat"
-                style="@style/BottomNavButton"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:text="채팅"
-                app:icon="@drawable/ic_chat"
-                app:iconGravity="top"
-                app:iconSize="@dimen/icon_md"/>
-
-        </LinearLayout>
-
-    </LinearLayout>
 </LinearLayout>

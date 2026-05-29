@@ -1,0 +1,394 @@
+package com.jjw.soccerclub.repository;
+
+import com.jjw.soccerclub.adapter.ApplicationsAdapter;
+import com.jjw.soccerclub.util.AppUtils;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.TaskCompletionSource;
+import com.google.android.gms.tasks.Tasks;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QuerySnapshot;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 신청 목록(ApplicationsListActivity) Firestore 호출 전담.
+ *
+ * [변경 전] ApplicationsListActivity 안에 직접 있던 것
+ *   - collectMine() — 내 글 수집
+ *   - collectApplied() — 신청한 글 수집
+ *   - handleAccept() — 수락 처리
+ *   - handleReject() — 거절 처리
+ *   - joinTeamMember() — 팀 합류 트랜잭션
+ *   - registerSchedule() — 일정 등록
+ *   - openChatWithMessage() — 채팅방 생성/메시지 전송
+ *
+ * [변경 후] 이 Repository 가 모두 담당.
+ *   Activity 와 ViewModel 은 Firestore 코드 없이 메서드 호출만 한다.
+ */
+public class ApplicationsRepository {
+
+    private static final String POST_MATCH   = "match";
+    private static final String POST_RECRUIT = "recruit";
+
+    private final FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+    // ── 콜백 인터페이스 ───────────────────────────────────────────────────────────
+
+    public interface ItemsCallback {
+        void onResult(List<ApplicationsAdapter.Item> items);
+    }
+
+    // ── 내 글 수집 ────────────────────────────────────────────────────────────────
+
+    /**
+     * 내가 작성한 글 목록 수집.
+     * matches / recruitPosts 를 typeFilter 에 따라 선택적으로 조회.
+     */
+    public void fetchMine(String currentUid, String myTeamId,
+                          String typeFilter, ItemsCallback callback) {
+        List<Task<List<ApplicationsAdapter.Item>>> tasks = new ArrayList<>();
+
+        if (!"recruit".equals(typeFilter))
+            tasks.add(collectMine("matches",      POST_MATCH,   currentUid, myTeamId));
+        if (!"match".equals(typeFilter))
+            tasks.add(collectMine("recruitPosts", POST_RECRUIT, currentUid, myTeamId));
+
+        Tasks.whenAllSuccess(tasks).addOnSuccessListener(res -> {
+            List<ApplicationsAdapter.Item> merged = new ArrayList<>();
+            for (Object r : res) merged.addAll((List<ApplicationsAdapter.Item>) r);
+            merged.sort((a, b) -> Long.compare(b.matchTs, a.matchTs));
+            callback.onResult(merged);
+        }).addOnFailureListener(e -> callback.onResult(Collections.emptyList()));
+    }
+
+    /** 단일 컬렉션에서 내 글 수집 + 신청자 서브컬렉션 조회 */
+    @SuppressWarnings("unchecked")
+    private Task<List<ApplicationsAdapter.Item>> collectMine(
+            String collection, String postType,
+            String currentUid, String myTeamId) {
+
+        TaskCompletionSource<List<ApplicationsAdapter.Item>> tcs = new TaskCompletionSource<>();
+
+        List<Task<QuerySnapshot>> queries = new ArrayList<>();
+        if (!AppUtils.isEmpty(myTeamId)) {
+            queries.add(db.collection(collection)
+                    .whereEqualTo("teamId", myTeamId)
+                    .orderBy("matchTs", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .get());
+        }
+        queries.add(db.collection(collection).whereEqualTo("authorUid", currentUid).get());
+        queries.add(db.collection(collection).whereEqualTo("createdBy",  currentUid).get());
+
+        Tasks.whenAllSuccess(queries).addOnSuccessListener(results -> {
+            Map<String, DocumentSnapshot> dedup = new LinkedHashMap<>();
+            for (Object r : results) {
+                QuerySnapshot qs = (QuerySnapshot) r;
+                for (DocumentSnapshot d : qs.getDocuments()) dedup.put(d.getId(), d);
+            }
+
+            List<ApplicationsAdapter.Item> list = new ArrayList<>();
+            if (dedup.isEmpty()) { tcs.setResult(list); return; }
+
+            int total  = dedup.size();
+            int[] done = {0};
+
+            for (DocumentSnapshot d : dedup.values()) {
+                ApplicationsAdapter.Item it = buildItem(d, postType);
+                String coll = POST_MATCH.equals(postType) ? "matches" : "recruitPosts";
+
+                db.collection(coll).document(d.getId())
+                        .collection("applicants").get()
+                        .addOnSuccessListener(apSnap -> {
+                            List<ApplicationsAdapter.Applicant> applicants = new ArrayList<>();
+                            for (DocumentSnapshot ap : apSnap.getDocuments()) {
+                                ApplicationsAdapter.Applicant a = new ApplicationsAdapter.Applicant();
+                                a.applicantDocId  = ap.getId();
+                                a.teamId          = AppUtils.safe(ap.getString("teamId"));
+                                a.teamName        = AppUtils.safe(ap.getString("teamName"));
+                                a.logoUrl         = AppUtils.firstNonEmpty(
+                                        ap.getString("teamLogoUrl"), ap.getString("logoUrl"));
+                                a.nickname        = AppUtils.safe(ap.getString("nickname"));
+                                a.applicantUserId = AppUtils.safe(ap.getString("userId"));
+                                a.status          = AppUtils.safe(ap.getString("status"));
+                                Long sk = ap.getLong("skill");
+                                a.skill = sk != null ? sk.intValue() : -1;
+                                Long ts = ap.getLong("timestamp");
+                                a.timestamp = ts != null ? ts : 0L;
+                                applicants.add(a);
+                            }
+                            it.applicants = applicants;
+                            list.add(it);
+                            if (++done[0] >= total) tcs.setResult(list);
+                        })
+                        .addOnFailureListener(e -> {
+                            list.add(it);
+                            if (++done[0] >= total) tcs.setResult(list);
+                        });
+            }
+        }).addOnFailureListener(e -> tcs.setResult(new ArrayList<>()));
+
+        return tcs.getTask();
+    }
+
+    // ── 신청한 글 수집 ────────────────────────────────────────────────────────────
+
+    /**
+     * 내가 신청한 글 목록 수집.
+     */
+    @SuppressWarnings("unchecked")
+    public void fetchApplied(String currentUid, String myTeamId,
+                             String typeFilter, ItemsCallback callback) {
+
+        List<Task<QuerySnapshot>> tasks = new ArrayList<>();
+        if (!"recruit".equals(typeFilter)) {
+            if (!AppUtils.isEmpty(myTeamId)) {
+                tasks.add(db.collection("teams").document(myTeamId)
+                        .collection("matchApplications")
+                        .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                        .get());
+            }
+        }
+        if (!"match".equals(typeFilter)) {
+            tasks.add(db.collection("profiles").document(currentUid)
+                    .collection("applications")
+                    .whereEqualTo("postType", "recruit")
+                    .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .get());
+        }
+
+        if (tasks.isEmpty()) { callback.onResult(Collections.emptyList()); return; }
+
+        Tasks.whenAllSuccess(tasks).addOnSuccessListener(results -> {
+            Map<String, ApplicationsAdapter.Item> dedup = new LinkedHashMap<>();
+            List<Task<DocumentSnapshot>> postGets = new ArrayList<>();
+
+            for (int i = 0; i < results.size(); i++) {
+                QuerySnapshot qs = (QuerySnapshot) results.get(i);
+                boolean isMatch = !"recruit".equals(typeFilter) && !AppUtils.isEmpty(myTeamId) && i == 0;
+
+                for (DocumentSnapshot ap : qs.getDocuments()) {
+                    String postId   = isMatch ? ap.getString("matchId") : ap.getString("postId");
+                    String postType = isMatch ? POST_MATCH : POST_RECRUIT;
+
+                    if (AppUtils.isEmpty(postId) || dedup.containsKey(postId)) continue;
+
+                    ApplicationsAdapter.Item it = new ApplicationsAdapter.Item();
+                    it.postId   = postId;
+                    it.postType = postType;
+                    it.status   = AppUtils.safe(ap.getString("status"));
+                    Long ts = ap.getLong("timestamp");
+                    it.timestamp = ts != null ? ts : 0L;
+                    dedup.put(postId, it);
+
+                    String coll = POST_MATCH.equals(postType) ? "matches" : "recruitPosts";
+                    postGets.add(db.collection(coll).document(postId).get());
+                }
+            }
+
+            if (dedup.isEmpty()) { callback.onResult(Collections.emptyList()); return; }
+
+            Tasks.whenAllSuccess(postGets).addOnSuccessListener(ms -> {
+                for (Object o : ms) {
+                    DocumentSnapshot m = (DocumentSnapshot) o;
+                    if (!m.exists()) continue;
+                    ApplicationsAdapter.Item it = dedup.get(m.getId());
+                    if (it == null) continue;
+                    it.teamName    = AppUtils.safe(m.getString("teamName"));
+                    it.teamLogoUrl = AppUtils.firstNonEmpty(
+                            m.getString("teamLogoUrl"), m.getString("logoUrl"));
+                    it.date    = AppUtils.safe(m.getString("date"));
+                    it.time    = AppUtils.safe(m.getString("time"));
+                    it.stadium = AppUtils.firstNonEmpty(
+                            m.getString("stadiumAddress"), m.getString("address"));
+                    Long mts = m.getLong("matchTs");
+                    it.matchTs = mts != null ? mts : it.timestamp;
+                }
+                List<ApplicationsAdapter.Item> list = new ArrayList<>(dedup.values());
+                list.sort((a, b) -> Long.compare(b.matchTs, a.matchTs));
+                callback.onResult(list);
+            }).addOnFailureListener(e -> callback.onResult(Collections.emptyList()));
+
+        }).addOnFailureListener(e -> callback.onResult(Collections.emptyList()));
+    }
+
+    // ── 수락 ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * 신청 수락 처리.
+     * - applicants 상태 업데이트
+     * - 시합이면 matchApplications 상태 업데이트 + 일정 등록
+     * - 모집이면 팀 합류 트랜잭션
+     * - 채팅방 생성 + 수락 메시지 전송
+     */
+    public void accept(String currentUid, String myTeamId,
+                       ApplicationsAdapter.Item post,
+                       ApplicationsAdapter.Applicant applicant,
+                       Runnable onSuccess, Runnable onFailure) {
+
+        String coll = POST_MATCH.equals(post.postType) ? "matches" : "recruitPosts";
+        db.collection(coll).document(post.postId)
+                .collection("applicants").document(applicant.applicantDocId)
+                .update("status", "accepted")
+                .addOnSuccessListener(v -> {
+                    if (POST_MATCH.equals(post.postType)) {
+                        if (!AppUtils.isEmpty(applicant.teamId)) {
+                            db.collection("teams").document(applicant.teamId)
+                                    .collection("matchApplications").document(post.postId)
+                                    .update("status", "accepted");
+                        }
+                        registerSchedule(post, applicant, currentUid, myTeamId);
+                    } else {
+                        if (!AppUtils.isEmpty(applicant.applicantUserId)) {
+                            db.collection("profiles").document(applicant.applicantUserId)
+                                    .collection("applications").document(post.postId)
+                                    .update("status", "accepted");
+                        }
+                        joinTeamMember(applicant, myTeamId);
+                    }
+                    String msg = POST_MATCH.equals(post.postType)
+                            ? "시합 신청을 수락했어요 ✅ 일정을 확인해주세요!"
+                            : "모집 신청을 수락했어요 ✅ 채팅으로 소통해요!";
+                    openChatWithMessage(currentUid, applicant.applicantUserId, msg);
+                    if (onSuccess != null) onSuccess.run();
+                })
+                .addOnFailureListener(e -> { if (onFailure != null) onFailure.run(); });
+    }
+
+    // ── 거절 ─────────────────────────────────────────────────────────────────────
+
+    /**
+     * 신청 거절 처리.
+     */
+    public void reject(String currentUid,
+                       ApplicationsAdapter.Item post,
+                       ApplicationsAdapter.Applicant applicant,
+                       Runnable onSuccess, Runnable onFailure) {
+
+        String coll = POST_MATCH.equals(post.postType) ? "matches" : "recruitPosts";
+        db.collection(coll).document(post.postId)
+                .collection("applicants").document(applicant.applicantDocId)
+                .update("status", "rejected")
+                .addOnSuccessListener(v -> {
+                    if (POST_MATCH.equals(post.postType)) {
+                        if (!AppUtils.isEmpty(applicant.teamId)) {
+                            db.collection("teams").document(applicant.teamId)
+                                    .collection("matchApplications").document(post.postId)
+                                    .update("status", "rejected");
+                        }
+                    } else {
+                        if (!AppUtils.isEmpty(applicant.applicantUserId)) {
+                            db.collection("profiles").document(applicant.applicantUserId)
+                                    .collection("applications").document(post.postId)
+                                    .update("status", "rejected");
+                        }
+                    }
+                    String msg = POST_MATCH.equals(post.postType)
+                            ? "시합 신청을 거절했어요 ❌ 다음 기회에 만나요!"
+                            : "모집 신청을 거절했어요 ❌ 다음 기회에 만나요!";
+                    openChatWithMessage(currentUid, applicant.applicantUserId, msg);
+                    if (onSuccess != null) onSuccess.run();
+                })
+                .addOnFailureListener(e -> { if (onFailure != null) onFailure.run(); });
+    }
+
+    // ── 내부 헬퍼 ────────────────────────────────────────────────────────────────
+
+    private ApplicationsAdapter.Item buildItem(DocumentSnapshot d, String postType) {
+        ApplicationsAdapter.Item it = new ApplicationsAdapter.Item();
+        it.postId      = d.getId();
+        it.postType    = postType;
+        it.teamName    = AppUtils.safe(d.getString("teamName"));
+        it.teamLogoUrl = AppUtils.firstNonEmpty(
+                d.getString("teamLogoUrl"), d.getString("logoUrl"));
+        it.date    = AppUtils.safe(d.getString("date"));
+        it.time    = AppUtils.safe(d.getString("time"));
+        it.stadium = AppUtils.firstNonEmpty(
+                d.getString("stadiumAddress"), d.getString("address"));
+        Long mts = d.getLong("matchTs");
+        it.matchTs = mts != null ? mts : 0L;
+        return it;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void joinTeamMember(ApplicationsAdapter.Applicant applicant, String myTeamId) {
+        if (AppUtils.isEmpty(myTeamId) || AppUtils.isEmpty(applicant.applicantUserId)) return;
+        DocumentReference teamRef    = db.collection("teams").document(myTeamId);
+        DocumentReference profileRef = db.collection("profiles").document(applicant.applicantUserId);
+
+        db.runTransaction(tr -> {
+            DocumentSnapshot teamSnap    = tr.get(teamRef);
+            DocumentSnapshot profileSnap = tr.get(profileRef);
+            List<String> members = (List<String>) teamSnap.get("members");
+            if (members != null && members.contains(applicant.applicantUserId)) return null;
+
+            long skill = profileSnap.getLong("skill") != null ? profileSnap.getLong("skill") : 0L;
+            tr.update(teamRef, "members",     FieldValue.arrayUnion(applicant.applicantUserId));
+            tr.update(teamRef, "memberCount", FieldValue.increment(1L));
+            tr.update(teamRef, "skillSum",    FieldValue.increment(skill));
+            long curSum   = teamSnap.getLong("skillSum")    != null ? teamSnap.getLong("skillSum")   : 0L;
+            long curCount = teamSnap.getLong("memberCount") != null ? teamSnap.getLong("memberCount") : 0L;
+            int  newAvg   = (curCount + 1) > 0 ? (int)((curSum + skill) / (curCount + 1)) : 0;
+            tr.update(teamRef, "skillAverage", newAvg);
+            tr.update(profileRef, "myTeam", myTeamId);
+            return null;
+        });
+    }
+
+    private void registerSchedule(ApplicationsAdapter.Item post,
+                                  ApplicationsAdapter.Applicant applicant,
+                                  String currentUid, String myTeamId) {
+        if (AppUtils.isEmpty(myTeamId) || AppUtils.isEmpty(applicant.teamId)) return;
+        long now = System.currentTimeMillis();
+        Map<String, Object> schedule = new LinkedHashMap<>();
+        schedule.put("matchId",           post.postId);
+        schedule.put("opponentTeamId",    applicant.teamId);
+        schedule.put("opponentTeamName",  applicant.teamName);
+        schedule.put("date",              post.date);
+        schedule.put("time",              post.time);
+        schedule.put("stadium",           post.stadium);
+        schedule.put("status",            "scheduled");
+        schedule.put("createdAt",         now);
+
+        db.collection("schedules").document(myTeamId)
+                .collection("events").add(schedule);
+        db.collection("schedules").document(applicant.teamId)
+                .collection("events").add(schedule);
+    }
+
+    private void openChatWithMessage(String myUid, String otherUid, String message) {
+        if (AppUtils.isEmpty(otherUid)) return;
+        String roomId = myUid.compareTo(otherUid) < 0
+                ? myUid + "_" + otherUid : otherUid + "_" + myUid;
+        long now = System.currentTimeMillis();
+        DocumentReference roomRef = db.collection("chatRooms").document(roomId);
+
+        Map<String, Object> base = new LinkedHashMap<>();
+        base.put("participants",  Arrays.asList(myUid, otherUid));
+        base.put("lastMessage",   AppUtils.isEmpty(message) ? "" : message);
+        base.put("lastTimestamp", now);
+
+        roomRef.get().addOnSuccessListener(snap -> {
+            Task<?> roomTask = snap.exists()
+                    ? roomRef.update("lastMessage", base.get("lastMessage"), "lastTimestamp", now)
+                    : roomRef.set(base);
+            roomTask.addOnSuccessListener(v -> {
+                if (!AppUtils.isEmpty(message)) {
+                    Map<String, Object> msg = new LinkedHashMap<>();
+                    msg.put("senderId",    myUid);
+                    msg.put("content",     message);
+                    msg.put("messageType", "text");
+                    msg.put("timestamp",   now);
+                    roomRef.collection("messages").add(msg);
+                }
+            });
+        });
+    }
+}

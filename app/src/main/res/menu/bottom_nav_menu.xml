@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    res/menu/bottom_nav_menu.xml
+    → 이 파일을 res/menu/ 폴더에 새로 생성하세요.
+
+    아이콘은 기존 drawable 을 그대로 사용합니다.
+    기존 파일명에 맞게 ic_recruit / ic_team / ic_group / ic_person / ic_chat 을 씁니다.
+    만약 파일명이 다르면 실제 파일명으로 교체하세요.
+-->
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/navRecruitMatch"
+        android:icon="@drawable/ic_recruit"
+        android:title="찾기"/>
+
+    <item
+        android:id="@+id/navMyTeam"
+        android:icon="@drawable/ic_team"
+        android:title="내 팀"/>
+
+    <item
+        android:id="@+id/navOtherTeams"
+        android:icon="@drawable/ic_group"
+        android:title="팀 목록"/>
+
+    <item
+        android:id="@+id/navMyProfile"
+        android:icon="@drawable/ic_person"
+        android:title="프로필"/>
+
+    <item
+        android:id="@+id/navChat"
+        android:icon="@drawable/ic_chat"
+        android:title="채팅"/>
+
+</menu>

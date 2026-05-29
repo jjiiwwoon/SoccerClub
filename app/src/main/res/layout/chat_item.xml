@@ -1,68 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="@dimen/spacing_md"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="12dp"
     android:background="?attr/selectableItemBackground">
 
-    <ImageView
+    <!-- 프로필 이미지 (원형) -->
+    <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/profileImage"
-        android:layout_width="@dimen/avatar_md"
-        android:layout_height="@dimen/avatar_md"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
         android:scaleType="centerCrop"
         android:src="@drawable/ic_person_placeholder"
-        android:contentDescription="프로필"/>
+        app:shapeAppearanceOverlay="@style/CircleImageStyle"/>
 
+    <!-- 닉네임 + 마지막 메시지 -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:layout_marginStart="@dimen/spacing_md">
+        android:layout_marginStart="14dp">
 
         <TextView
             android:id="@+id/nickname"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="@dimen/text_lg"
+            android:textSize="15sp"
             android:textStyle="bold"
-            android:textColor="@color/text_primary"/>
+            android:textColor="@color/text_primary"
+            android:maxLines="1"
+            android:ellipsize="end"/>
 
         <TextView
             android:id="@+id/lastMessage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="@dimen/text_sm"
+            android:textSize="13sp"
             android:textColor="@color/text_secondary"
-            android:singleLine="true"
+            android:layout_marginTop="3dp"
+            android:maxLines="1"
             android:ellipsize="end"/>
     </LinearLayout>
 
+    <!-- 시간 + 안읽음 뱃지 -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:gravity="end">
+        android:gravity="end|center_vertical"
+        android:layout_marginStart="10dp">
 
         <TextView
             android:id="@+id/timestamp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="@dimen/text_xs"
+            android:textSize="11sp"
             android:textColor="@color/text_hint"/>
 
         <TextView
             android:id="@+id/unreadCount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_xs"
+            android:layout_marginTop="5dp"
             android:background="@drawable/bg_badge_red_circle"
             android:textColor="@color/white"
-            android:textSize="@dimen/text_xs"
+            android:textSize="11sp"
+            android:textStyle="bold"
             android:gravity="center"
-            android:minWidth="20dp"
+            android:minWidth="22dp"
             android:paddingHorizontal="4dp"
             android:visibility="gone"/>
     </LinearLayout>
