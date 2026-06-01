@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- res/drawable/bg_badge_vice_captain.xml — 부주장 뱃지 (파란색 아웃라인) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#E3F2FD"/>
+    <stroke android:width="1dp" android:color="#1565C0"/>
+    <corners android:radius="20dp"/>
+</shape>

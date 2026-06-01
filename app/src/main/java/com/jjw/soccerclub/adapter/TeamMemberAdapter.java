@@ -1,166 +1,208 @@
 package com.jjw.soccerclub.adapter;
 
-import android.content.Context;
-import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
+import com.google.android.material.imageview.ShapeableImageView;
 import com.jjw.soccerclub.R;
-import com.jjw.soccerclub.util.GlideHelper;
+import com.jjw.soccerclub.util.AppUtils;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class TeamMemberAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+/**
+ * 팀 멤버 목록 어댑터.
+ *
+ * [변경 전] 큰 카드 형태 → 멤버 많을 때 스크롤이 너무 길어짐
+ * [변경 후] 가로 2열 리스트 + 포지션 헤더에 컬러 바
+ *   - FW : 빨간색  #E53935
+ *   - MF : 파란색  #1E88E5
+ *   - DF : 초록색  #43A047
+ *   - GK : 주황색  #FB8C00
+ *   - 헤더는 span 2, 멤버 아이템은 span 1 (GridLayoutManager 필요)
+ */
+public class TeamMemberAdapter
+        extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     public static final int TYPE_HEADER = 0;
     public static final int TYPE_PLAYER = 1;
 
-    private List<MemberItem> itemList = new ArrayList<>();
-    private String captainUid;
-    private String viceCaptainUid;
-    private String currentUid;
-    private OnPlayerLongClickListener longClickListener;
+    private final String captainUid;
+    private final String viceCaptainUid;
+    private final String currentUid;
+    private final OnMemberClickListener listener;
 
-    public interface OnPlayerLongClickListener {
-        void onLongClick(String nickname, String uid);
+    private List<MemberItem> items = new ArrayList<>();
+
+    public interface OnMemberClickListener {
+        void onClick(String nickname, String uid);
     }
 
     public TeamMemberAdapter(String captainUid, String viceCaptainUid,
-                             String currentUid, OnPlayerLongClickListener listener) {
-        this.captainUid        = captainUid;
-        this.viceCaptainUid    = viceCaptainUid;
-        this.currentUid        = currentUid;
-        this.longClickListener = listener;
+                             String currentUid, OnMemberClickListener listener) {
+        this.captainUid     = captainUid     != null ? captainUid     : "";
+        this.viceCaptainUid = viceCaptainUid != null ? viceCaptainUid : "";
+        this.currentUid     = currentUid     != null ? currentUid     : "";
+        this.listener       = listener;
     }
 
     public void setItems(List<MemberItem> items) {
-        this.itemList = items;
+        this.items = items != null ? items : new ArrayList<>();
         notifyDataSetChanged();
     }
 
+    // ── SpanSizeLookup 헬퍼 ──────────────────────────────────────────────────────
+
+    /** GridLayoutManager 에 연결할 SpanSizeLookup 반환 */
+    public GridLayoutManager.SpanSizeLookup getSpanSizeLookup() {
+        return new GridLayoutManager.SpanSizeLookup() {
+            @Override
+            public int getSpanSize(int position) {
+                return getItemViewType(position) == TYPE_HEADER ? 2 : 1;
+            }
+        };
+    }
+
+    // ── RecyclerView.Adapter ─────────────────────────────────────────────────────
+
     @Override
     public int getItemViewType(int position) {
-        return itemList.get(position).type;
+        return items.get(position).type;
     }
 
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        LayoutInflater inf = LayoutInflater.from(parent.getContext());
         if (viewType == TYPE_HEADER) {
-            TextView headerView = new TextView(parent.getContext());
-            headerView.setLayoutParams(new ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT));
-            int dp16 = dp(parent.getContext(), 16);
-            int dp8  = dp(parent.getContext(), 8);
-            headerView.setPadding(dp16, dp8, dp16, dp8);
-            headerView.setTextSize(13f);
-            headerView.setTextColor(0xFF888888);
-            return new HeaderViewHolder(headerView);
+            View v = inf.inflate(R.layout.item_team_member_header, parent, false);
+            return new HeaderVH(v);
+        } else {
+            View v = inf.inflate(R.layout.item_team_member_row, parent, false);
+            return new PlayerVH(v);
         }
-        View v = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_team_member_card, parent, false);
-        return new PlayerViewHolder(v);
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        MemberItem item = itemList.get(position);
-        if (holder instanceof HeaderViewHolder) {
-            ((HeaderViewHolder) holder).header.setText(item.header);
-        } else if (holder instanceof PlayerViewHolder) {
-            bindPlayer((PlayerViewHolder) holder, item);
+        if (holder instanceof HeaderVH) {
+            bindHeader((HeaderVH) holder, items.get(position));
+        } else {
+            bindPlayer((PlayerVH) holder, items.get(position));
         }
-    }
-
-    private void bindPlayer(PlayerViewHolder h, MemberItem item) {
-        h.tvNickname.setText(TextUtils.isEmpty(item.nickname) ? "이름 없음" : item.nickname);
-        h.tvPosition.setText(TextUtils.isEmpty(item.position) ? "-" : item.position);
-
-        boolean isCaptain = item.uid != null && item.uid.equals(captainUid);
-        boolean isVice    = item.uid != null && item.uid.equals(viceCaptainUid);
-        boolean isCurrent = item.uid != null && item.uid.equals(currentUid);
-
-        // 역할 배지 표시
-        h.tvRole.setVisibility(View.GONE);
-        if (isCaptain) {
-            h.tvRole.setVisibility(View.VISIBLE);
-            h.tvRole.setText("주장");
-        } else if (isVice) {
-            h.tvRole.setVisibility(View.VISIBLE);
-            h.tvRole.setText("부주장");
-        }
-
-        GlideHelper.loadProfile(h.ivPhoto.getContext(), item.photoUrl, h.ivPhoto);
-
-        // ✅ 현재 유저의 등급
-        boolean currentIsCaptain = currentUid != null && currentUid.equals(captainUid);
-        boolean currentIsVice    = currentUid != null && currentUid.equals(viceCaptainUid);
-
-        // ✅ 롱클릭 가능 조건
-        // - 주장: 본인 제외 모든 멤버 롱클릭 가능
-        // - 부주장: 일반 멤버만 롱클릭 가능 (주장·부주장에게는 불가)
-        // - 일반 멤버: 롱클릭 불가
-        boolean canLongClick = false;
-        if (!isCurrent) {
-            if (currentIsCaptain) {
-                // 주장은 본인 제외 모두 가능
-                canLongClick = true;
-            } else if (currentIsVice) {
-                // 부주장은 일반 멤버(주장·부주장 아닌 사람)만 가능
-                canLongClick = !isCaptain && !isVice;
-            }
-        }
-
-        final boolean finalCanLongClick = canLongClick;
-        h.itemView.setOnLongClickListener(v -> {
-            if (longClickListener != null && finalCanLongClick) {
-                longClickListener.onLongClick(item.nickname, item.uid);
-                return true;
-            }
-            return false;
-        });
     }
 
     @Override
-    public int getItemCount() { return itemList.size(); }
+    public int getItemCount() { return items.size(); }
 
-    private static int dp(Context c, int dp) {
-        return Math.round(dp * c.getResources().getDisplayMetrics().density);
+    // ── 헤더 바인딩 ──────────────────────────────────────────────────────────────
+
+    private void bindHeader(HeaderVH h, MemberItem item) {
+        h.tvHeader.setText(item.header);
+
+        // 포지션별 컬러 바
+        int color = positionColor(item.header);
+        if (h.positionBar != null) h.positionBar.setBackgroundColor(color);
     }
+
+    /** 포지션 헤더 텍스트에서 컬러 결정 */
+    private int positionColor(String header) {
+        if (header == null) return 0xFF9E9E9E;
+        String h = header.toUpperCase();
+        if (h.startsWith("FW")) return 0xFFE53935; // 빨강
+        if (h.startsWith("MF")) return 0xFF1E88E5; // 파랑
+        if (h.startsWith("DF")) return 0xFF43A047; // 초록
+        if (h.startsWith("GK")) return 0xFFFB8C00; // 주황
+        return 0xFF9E9E9E;
+    }
+
+    // ── 플레이어 바인딩 ───────────────────────────────────────────────────────────
+
+    private void bindPlayer(PlayerVH h, MemberItem item) {
+        // 이름
+        h.tvName.setText(AppUtils.safe(item.nickname));
+
+        // 포지션
+        if (h.tvPosition != null) h.tvPosition.setText(AppUtils.safe(item.position));
+
+        // 주장 / 부주장 뱃지
+        if (h.tvBadge != null) {
+            boolean isCap  = item.uid != null && item.uid.equals(captainUid);
+            boolean isVice = item.uid != null && item.uid.equals(viceCaptainUid);
+
+            if (isCap) {
+                h.tvBadge.setText("주장");
+                h.tvBadge.setTextColor(0xFFFFFFFF);
+                h.tvBadge.setBackgroundResource(R.drawable.bg_badge_captain);
+                h.tvBadge.setVisibility(View.VISIBLE);
+            } else if (isVice) {
+                h.tvBadge.setText("부주장");
+                h.tvBadge.setTextColor(0xFF1565C0);
+                h.tvBadge.setBackgroundResource(R.drawable.bg_badge_vice_captain);
+                h.tvBadge.setVisibility(View.VISIBLE);
+            } else {
+                h.tvBadge.setVisibility(View.GONE);
+            }
+        }
+
+        // 프로필 사진
+        if (h.imgProfile != null) {
+            if (!AppUtils.isEmpty(item.photoUrl)) {
+                Glide.with(h.imgProfile.getContext())
+                        .load(item.photoUrl)
+                        .placeholder(R.drawable.ic_person_placeholder)
+                        .into(h.imgProfile);
+            } else {
+                h.imgProfile.setImageResource(R.drawable.ic_person_placeholder);
+            }
+        }
+
+        // 클릭 (주장만 옵션 다이얼로그 열기)
+        if (listener != null && currentUid.equals(captainUid)) {
+            h.itemView.setOnClickListener(v ->
+                    listener.onClick(item.nickname, item.uid));
+        }
+    }
+
+    // ── ViewHolder ───────────────────────────────────────────────────────────────
+
+    static class HeaderVH extends RecyclerView.ViewHolder {
+        View     positionBar;
+        TextView tvHeader;
+        HeaderVH(View v) {
+            super(v);
+            positionBar = v.findViewById(R.id.positionBar);
+            tvHeader    = v.findViewById(R.id.tvPositionHeader);
+        }
+    }
+
+    static class PlayerVH extends RecyclerView.ViewHolder {
+        ShapeableImageView imgProfile;
+        TextView           tvName, tvBadge, tvPosition;
+        PlayerVH(View v) {
+            super(v);
+            imgProfile = v.findViewById(R.id.imgMember);
+            tvName     = v.findViewById(R.id.tvMemberName);
+            tvBadge    = v.findViewById(R.id.tvMemberBadge);
+            tvPosition = v.findViewById(R.id.tvMemberPosition);
+        }
+    }
+
+    // ── 데이터 모델 ───────────────────────────────────────────────────────────────
 
     public static class MemberItem {
-        public static final int TYPE_HEADER = 0;
-        public static final int TYPE_PLAYER = 1;
-        public int    type;
-        public String header;
-        public String uid;
-        public String nickname;
-        public String position;
-        public String photoUrl;
-    }
-
-    static class HeaderViewHolder extends RecyclerView.ViewHolder {
-        TextView header;
-        HeaderViewHolder(TextView v) { super(v); header = v; }
-    }
-
-    static class PlayerViewHolder extends RecyclerView.ViewHolder {
-        ImageView ivPhoto;
-        TextView  tvNickname, tvPosition, tvRole;
-        PlayerViewHolder(@NonNull View v) {
-            super(v);
-            ivPhoto    = v.findViewById(R.id.ivPhoto);
-            tvNickname = v.findViewById(R.id.tvNickname);
-            tvPosition = v.findViewById(R.id.tvPosition);
-            tvRole     = v.findViewById(R.id.tvRole);
-        }
+        public int    type     = TYPE_PLAYER;
+        public String uid      = "";
+        public String nickname = "";
+        public String photoUrl = "";
+        public String position = "";
+        public String header   = "";  // type == TYPE_HEADER 일 때만 사용
     }
 }

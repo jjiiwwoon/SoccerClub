@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    팀 목록 화면
+    변경 사항:
+    1. 검색창에 돋보기 아이콘 추가
+    2. 필터 칩에 라벨 추가 (활동지역 | 구/군 | 실력 | 나이(시작) ~ 나이(끝))
+    3. 전체적인 여백/색상 정리
+-->
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -7,182 +14,224 @@
     android:background="@color/bg_page">
 
     <LinearLayout
-        android:id="@+id/mainContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- 검색창 -->
+        <!-- ── 검색창 ── -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="@dimen/spacing_md"
             android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="8dp"
             android:background="@color/bg_surface">
+
+            <!-- 돋보기 아이콘 -->
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_filter"
+                app:tint="@color/text_hint"
+                android:layout_marginEnd="8dp"/>
 
             <EditText
                 android:id="@+id/editTeamSearch"
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_weight="1"
-                android:background="@drawable/bg_searchbox"
+                android:background="@color/bg_secondary"
                 android:hint="팀 이름 검색"
                 android:textColorHint="@color/text_hint"
                 android:textColor="@color/text_primary"
-                android:textSize="@dimen/text_md"
-                android:paddingHorizontal="@dimen/spacing_md"
+                android:textSize="14sp"
+                android:paddingHorizontal="12dp"
                 android:singleLine="true"
                 android:imeOptions="actionSearch"/>
         </LinearLayout>
 
-        <!-- 필터 바 -->
+        <!-- ── 필터 칩 행 (라벨 포함) ── -->
         <HorizontalScrollView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:scrollbars="none"
-            android:background="@color/bg_surface">
+            android:background="@color/bg_surface"
+            android:paddingBottom="10dp">
 
             <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="48dp"
+                android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:paddingHorizontal="@dimen/spacing_md">
+                android:paddingHorizontal="16dp">
 
-                <!-- 지역(시) -->
+                <!-- 활동지역 (시/도) -->
                 <LinearLayout
                     android:id="@+id/btnCity"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="32dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:background="@drawable/bg_filter_chip_selector"
-                    android:paddingHorizontal="@dimen/chip_padding_horizontal"
-                    android:paddingVertical="@dimen/chip_padding_vertical"
+                    android:background="@drawable/bg_chip_outline"
+                    android:paddingHorizontal="10dp"
                     android:clickable="true"
                     android:focusable="true"
-                    android:layout_marginEnd="@dimen/spacing_sm">
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="활동지역 "
+                        android:textColor="@color/text_hint"
+                        android:textSize="12sp"/>
 
                     <TextView
                         android:id="@+id/textCity"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="전체"
-                        android:textColor="@color/text_primary"
-                        android:textSize="@dimen/text_sm"/>
+                        android:textColor="@color/primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"/>
 
                     <ImageView
-                        android:layout_width="@dimen/icon_sm"
-                        android:layout_height="@dimen/icon_sm"
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
                         android:src="@drawable/ic_arrow_down"
-                        android:layout_marginStart="@dimen/spacing_xs"/>
+                        app:tint="@color/primary"
+                        android:layout_marginStart="2dp"/>
                 </LinearLayout>
 
-                <!-- 지역(구) -->
+                <!-- 구/군 -->
                 <LinearLayout
                     android:id="@+id/btnDistrict"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="32dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:background="@drawable/bg_filter_chip_selector"
-                    android:paddingHorizontal="@dimen/chip_padding_horizontal"
-                    android:paddingVertical="@dimen/chip_padding_vertical"
+                    android:background="@drawable/bg_chip_outline"
+                    android:paddingHorizontal="10dp"
                     android:clickable="true"
                     android:focusable="true"
-                    android:layout_marginEnd="@dimen/spacing_sm">
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="구/군 "
+                        android:textColor="@color/text_hint"
+                        android:textSize="12sp"/>
 
                     <TextView
                         android:id="@+id/textDistrict"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="전체"
-                        android:textColor="@color/text_primary"
-                        android:textSize="@dimen/text_sm"/>
+                        android:textColor="@color/primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"/>
 
                     <ImageView
-                        android:layout_width="@dimen/icon_sm"
-                        android:layout_height="@dimen/icon_sm"
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
                         android:src="@drawable/ic_arrow_down"
-                        android:layout_marginStart="@dimen/spacing_xs"/>
+                        app:tint="@color/primary"
+                        android:layout_marginStart="2dp"/>
                 </LinearLayout>
 
                 <!-- 실력 -->
                 <LinearLayout
                     android:id="@+id/btnSkill"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="32dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:background="@drawable/bg_filter_chip_selector"
-                    android:paddingHorizontal="@dimen/chip_padding_horizontal"
-                    android:paddingVertical="@dimen/chip_padding_vertical"
+                    android:background="@drawable/bg_chip_outline"
+                    android:paddingHorizontal="10dp"
                     android:clickable="true"
                     android:focusable="true"
-                    android:layout_marginEnd="@dimen/spacing_sm">
+                    android:layout_marginEnd="8dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="실력 "
+                        android:textColor="@color/text_hint"
+                        android:textSize="12sp"/>
 
                     <TextView
                         android:id="@+id/textSkill"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="전체"
-                        android:textColor="@color/text_primary"
-                        android:textSize="@dimen/text_sm"/>
+                        android:textColor="@color/primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"/>
 
                     <ImageView
-                        android:layout_width="@dimen/icon_sm"
-                        android:layout_height="@dimen/icon_sm"
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
                         android:src="@drawable/ic_arrow_down"
-                        android:layout_marginStart="@dimen/spacing_xs"/>
+                        app:tint="@color/primary"
+                        android:layout_marginStart="2dp"/>
                 </LinearLayout>
 
                 <!-- 나이 시작 -->
                 <LinearLayout
                     android:id="@+id/btnAgeStart"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="32dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:background="@drawable/bg_filter_chip_selector"
-                    android:paddingHorizontal="@dimen/chip_padding_horizontal"
-                    android:paddingVertical="@dimen/chip_padding_vertical"
+                    android:background="@drawable/bg_chip_outline"
+                    android:paddingHorizontal="10dp"
                     android:clickable="true"
                     android:focusable="true"
-                    android:layout_marginEnd="@dimen/spacing_xs">
+                    android:layout_marginEnd="4dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="나이 "
+                        android:textColor="@color/text_hint"
+                        android:textSize="12sp"/>
 
                     <TextView
                         android:id="@+id/textAgeStart"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="전체"
-                        android:textColor="@color/text_primary"
-                        android:textSize="@dimen/text_sm"/>
+                        android:textColor="@color/primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"/>
 
                     <ImageView
-                        android:layout_width="@dimen/icon_sm"
-                        android:layout_height="@dimen/icon_sm"
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
                         android:src="@drawable/ic_arrow_down"
-                        android:layout_marginStart="@dimen/spacing_xs"/>
+                        app:tint="@color/primary"
+                        android:layout_marginStart="2dp"/>
                 </LinearLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="~"
+                    android:text=" ~ "
                     android:textColor="@color/text_hint"
-                    android:layout_marginHorizontal="@dimen/spacing_xs"/>
+                    android:textSize="12sp"
+                    android:layout_marginEnd="4dp"/>
 
                 <!-- 나이 끝 -->
                 <LinearLayout
                     android:id="@+id/btnAgeEnd"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="32dp"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:background="@drawable/bg_filter_chip_selector"
-                    android:paddingHorizontal="@dimen/chip_padding_horizontal"
-                    android:paddingVertical="@dimen/chip_padding_vertical"
+                    android:background="@drawable/bg_chip_outline"
+                    android:paddingHorizontal="10dp"
                     android:clickable="true"
                     android:focusable="true">
 
@@ -191,18 +240,26 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="전체"
-                        android:textColor="@color/text_primary"
-                        android:textSize="@dimen/text_sm"/>
+                        android:textColor="@color/primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold"/>
 
                     <ImageView
-                        android:layout_width="@dimen/icon_sm"
-                        android:layout_height="@dimen/icon_sm"
+                        android:layout_width="14dp"
+                        android:layout_height="14dp"
                         android:src="@drawable/ic_arrow_down"
-                        android:layout_marginStart="@dimen/spacing_xs"/>
+                        app:tint="@color/primary"
+                        android:layout_marginStart="2dp"/>
                 </LinearLayout>
 
             </LinearLayout>
         </HorizontalScrollView>
+
+        <!-- 구분선 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:background="@color/bg_divider"/>
 
         <!-- 팀 목록 -->
         <androidx.recyclerview.widget.RecyclerView
@@ -211,7 +268,7 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:clipToPadding="false"
-            android:padding="@dimen/spacing_xs"/>
+            android:paddingVertical="4dp"/>
 
     </LinearLayout>
 
@@ -222,7 +279,7 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentEnd="true"
-        android:layout_margin="@dimen/spacing_lg"
+        android:layout_margin="16dp"
         app:srcCompat="@drawable/ic_add_white"
         app:backgroundTint="@color/primary"/>
 

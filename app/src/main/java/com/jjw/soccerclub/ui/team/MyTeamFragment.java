@@ -116,7 +116,6 @@ public class MyTeamFragment extends Fragment {
         @Override
         public void run() {
             if (isAdded() && viewModel != null && !AppUtils.isEmpty(teamId)) {
-                // ✅ 수정: refreshNextSchedule(teamId) 호출
                 viewModel.refreshNextSchedule(teamId);
                 uiHandler.postDelayed(this, 30_000);
             }
@@ -321,7 +320,7 @@ public class MyTeamFragment extends Fragment {
         }
     }
 
-    // ── UI 바인딩 — 버튼 권한 설정 ───────────────────────────────────────────────
+    // ── UI 바인딩 — 버튼 권한 ────────────────────────────────────────────────────
 
     private void setupButtonsForTeam(Team team, String currentUid) {
         boolean isCaptain    = currentUid.equals(captainUid);
@@ -450,6 +449,11 @@ public class MyTeamFragment extends Fragment {
 
     // ── UI 바인딩 — 멤버 목록 ────────────────────────────────────────────────────
 
+    /**
+     * [변경 전] 큰 카드 형태 → 멤버 많을 때 스크롤 너무 길어짐
+     * [변경 후] 가로 2열 리스트 + 포지션 헤더 컬러 바
+     *   FW=빨강, MF=파랑, DF=초록, GK=주황
+     */
     private void bindMemberList(List<DocumentSnapshot> profiles) {
         if (!isAdded()) return;
         RecyclerView recyclerView = getView() != null
@@ -459,8 +463,11 @@ public class MyTeamFragment extends Fragment {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         String currentUid = user != null ? user.getUid() : "";
 
-        List<DocumentSnapshot> fwDocs = new ArrayList<>(), mfDocs = new ArrayList<>(),
-                dfDocs = new ArrayList<>(), gkDocs = new ArrayList<>();
+        // 포지션별 분류
+        List<DocumentSnapshot> fwDocs = new ArrayList<>(),
+                mfDocs = new ArrayList<>(),
+                dfDocs = new ArrayList<>(),
+                gkDocs = new ArrayList<>();
 
         for (DocumentSnapshot p : profiles) {
             String pos = p.getString("position");
@@ -474,6 +481,7 @@ public class MyTeamFragment extends Fragment {
             }
         }
 
+        // 아이템 목록 구성
         List<TeamMemberAdapter.MemberItem> items = new ArrayList<>();
         addPositionGroup(items, "FW (" + fwDocs.size() + ")", fwDocs);
         addPositionGroup(items, "MF (" + mfDocs.size() + ")", mfDocs);
@@ -496,12 +504,10 @@ public class MyTeamFragment extends Fragment {
                                             teamId, latestVice, new TextView(requireContext()));
                                 }));
 
+        // 헤더 span 2, 멤버 span 1
         GridLayoutManager lm = new GridLayoutManager(requireContext(), 2);
-        lm.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
-            @Override public int getSpanSize(int pos) {
-                return adapter.getItemViewType(pos) == TeamMemberAdapter.TYPE_HEADER ? 2 : 1;
-            }
-        });
+        lm.setSpanSizeLookup(adapter.getSpanSizeLookup());
+
         recyclerView.setLayoutManager(lm);
         adapter.setItems(items);
         recyclerView.setAdapter(adapter);
@@ -519,20 +525,16 @@ public class MyTeamFragment extends Fragment {
             item.uid      = d.getId();
             item.nickname = d.getString("nickname");
             item.photoUrl = d.getString("profileImageUrl");
+            item.position = AppUtils.safe(d.getString("position")); // ← 추가
             items.add(item);
         }
     }
 
     // ── 사용자 액션 다이얼로그 ────────────────────────────────────────────────────
 
-    /**
-     * ✅ 수정: dialog_invite 레이아웃 없음 → 코드로 직접 생성
-     * 원본 SoccerClub 방식 그대로 복원
-     */
     private void showInviteDialog() {
         if (!isAdded()) return;
 
-        // 레이아웃 파일 없이 코드로 직접 EditText 생성
         EditText editNickname = new EditText(requireContext());
         editNickname.setHint("닉네임 입력");
         int pad = dp(16);
@@ -541,7 +543,7 @@ public class MyTeamFragment extends Fragment {
         final AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle("팀원 초대")
                 .setView(editNickname)
-                .setPositiveButton("초대 보내기", null) // show 이후 처리
+                .setPositiveButton("초대 보내기", null)
                 .setNegativeButton("취소", null)
                 .create();
 

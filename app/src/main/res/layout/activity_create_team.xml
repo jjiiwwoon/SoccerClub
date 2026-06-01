@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    팀 생성 화면
+    ✅ 기존 뷰 ID 전부 유지:
+       imageTeamLogo / btnSelectLogo / btnSaveTeam
+       editTeamName / editTeamIntro
+       editStadium (TextView) / editStadiumName (EditText) / btnSearchStadium
+       spinnerCity / spinnerDistrict
+       spinnerAgeStart / spinnerAgeEnd
+       spinnerActivityDay / spinnerTimeStart / spinnerTimeEnd
+    ✅ 회원 구분 (radioGroupRecruitType) 복원
+    ✅ 카드 섹션 모던 UI 적용
+-->
 <androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -11,190 +23,423 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="@dimen/page_padding_horizontal">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="24dp">
 
-        <!-- 팀 로고 -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="팀 로고" android:textSize="@dimen/text_sm"
+        <!-- ── 섹션 1: 팀 기본 정보 ── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="팀 기본 정보"
+            android:textSize="13sp"
+            android:textStyle="bold"
             android:textColor="@color/text_secondary"
-            android:layout_marginTop="@dimen/spacing_lg"/>
+            android:layout_marginBottom="8dp"/>
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="horizontal" android:gravity="center_vertical"
-            android:layout_marginTop="@dimen/spacing_xs">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/bg_divider"
+            app:cardBackgroundColor="@color/bg_surface">
 
-            <ImageView android:id="@+id/imageTeamLogo"
-                android:layout_width="@dimen/avatar_md" android:layout_height="@dimen/avatar_md"
-                android:scaleType="centerCrop" android:src="@drawable/ic_shield_gray"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <Button android:id="@+id/btnSelectLogo"
-                android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/spacing_md"
-                android:text="로고 선택" android:textAllCaps="false"
-                android:textColor="@color/primary" android:backgroundTint="@color/bg_surface"
-                app:strokeColor="@color/primary" app:strokeWidth="1dp"
-                app:cornerRadius="@dimen/btn_radius"/>
-        </LinearLayout>
+                <!-- 팀 로고 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="14dp">
 
-        <!-- 팀 이름 -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="팀 이름" android:textSize="@dimen/text_sm"
+                    <ImageView
+                        android:id="@+id/imageTeamLogo"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:scaleType="centerCrop"
+                        android:background="@drawable/bg_rounded_rect_12"
+                        android:clipToOutline="true"
+                        android:src="@drawable/ic_shield_gray"/>
+
+                    <Button
+                        android:id="@+id/btnSelectLogo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="14dp"
+                        android:text="로고 선택"
+                        android:textAllCaps="false"
+                        android:textSize="13sp"
+                        android:textColor="@color/primary"
+                        android:backgroundTint="@android:color/transparent"
+                        app:strokeColor="@color/primary"
+                        app:strokeWidth="1dp"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                </LinearLayout>
+
+                <!-- 팀 이름 -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="팀 이름"
+                    android:layout_marginBottom="12dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    app:boxCornerRadiusTopStart="10dp" app:boxCornerRadiusTopEnd="10dp"
+                    app:boxCornerRadiusBottomStart="10dp" app:boxCornerRadiusBottomEnd="10dp"
+                    app:boxBackgroundColor="@color/bg_page">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editTeamName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_primary"
+                        android:inputType="text"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- 활동 지역 — spinnerCity / spinnerDistrict -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="활동 지역"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="4dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Spinner
+                        android:id="@+id/spinnerCity"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/bg_input"/>
+
+                    <Spinner
+                        android:id="@+id/spinnerDistrict"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"/>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── 섹션 2: 팀 조건 ── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="팀 조건"
+            android:textSize="13sp"
+            android:textStyle="bold"
             android:textColor="@color/text_secondary"
-            android:layout_marginTop="@dimen/spacing_lg"/>
+            android:layout_marginBottom="8dp"/>
 
-        <EditText android:id="@+id/editTeamName"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_xs"
-            android:background="@drawable/bg_input"
-            android:hint="팀 이름 입력" android:inputType="text"
-            android:padding="@dimen/input_padding_horizontal"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint"/>
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/bg_divider"
+            app:cardBackgroundColor="@color/bg_surface">
 
-        <!-- 지역 -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="활동 지역" android:textSize="@dimen/text_sm"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- 나이대 — spinnerAgeStart / spinnerAgeEnd -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="나이대"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="4dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
+
+                    <Spinner
+                        android:id="@+id/spinnerAgeStart"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:background="@drawable/bg_input"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=" ~ "
+                        android:textColor="@color/text_hint"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="4dp"/>
+
+                    <Spinner
+                        android:id="@+id/spinnerAgeEnd"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"/>
+                </LinearLayout>
+
+                <!-- 활동 요일/시간 — spinnerActivityDay / spinnerTimeStart / spinnerTimeEnd -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="활동 요일/시간"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginBottom="4dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <Spinner
+                        android:id="@+id/spinnerActivityDay"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/bg_input"/>
+
+                    <Spinner
+                        android:id="@+id/spinnerTimeStart"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="4dp"
+                        android:background="@drawable/bg_input"/>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=" ~ "
+                        android:textColor="@color/text_hint"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="4dp"/>
+
+                    <Spinner
+                        android:id="@+id/spinnerTimeEnd"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_input"/>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── 섹션 3: 회원 구분 (복원) ── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="회원 구분"
+            android:textSize="13sp"
+            android:textStyle="bold"
             android:textColor="@color/text_secondary"
-            android:layout_marginTop="@dimen/spacing_md"/>
+            android:layout_marginBottom="8dp"/>
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="horizontal" android:layout_marginTop="@dimen/spacing_xs">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/bg_divider"
+            app:cardBackgroundColor="@color/bg_surface">
 
-            <Spinner android:id="@+id/spinnerCity"
-                android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:layout_marginEnd="@dimen/spacing_sm"
-                android:background="@drawable/bg_input"
-                android:padding="@dimen/input_padding_horizontal"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <Spinner android:id="@+id/spinnerDistrict"
-                android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@drawable/bg_input"
-                android:padding="@dimen/input_padding_horizontal"/>
-        </LinearLayout>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="팀에서 모집하는 회원 유형을 선택하세요"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_hint"
+                    android:layout_marginBottom="10dp"/>
 
-        <!-- 나이대 -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="나이대" android:textSize="@dimen/text_sm"
+                <RadioGroup
+                    android:id="@+id/radioGroupRecruitType"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <RadioButton
+                        android:id="@+id/radioRecruitMember"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="회원 모집"
+                        android:textSize="13sp"
+                        android:checked="true"/>
+
+                    <RadioButton
+                        android:id="@+id/radioRecruitMercenary"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="용병 모집"
+                        android:textSize="13sp"/>
+
+                    <RadioButton
+                        android:id="@+id/radioRecruitBoth"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="모두 모집"
+                        android:textSize="13sp"/>
+                </RadioGroup>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── 섹션 4: 주 활동 구장 ── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="주 활동 구장"
+            android:textSize="13sp"
+            android:textStyle="bold"
             android:textColor="@color/text_secondary"
-            android:layout_marginTop="@dimen/spacing_md"/>
+            android:layout_marginBottom="8dp"/>
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="horizontal" android:gravity="center_vertical"
-            android:layout_marginTop="@dimen/spacing_xs">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/bg_divider"
+            app:cardBackgroundColor="@color/bg_surface">
 
-            <Spinner android:id="@+id/spinnerAgeStart"
-                android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@drawable/bg_input"
-                android:padding="@dimen/input_padding_horizontal"/>
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text=" ~ " android:textColor="@color/text_hint"/>
+                <!-- editStadiumName — 구장명 입력 -->
+                <com.google.android.material.textfield.TextInputLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="구장명"
+                    android:layout_marginBottom="10dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    app:boxCornerRadiusTopStart="10dp" app:boxCornerRadiusTopEnd="10dp"
+                    app:boxCornerRadiusBottomStart="10dp" app:boxCornerRadiusBottomEnd="10dp"
+                    app:boxBackgroundColor="@color/bg_page">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/editStadiumName"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/text_primary"
+                        android:inputType="text"/>
+                </com.google.android.material.textfield.TextInputLayout>
 
-            <Spinner android:id="@+id/spinnerAgeEnd"
-                android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@drawable/bg_input"
-                android:padding="@dimen/input_padding_horizontal"/>
-        </LinearLayout>
+                <!-- editStadium (TextView) + btnSearchStadium -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
-        <!-- 활동 요일/시간 -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="활동 요일/시간" android:textSize="@dimen/text_sm"
+                    <TextView
+                        android:id="@+id/editStadium"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="주소가 선택되지 않았습니다."
+                        android:textSize="13sp"
+                        android:textColor="@color/text_hint"
+                        android:layout_marginEnd="8dp"/>
+
+                    <Button
+                        android:id="@+id/btnSearchStadium"
+                        android:layout_width="wrap_content"
+                        android:layout_height="36dp"
+                        android:text="주소 검색"
+                        android:textAllCaps="false"
+                        android:textSize="12sp"
+                        android:textColor="@color/white"
+                        android:backgroundTint="@color/primary"
+                        android:stateListAnimator="@null"/>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- ── 섹션 5: 팀 소개 ── -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="팀 소개"
+            android:textSize="13sp"
+            android:textStyle="bold"
             android:textColor="@color/text_secondary"
-            android:layout_marginTop="@dimen/spacing_md"/>
+            android:layout_marginBottom="8dp"/>
 
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="horizontal" android:gravity="center_vertical"
-            android:layout_marginTop="@dimen/spacing_xs">
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/bg_divider"
+            app:cardBackgroundColor="@color/bg_surface">
 
-            <Spinner android:id="@+id/spinnerActivityDay"
-                android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:layout_marginEnd="@dimen/spacing_sm"
-                android:background="@drawable/bg_input"
-                android:padding="@dimen/input_padding_horizontal"/>
+            <EditText
+                android:id="@+id/editTeamIntro"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@android:color/transparent"
+                android:gravity="top"
+                android:hint="팀 소개를 입력해주세요"
+                android:inputType="textMultiLine"
+                android:minLines="3"
+                android:padding="16dp"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint"
+                android:textSize="14sp"/>
+        </com.google.android.material.card.MaterialCardView>
 
-            <Spinner android:id="@+id/spinnerTimeStart"
-                android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:layout_marginEnd="@dimen/spacing_sm"
-                android:background="@drawable/bg_input"
-                android:padding="@dimen/input_padding_horizontal"/>
-
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text=" ~ " android:textColor="@color/text_hint"/>
-
-            <Spinner android:id="@+id/spinnerTimeEnd"
-                android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@drawable/bg_input"
-                android:padding="@dimen/input_padding_horizontal"/>
-        </LinearLayout>
-
-        <!-- 주 활동 구장 -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="주 활동 구장" android:textSize="@dimen/text_sm"
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="@dimen/spacing_md"/>
-
-        <EditText android:id="@+id/editStadiumName"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_xs"
-            android:background="@drawable/bg_input"
-            android:hint="구장 명칭 입력" android:inputType="text"
-            android:padding="@dimen/input_padding_horizontal"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint"/>
-
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="horizontal" android:gravity="center_vertical"
-            android:layout_marginTop="@dimen/spacing_xs">
-
-            <TextView android:id="@+id/editStadium"
-                android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:background="@drawable/bg_input"
-                android:hint="주소 검색" android:singleLine="true"
-                android:ellipsize="end"
-                android:padding="@dimen/input_padding_horizontal"
-                android:textColor="@color/text_hint"
-                android:textSize="@dimen/text_md"/>
-
-            <Button android:id="@+id/btnSearchStadium"
-                android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/spacing_sm"
-                android:text="검색" android:textAllCaps="false"
-                android:textColor="@color/white"
-                android:backgroundTint="@color/primary"
-                app:cornerRadius="@dimen/btn_radius"/>
-        </LinearLayout>
-
-        <!-- 팀 소개 -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="팀 소개" android:textSize="@dimen/text_sm"
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="@dimen/spacing_md"/>
-
-        <EditText android:id="@+id/editTeamIntro"
-            android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_xs"
-            android:background="@drawable/bg_input"
-            android:gravity="top" android:hint="팀 소개를 입력해 주세요"
-            android:inputType="textMultiLine" android:minLines="4"
-            android:padding="@dimen/input_padding_horizontal"
-            android:textColor="@color/text_primary"
-            android:textColorHint="@color/text_hint"/>
-
-        <!-- 저장 버튼 -->
+        <!-- 팀 생성하기 버튼 — btnSaveTeam -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnSaveTeam"
-            android:layout_width="match_parent" android:layout_height="@dimen/btn_height"
-            android:layout_marginTop="@dimen/spacing_xl"
-            android:layout_marginBottom="@dimen/spacing_xl"
-            android:text="팀 생성하기" android:textColor="@color/white"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginBottom="24dp"
+            android:text="팀 생성하기"
+            android:textColor="@color/white"
             android:textAllCaps="false"
+            android:textSize="15sp"
             app:backgroundTint="@color/primary"
-            app:cornerRadius="@dimen/btn_radius"/>
+            app:cornerRadius="14dp"/>
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

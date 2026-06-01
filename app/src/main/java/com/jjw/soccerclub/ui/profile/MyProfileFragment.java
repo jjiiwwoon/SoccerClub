@@ -14,12 +14,12 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.bumptech.glide.Glide;
 import com.jjw.soccerclub.R;
-import com.jjw.soccerclub.common.CustomToast;
 import com.jjw.soccerclub.common.StateLayout;
 import com.jjw.soccerclub.ui.auth.LoginActivity;
 import com.jjw.soccerclub.ui.team.TeamDetailActivity;
@@ -29,21 +29,6 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 
-/**
- * 내 프로필 화면.
- *
- * ✅ 패키지: com.jjw.soccerclub.ui.profile
- * → ui/profile/ 폴더에 배치하세요.
- *
- * [변경 전] Fragment 가 직접 하던 일
- *   - AtomicInteger pendingOps 로 3개 비동기 작업 수동 동기화
- *   - contentShown 플래그로 중복 showContent() 방지
- *   - profiles / teams / teamStats Firestore 직접 호출
- *
- * [변경 후] Fragment 가 하는 일
- *   - ProfileViewModel 의 LiveData 3개 observe 만 담당
- *   - pendingOps, contentShown 완전 제거
- */
 public class MyProfileFragment extends Fragment {
 
     // ── 뷰 ────────────────────────────────────────────────────────────────────────
@@ -56,10 +41,8 @@ public class MyProfileFragment extends Fragment {
 
     private boolean isIntroExpanded = false;
 
-    // ── ViewModel ────────────────────────────────────────────────────────────────
     private ProfileViewModel viewModel;
 
-    // ── 프로필 편집 후 새로고침 ───────────────────────────────────────────────────
     private final ActivityResultLauncher<Intent> editProfileLauncher =
             registerForActivityResult(
                     new ActivityResultContracts.StartActivityForResult(),
@@ -121,7 +104,6 @@ public class MyProfileFragment extends Fragment {
 
         // ── LiveData 구독 ─────────────────────────────────────────────────────────
 
-        // 1) 프로필
         viewModel.profile.observe(getViewLifecycleOwner(), doc -> {
             if (doc == null || !doc.exists()) {
                 if (state != null) state.showEmpty();
@@ -132,7 +114,6 @@ public class MyProfileFragment extends Fragment {
             if (state != null) state.showContent();
         });
 
-        // 2) 팀 정보
         viewModel.teamInfo.observe(getViewLifecycleOwner(), team -> {
             if (team == null) {
                 showNoTeamPlaceholder();
@@ -152,17 +133,32 @@ public class MyProfileFragment extends Fragment {
             }
         });
 
-        // 3) 통계
         viewModel.teamStats.observe(getViewLifecycleOwner(), doc -> {
             if (doc != null && doc.exists()) bindStats(doc);
         });
 
-        // 로딩 상태
         viewModel.isLoading.observe(getViewLifecycleOwner(), loading -> {
             if (loading != null && loading && state != null) state.showLoading();
         });
 
-        // 최초 로드
+        // ── ✅ 로그아웃 버튼 ──────────────────────────────────────────────────────
+        View btnLogout = view.findViewById(R.id.btnLogout);
+        if (btnLogout != null) {
+            btnLogout.setOnClickListener(v ->
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("로그아웃")
+                            .setMessage("로그아웃 하시겠습니까?")
+                            .setPositiveButton("로그아웃", (d, i) -> {
+                                FirebaseAuth.getInstance().signOut();
+                                Intent intent = new Intent(requireContext(), LoginActivity.class);
+                                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                                        | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                                startActivity(intent);
+                            })
+                            .setNegativeButton("취소", null)
+                            .show());
+        }
+
         viewModel.loadIfNeeded(user.getUid());
     }
 
@@ -206,7 +202,6 @@ public class MyProfileFragment extends Fragment {
                 textPlayerType.setText("-");
         }
 
-        // 소개글 토글
         if (toggleIntroArrow != null && textIntroContent != null) {
             toggleIntroArrow.setOnClickListener(v -> {
                 isIntroExpanded = !isIntroExpanded;
@@ -215,7 +210,6 @@ public class MyProfileFragment extends Fragment {
             });
         }
 
-        // 프로필 편집 버튼
         View btnEdit = getView() != null ? getView().findViewById(R.id.btnEditProfile) : null;
         if (btnEdit != null) {
             btnEdit.setOnClickListener(v ->

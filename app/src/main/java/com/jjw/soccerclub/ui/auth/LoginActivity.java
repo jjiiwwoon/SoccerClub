@@ -57,6 +57,7 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
+        // 1단계: username → email 조회
         firestore.collection("users")
                 .whereEqualTo("username", username)
                 .limit(1)
@@ -66,31 +67,37 @@ public class LoginActivity extends AppCompatActivity {
                         CustomToast.error(this, "아이디를 확인해주세요.");
                         return;
                     }
+
                     String email = querySnapshot.getDocuments().get(0).getString("email");
+
+                    // 2단계: Firebase Auth 로그인
                     auth.signInWithEmailAndPassword(email, password)
                             .addOnCompleteListener(this, task -> {
                                 if (!task.isSuccessful()) {
                                     CustomToast.error(this, "비밀번호를 확인해주세요.");
                                     return;
                                 }
+
                                 FirebaseUser user = auth.getCurrentUser();
                                 if (user == null) return;
 
+                                // ✅ 3단계: UID 로 프로필 직접 조회 (username 조회 방식 제거)
+                                // 변경 전: .whereEqualTo("username", username) → 필드 불일치 시 항상 빈 결과
+                                // 변경 후: .document(user.getUid()) → UID 기반으로 정확히 조회
                                 firestore.collection("profiles")
-                                        .whereEqualTo("username", username)
-                                        .limit(1)
+                                        .document(user.getUid())
                                         .get()
-                                        .addOnSuccessListener(profileSnapshot -> {
-                                            if (!profileSnapshot.isEmpty()) {
+                                        .addOnSuccessListener(doc -> {
+                                            if (doc.exists()) {
+                                                // 프로필 있음 → 홈
                                                 startActivity(new Intent(this, HomeActivity.class));
-                                                finish();
                                             } else {
-                                                CustomToast.info(this, "프로필을 만들어주세요.");
+                                                // 프로필 없음 → 프로필 생성
                                                 Intent intent = new Intent(this, CreateProfileActivity.class);
                                                 intent.putExtra("username", username);
                                                 startActivity(intent);
-                                                finish();
                                             }
+                                            finish();
                                         })
                                         .addOnFailureListener(e ->
                                                 CustomToast.error(this, "프로필 확인 중 오류 발생"));
