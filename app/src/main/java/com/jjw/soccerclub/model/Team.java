@@ -12,6 +12,7 @@ public class Team {
     private String ageRange;
     private String intro;
     private String logoUrl;
+    private String teamPhotoUrl;   // ← 추가: Firestore 의 teamPhotoUrl 필드 매핑
     private String stadium;
 
     private String captainUID;
@@ -74,6 +75,10 @@ public class Team {
 
     public String getLogoUrl() { return logoUrl; }
     public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
+
+    // ← 추가: 팀 사진 URL
+    public String getTeamPhotoUrl() { return teamPhotoUrl; }
+    public void setTeamPhotoUrl(String teamPhotoUrl) { this.teamPhotoUrl = teamPhotoUrl; }
 
     public String getStadium() { return stadium; }
     public void setStadium(String stadium) { this.stadium = stadium; }

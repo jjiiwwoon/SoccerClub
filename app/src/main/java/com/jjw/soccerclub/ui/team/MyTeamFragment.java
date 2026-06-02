@@ -245,10 +245,40 @@ public class MyTeamFragment extends Fragment {
     }
 
     @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (hidden || !isAdded() || viewModel == null) return;
+
+        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+        if (user == null) return;
+
+        // 탭 복귀 시 항상 myTeam 필드를 확인
+        // (강퇴당했거나, 초대를 수락했을 수 있으므로)
+        FirebaseFirestore.getInstance()
+                .collection("profiles").document(user.getUid()).get()
+                .addOnSuccessListener(doc -> {
+                    if (!isAdded()) return;
+                    String myTeam = doc.getString("myTeam");
+                    boolean hasTeamNow = myTeam != null && !myTeam.isEmpty();
+                    Boolean hadNoTeam = viewModel.hasNoTeam.getValue();
+
+                    if (!hasTeamNow && !Boolean.TRUE.equals(hadNoTeam)) {
+                        viewModel.reload(user.getUid());
+                    } else if (hasTeamNow && Boolean.TRUE.equals(hadNoTeam)) {
+                        viewModel.reload(user.getUid());
+                    } else if (hasTeamNow && !AppUtils.isEmpty(teamId)) {
+                        // ← 추가: 팀 변동 없으면 다음 일정만 갱신 (매치 수락 반영)
+                        viewModel.refreshNextSchedule(teamId);
+                    }
+                });
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
         if (!AppUtils.isEmpty(teamId)) startUpcomingAutoRefresh();
     }
+
 
     @Override
     public void onPause() {
@@ -304,12 +334,22 @@ public class MyTeamFragment extends Fragment {
 
     private void loadTeamImages(Team team) {
         if (!isAdded()) return;
-        String logoUrl = AppUtils.safe(team.getLogoUrl());
+        String logoUrl  = AppUtils.safe(team.getLogoUrl());
+        String photoUrl = AppUtils.safe(team.getTeamPhotoUrl());   // ← 추가
         RequestOptions opts = new RequestOptions()
                 .diskCacheStrategy(DiskCacheStrategy.ALL).override(400, 400);
 
-        if (teamPhoto != null) teamPhoto.setImageResource(R.drawable.default_team_photo);
+        // ── 팀 사진 (변경 전: 기본 이미지만 표시 → 변경 후: Glide 로드) ──
+        if (teamPhoto != null) {
+            if (!AppUtils.isEmpty(photoUrl)) {
+                Glide.with(this).load(photoUrl).apply(opts)
+                        .placeholder(R.drawable.default_team_photo).into(teamPhoto);
+            } else {
+                teamPhoto.setImageResource(R.drawable.default_team_photo);
+            }
+        }
 
+        // ── 로고 (기존 그대로) ──
         if (teamLogo != null) {
             if (!AppUtils.isEmpty(logoUrl)) {
                 Glide.with(this).load(logoUrl).apply(opts)
@@ -403,31 +443,46 @@ public class MyTeamFragment extends Fragment {
         nextScheduleCard.setVisibility(View.VISIBLE);
         if (nextScheduleContainer != null) nextScheduleContainer.removeAllViews();
 
-        String date         = doc.getString("date");
-        String time         = doc.getString("time");
-        String homeTeamName = doc.getString("homeTeamName");
-        String awayTeamName = doc.getString("awayTeamName");
-        String homeLogo     = doc.getString("homeTeamLogoUrl");
-        String awayLogo     = doc.getString("awayTeamLogoUrl");
-        String stadiumName  = AppUtils.firstNonEmpty(
+        String date        = doc.getString("date");
+        String time        = doc.getString("time");
+        String stadiumName = AppUtils.firstNonEmpty(
                 doc.getString("stadiumName"), doc.getString("stadium"));
-        String address      = AppUtils.firstNonEmpty(
+        String address     = AppUtils.firstNonEmpty(
                 doc.getString("stadiumAddress"), doc.getString("address"));
 
+        // ── 내 팀 정보 (ViewModel 에서 가져옴) ──
+        Team team = viewModel.teamInfo.getValue();
+        String myName = (team != null && !AppUtils.isEmpty(team.getTeamName()))
+                ? team.getTeamName() : "우리팀";
+        String myLogo = (team != null) ? AppUtils.safe(team.getLogoUrl()) : "";
+
+        // ── 상대 팀 정보 (Firestore 필드) ──
+        String awayTeamName = doc.getString("opponentTeamName");
+        String awayLogo     = doc.getString("opponentLogoUrl");
+
+        // ── 바인딩 ──
         if (tvNextDateChip != null) {
             String dateDisplay = AppUtils.isEmpty(date) ? "" : DateUtils.appendWeekday(date);
             String timeDisplay = AppUtils.isEmpty(time) ? "" : " " + time;
             tvNextDateChip.setText(dateDisplay + timeDisplay);
         }
-        if (tvHomeName != null) tvHomeName.setText(AppUtils.safe(homeTeamName));
-        if (tvAwayName != null) tvAwayName.setText(AppUtils.safe(awayTeamName));
+        if (tvHomeName != null) tvHomeName.setText(myName);
+        if (tvAwayName != null) tvAwayName.setText(AppUtils.isEmpty(awayTeamName) ? "-" : awayTeamName);
         if (tvPlace    != null) tvPlace.setText(AppUtils.safe(stadiumName));
         if (tvAddress  != null) tvAddress.setText(AppUtils.safe(address));
 
-        if (imgHomeLogo != null && !AppUtils.isEmpty(homeLogo))
-            Glide.with(this).load(homeLogo).placeholder(R.drawable.ic_shield_gray).into(imgHomeLogo);
-        if (imgAwayLogo != null && !AppUtils.isEmpty(awayLogo))
-            Glide.with(this).load(awayLogo).placeholder(R.drawable.ic_shield_gray).into(imgAwayLogo);
+        if (imgHomeLogo != null) {
+            if (!AppUtils.isEmpty(myLogo))
+                Glide.with(this).load(myLogo).placeholder(R.drawable.ic_shield_gray).into(imgHomeLogo);
+            else
+                imgHomeLogo.setImageResource(R.drawable.ic_shield_gray);
+        }
+        if (imgAwayLogo != null) {
+            if (!AppUtils.isEmpty(awayLogo))
+                Glide.with(this).load(awayLogo).placeholder(R.drawable.ic_shield_gray).into(imgAwayLogo);
+            else
+                imgAwayLogo.setImageResource(R.drawable.ic_shield_gray);
+        }
     }
 
     private void showNoScheduleMessage() {
@@ -775,7 +830,17 @@ public class MyTeamFragment extends Fragment {
                                             .update("teamPhotoUrl", uri.toString())
                                             .addOnSuccessListener(v -> {
                                                 if (!isAdded()) return;
-                                                if (teamPhoto != null) teamPhoto.setEnabled(true);
+                                                if (teamPhoto != null) {
+                                                    teamPhoto.setEnabled(true);
+                                                    // ← 추가: 업로드된 URL 로 즉시 표시 (캐시 무시)
+                                                    Glide.with(MyTeamFragment.this)
+                                                            .load(uri.toString())
+                                                            .apply(new RequestOptions()
+                                                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                                                    .skipMemoryCache(true))
+                                                            .placeholder(R.drawable.default_team_photo)
+                                                            .into(teamPhoto);
+                                                }
                                                 CustomToast.success(requireContext(), "팀 사진이 변경됐어요.");
                                             });
                                 }))

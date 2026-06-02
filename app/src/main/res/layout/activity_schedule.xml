@@ -20,12 +20,35 @@
             android:orientation="vertical"
             android:padding="@dimen/page_padding_horizontal">
 
-            <!-- 다가오는 일정 -->
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="다가오는 일정" android:textStyle="bold"
-                android:textSize="@dimen/text_lg" android:textColor="@color/text_primary"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
                 android:layout_marginTop="@dimen/spacing_lg"
-                android:layout_marginBottom="@dimen/spacing_sm"/>
+                android:layout_marginBottom="@dimen/spacing_sm">
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="다가오는 일정" android:textStyle="bold"
+                    android:textSize="@dimen/text_lg" android:textColor="@color/text_primary"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnVoteAttendance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="8dp"
+                    android:minHeight="36dp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:text="경기 참석 투표하기"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    android:visibility="gone"
+                    app:cornerRadius="12dp"
+                    app:backgroundTint="#1E88E5"
+                    app:strokeWidth="0dp"/>
+            </LinearLayout>
 
             <include android:id="@+id/nextScheduleCard"
                 layout="@layout/view_next_schedule_card"

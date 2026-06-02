@@ -18,21 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * 신청 목록(ApplicationsListActivity) Firestore 호출 전담.
- *
- * [변경 전] ApplicationsListActivity 안에 직접 있던 것
- *   - collectMine() — 내 글 수집
- *   - collectApplied() — 신청한 글 수집
- *   - handleAccept() — 수락 처리
- *   - handleReject() — 거절 처리
- *   - joinTeamMember() — 팀 합류 트랜잭션
- *   - registerSchedule() — 일정 등록
- *   - openChatWithMessage() — 채팅방 생성/메시지 전송
- *
- * [변경 후] 이 Repository 가 모두 담당.
- *   Activity 와 ViewModel 은 Firestore 코드 없이 메서드 호출만 한다.
- */
+
 public class ApplicationsRepository {
 
     private static final String POST_MATCH   = "match";
@@ -346,21 +332,76 @@ public class ApplicationsRepository {
                                   ApplicationsAdapter.Applicant applicant,
                                   String currentUid, String myTeamId) {
         if (AppUtils.isEmpty(myTeamId) || AppUtils.isEmpty(applicant.teamId)) return;
-        long now = System.currentTimeMillis();
-        Map<String, Object> schedule = new LinkedHashMap<>();
-        schedule.put("matchId",           post.postId);
-        schedule.put("opponentTeamId",    applicant.teamId);
-        schedule.put("opponentTeamName",  applicant.teamName);
-        schedule.put("date",              post.date);
-        schedule.put("time",              post.time);
-        schedule.put("stadium",           post.stadium);
-        schedule.put("status",            "scheduled");
-        schedule.put("createdAt",         now);
 
-        db.collection("schedules").document(myTeamId)
-                .collection("events").add(schedule);
-        db.collection("schedules").document(applicant.teamId)
-                .collection("events").add(schedule);
+        // 매치 문서에서 상세 정보 가져옴
+        db.collection("matches").document(post.postId).get()
+                .addOnSuccessListener(matchDoc -> {
+                    if (matchDoc == null || !matchDoc.exists()) return;
+
+                    // 내 팀(글 작성팀) 정보
+                    String myName = AppUtils.safe(matchDoc.getString("teamName"));
+                    String myLogo = AppUtils.firstNonEmpty(
+                            matchDoc.getString("teamLogoUrl"),
+                            matchDoc.getString("logoUrl"));
+
+                    // 상대 팀(신청팀) 정보
+                    String oppId   = applicant.teamId;
+                    String oppName = AppUtils.safe(applicant.teamName);
+                    String oppLogo = AppUtils.safe(applicant.logoUrl);
+
+                    // 공통 경기 정보
+                    String date = AppUtils.safe(matchDoc.getString("date"));
+                    String time = AppUtils.safe(matchDoc.getString("time"));
+                    Long matchTsLong = matchDoc.getLong("matchTs");
+                    long matchTs = matchTsLong != null ? matchTsLong : System.currentTimeMillis();
+                    String stadiumName = AppUtils.firstNonEmpty(
+                            matchDoc.getString("stadiumName"),
+                            matchDoc.getString("stadium"));
+                    String stadiumAddress = AppUtils.firstNonEmpty(
+                            matchDoc.getString("stadiumAddress"),
+                            matchDoc.getString("address"));
+
+                    // ===== 우리팀 일정 =====
+                    Map<String, Object> evMine = new java.util.LinkedHashMap<>();
+                    evMine.put("date",              date);
+                    evMine.put("time",              time);
+                    evMine.put("matchId",           post.postId);
+                    evMine.put("matchTs",           matchTs);
+                    evMine.put("opponentTeamId",    oppId);
+                    evMine.put("opponentTeamName",  oppName);
+                    evMine.put("opponentLogoUrl",   oppLogo);
+                    evMine.put("stadiumName",       stadiumName);
+                    evMine.put("stadiumAddress",    stadiumAddress);
+                    evMine.put("status",            "scheduled");
+                    evMine.put("title",             myName + " vs " + oppName);
+                    evMine.put("ownerTeamId",       myTeamId);
+                    evMine.put("createdAt",         System.currentTimeMillis());
+
+                    // ===== 상대팀 일정 (상대 시점: 상대의 opponent = 우리) =====
+                    Map<String, Object> evOpp = new java.util.LinkedHashMap<>();
+                    evOpp.put("date",              date);
+                    evOpp.put("time",              time);
+                    evOpp.put("matchId",           post.postId);
+                    evOpp.put("matchTs",           matchTs);
+                    evOpp.put("opponentTeamId",    myTeamId);
+                    evOpp.put("opponentTeamName",  myName);
+                    evOpp.put("opponentLogoUrl",   myLogo);
+                    evOpp.put("stadiumName",       stadiumName);
+                    evOpp.put("stadiumAddress",    stadiumAddress);
+                    evOpp.put("status",            "scheduled");
+                    evOpp.put("title",             oppName + " vs " + myName);
+                    evOpp.put("ownerTeamId",       myTeamId);
+                    evOpp.put("createdAt",         System.currentTimeMillis());
+
+                    // 각 팀의 schedules 에 저장 (문서 ID = matchId 로 통일)
+                    db.collection("schedules").document(myTeamId)
+                            .collection("events").document(post.postId)
+                            .set(evMine, com.google.firebase.firestore.SetOptions.merge());
+
+                    db.collection("schedules").document(oppId)
+                            .collection("events").document(post.postId)
+                            .set(evOpp, com.google.firebase.firestore.SetOptions.merge());
+                });
     }
 
     private void openChatWithMessage(String myUid, String otherUid, String message) {

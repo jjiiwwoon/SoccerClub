@@ -111,7 +111,7 @@ public class RecruitAdapter extends RecyclerView.Adapter<RecruitAdapter.ViewHold
         // 클릭
         h.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(ctx, RecruitDetailActivity.class);
-            intent.putExtra("postId", it.id);
+            intent.putExtra("recruitId", it.id);
             ctx.startActivity(intent);
         });
     }

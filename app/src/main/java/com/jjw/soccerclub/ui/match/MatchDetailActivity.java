@@ -214,18 +214,18 @@ public class MatchDetailActivity extends AppCompatActivity {
         if (!matchLoaded || !profileLoaded || !myTeamLoaded) return;
 
         if (!AppUtils.isEmpty(matchAuthorUid) && matchAuthorUid.equals(currentUid)) {
-            setApplyState(BLOCK_SELF_AUTHOR, "신청 불가"); return;
+            setApplyState(BLOCK_SELF_AUTHOR, "신청 불가"); showContentOnce(); return;
         }
         if (!AppUtils.isEmpty(myTeamId) && myTeamId.equals(matchTeamId)) {
-            setApplyState(BLOCK_MY_TEAM, "신청 불가"); return;
+            setApplyState(BLOCK_MY_TEAM, "신청 불가"); showContentOnce(); return;
         }
         if (AppUtils.isEmpty(myTeamId)) {
-            setApplyState(BLOCK_NO_TEAM, "신청 불가"); return;
+            setApplyState(BLOCK_NO_TEAM, "신청 불가"); showContentOnce(); return;
         }
         boolean hasPermission = currentUid.equals(myTeamCaptainUid)
                 || currentUid.equals(myTeamViceCaptainUid);
         if (!hasPermission) {
-            setApplyState(BLOCK_NO_PERMISSION, "신청 불가"); return;
+            setApplyState(BLOCK_NO_PERMISSION, "신청 불가"); showContentOnce(); return;
         }
 
         FirebaseFirestore.getInstance().collection("matches").document(matchId)

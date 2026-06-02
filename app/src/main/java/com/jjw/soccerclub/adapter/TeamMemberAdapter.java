@@ -139,7 +139,7 @@ public class TeamMemberAdapter
 
             if (isCap) {
                 h.tvBadge.setText("주장");
-                h.tvBadge.setTextColor(0xFFFFFFFF);
+                h.tvBadge.setTextColor(0xFF1565C0);  // ← 파란색으로 변경
                 h.tvBadge.setBackgroundResource(R.drawable.bg_badge_captain);
                 h.tvBadge.setVisibility(View.VISIBLE);
             } else if (isVice) {

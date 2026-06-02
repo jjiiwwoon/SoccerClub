@@ -25,7 +25,6 @@ import com.jjw.soccerclub.common.StateLayout;
 import com.jjw.soccerclub.model.ScheduleItem;
 import com.jjw.soccerclub.util.AppUtils;
 import com.jjw.soccerclub.util.DateUtils;
-import com.jjw.soccerclub.util.GlideHelper;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -48,6 +47,11 @@ public class ScheduleActivity extends AppCompatActivity {
     private View nextScheduleCard, scheduleLoading, scheduleContent;
     private TextView tvNextDateChip, tvHomeName, tvAwayName, tvPlace, tvAddress;
     private ImageView imgHomeLogo, imgAwayLogo;
+
+    // ✅ 다가오는 일정 투표 버튼 (제목 옆) + 대상 eventId
+    private MaterialButton btnVoteAttendance;
+    private String nextEventId = "";
+    private long nextStartMs = -1L;
 
     private final List<ScheduleItem> scheduleList = new ArrayList<>();
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
@@ -75,43 +79,68 @@ public class ScheduleActivity extends AppCompatActivity {
         tvPlace              = findViewById(R.id.tvPlace);
         tvAddress            = findViewById(R.id.tvAddress);
 
+        // ✅ 투표 버튼 — 제목 옆 (activity_schedule.xml 에 추가됨)
+        btnVoteAttendance = findViewById(R.id.btnVoteAttendance);
+        if (btnVoteAttendance != null) {
+            btnVoteAttendance.setOnClickListener(v -> {
+                if (!AppUtils.isEmpty(nextEventId)) showAttendanceDialog(nextEventId);
+                else CustomToast.warning(this, "투표할 일정이 없어요.");
+            });
+        }
+
         if (state != null) state.showLoading();
 
+        // 달력
         FrameLayout calendarContainer = findViewById(R.id.calendarContainer);
-        CustomCalendarView calendar = new CustomCalendarView(this);
-        calendarContainer.addView(calendar);
-
-        calendar.setOnDateClickListener((year, month, day) -> {
-            String date = String.format(Locale.KOREAN, "%04d-%02d-%02d", year, month + 1, day);
-            if (tvSelectedDateTitle != null)
-                tvSelectedDateTitle.setText("선택된 날짜 (" + date + ")");
-            if (progressSelectedDate != null) progressSelectedDate.setVisibility(View.VISIBLE);
-            loadScheduleForDate(date);
-        });
-
-        if (FirebaseAuth.getInstance().getCurrentUser() != null) {
-            myUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-            db.collection("profiles").document(myUid).get()
-                    .addOnSuccessListener(doc -> {
-                        myTeamId   = AppUtils.safe(doc.getString("myTeam"));
-                        myNickname = AppUtils.safe(doc.getString("nickname"));
-                        if (AppUtils.isEmpty(myTeamId)) {
-                            if (state != null) { state.setEmptyMessage("소속 팀이 없어요."); state.showEmpty(); }
-                            return;
-                        }
-                        db.collection("teams").document(myTeamId).get()
-                                .addOnSuccessListener(teamDoc -> {
-                                    myTeamName    = AppUtils.safe(teamDoc.getString("teamName"));
-                                    myTeamLogoUrl = AppUtils.safe(teamDoc.getString("logoUrl"));
-                                    if (state != null) state.showContent();
-                                    findNextSchedule();
-                                    String today = todayString();
-                                    if (tvSelectedDateTitle != null)
-                                        tvSelectedDateTitle.setText("선택된 날짜 (" + today + ")");
-                                    loadScheduleForDate(today);
-                                });
-                    });
+        if (calendarContainer != null) {
+            CustomCalendarView customCalendar = new CustomCalendarView(this);
+            calendarContainer.addView(customCalendar);
+            customCalendar.setOnDateClickListener((year, month, day) -> {
+                String selectedDate = String.format(Locale.KOREAN, "%04d-%02d-%02d",
+                        year, month + 1, day);
+                if (tvSelectedDateTitle != null)
+                    tvSelectedDateTitle.setText("선택된 날짜 (" + selectedDate + ")");
+                if (progressSelectedDate != null) progressSelectedDate.setVisibility(View.VISIBLE);
+                loadScheduleForDate(selectedDate);
+            });
         }
+
+        loadProfileThenTeam();
+    }
+
+    // ── 프로필 → 팀 → 일정 ────────────────────────────────────────────────────────
+
+    private void loadProfileThenTeam() {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            if (state != null) { state.setEmptyMessage("로그인이 필요해요."); state.showEmpty(); }
+            return;
+        }
+        myUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+        db.collection("profiles").document(myUid).get()
+                .addOnSuccessListener(snapshot -> {
+                    myTeamId   = AppUtils.safe(snapshot.getString("myTeam"));
+                    myNickname = AppUtils.safe(snapshot.getString("nickname"));
+
+                    if (AppUtils.isEmpty(myTeamId)) {
+                        if (state != null) {
+                            state.setEmptyMessage("팀 정보가 없어요.\n먼저 '팀 만들기'로 팀을 생성해 주세요.");
+                            state.showEmpty();
+                        }
+                        return;
+                    }
+                    db.collection("teams").document(myTeamId).get()
+                            .addOnSuccessListener(teamDoc -> {
+                                myTeamName    = AppUtils.safe(teamDoc.getString("teamName"));
+                                myTeamLogoUrl = AppUtils.safe(teamDoc.getString("logoUrl"));
+                                if (state != null) state.showContent();
+                                findNextSchedule();
+                                String today = todayString();
+                                if (tvSelectedDateTitle != null)
+                                    tvSelectedDateTitle.setText("선택된 날짜 (" + today + ")");
+                                loadScheduleForDate(today);
+                            });
+                });
     }
 
     // ── 다가오는 일정 ─────────────────────────────────────────────────────────────
@@ -120,20 +149,41 @@ public class ScheduleActivity extends AppCompatActivity {
         long now = System.currentTimeMillis();
         db.collection("schedules").document(myTeamId).collection("events").get()
                 .addOnSuccessListener(snap -> {
-                    long nearest = Long.MAX_VALUE;
-                    DocumentSnapshot nearestDoc = null;
+                    long bestEnd = Long.MAX_VALUE;
+                    DocumentSnapshot bestDoc = null;
+                    long bestStart = -1L;
+
                     for (QueryDocumentSnapshot d : snap) {
-                        Long ts = d.getLong("matchTs");
-                        if (ts != null && ts > now && ts < nearest) {
-                            nearest = ts;
-                            nearestDoc = d;
+                        String date = d.getString("date");
+                        String time = d.getString("time");
+                        Long matchTs = d.getLong("matchTs");
+                        Long endTs   = d.getLong("endTs");
+
+                        long start, end;
+                        if (matchTs != null && matchTs > 0 && endTs != null && endTs > 0) {
+                            start = matchTs;
+                            end = endTs;
+                        } else {
+                            long[] se = computeStartEndFromDateTimeStrings(date, time);
+                            start = se[0];
+                            end = se[1];
+                        }
+
+                        // 아직 끝나지 않은 가장 가까운 일정
+                        if (end > now && end < bestEnd) {
+                            bestEnd = end;
+                            bestStart = start;
+                            bestDoc = d;
                         }
                     }
-                    if (nearestDoc != null) {
-                        bindNextScheduleCard(nearestDoc);
+
+                    if (bestDoc != null) {
+                        nextStartMs = bestStart;
+                        bindNextScheduleCard(bestDoc);
                         if (nextScheduleCard != null) nextScheduleCard.setVisibility(View.VISIBLE);
                     } else {
                         if (nextScheduleCard != null) nextScheduleCard.setVisibility(View.GONE);
+                        if (btnVoteAttendance != null) btnVoteAttendance.setVisibility(View.GONE);
                     }
                 });
     }
@@ -141,25 +191,32 @@ public class ScheduleActivity extends AppCompatActivity {
     private void bindNextScheduleCard(DocumentSnapshot doc) {
         if (scheduleLoading != null) scheduleLoading.setVisibility(View.GONE);
         if (scheduleContent != null) scheduleContent.setVisibility(View.VISIBLE);
-        if (tvNextDateChip  != null) tvNextDateChip.setText(
+
+        if (tvNextDateChip != null) tvNextDateChip.setText(
                 DateUtils.appendWeekday(doc.getString("date"))
                         + (AppUtils.isEmpty(doc.getString("time")) ? "" : " · " + doc.getString("time")));
         if (tvHomeName != null) tvHomeName.setText(AppUtils.isEmpty(myTeamName) ? "우리팀" : myTeamName);
         if (tvAwayName != null) tvAwayName.setText(AppUtils.safe(doc.getString("opponentTeamName")));
-        if (tvPlace    != null) tvPlace.setText(AppUtils.nz(doc.getString("stadiumName"), "-"));
-        if (tvAddress  != null) tvAddress.setText(AppUtils.safe(doc.getString("address")));
+
+        // stadium / stadiumName 호환
+        String stadiumName = AppUtils.firstNonEmpty(
+                doc.getString("stadiumName"), doc.getString("stadium"));
+        String address = AppUtils.firstNonEmpty(
+                doc.getString("stadiumAddress"), doc.getString("address"));
+        if (tvPlace   != null) tvPlace.setText(AppUtils.isEmpty(stadiumName) ? "-" : stadiumName);
+        if (tvAddress != null) tvAddress.setText(AppUtils.safe(address));
 
         if (imgHomeLogo != null) Glide.with(this).load(myTeamLogoUrl)
                 .placeholder(R.drawable.ic_shield_gray).circleCrop().into(imgHomeLogo);
         if (imgAwayLogo != null) Glide.with(this).load(doc.getString("opponentLogoUrl"))
                 .placeholder(R.drawable.ic_shield_gray).circleCrop().into(imgAwayLogo);
 
-        // ✅ 참석 투표 버튼
-        MaterialButton btnVote = nextScheduleCard != null
-                ? nextScheduleCard.findViewById(R.id.btnVoteAttendance) : null;
-        if (btnVote != null) {
-            final String eventId = doc.getId();
-            btnVote.setOnClickListener(v -> showAttendanceDialog(eventId));
+        // ✅ 상단 투표 버튼용 eventId 저장 + 경기 시작 전까지만 노출
+        nextEventId = doc.getId();
+        if (btnVoteAttendance != null) {
+            long now = System.currentTimeMillis();
+            boolean canVote = (nextStartMs <= 0) || (now < nextStartMs);
+            btnVoteAttendance.setVisibility(canVote ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -178,13 +235,15 @@ public class ScheduleActivity extends AppCompatActivity {
                                 d.getId(), myTeamId, date,
                                 AppUtils.safe(d.getString("status")),
                                 AppUtils.safe(d.getString("matchId")),
-                                AppUtils.safe(AppUtils.firstNonEmpty(
-                                        d.getString("homeTeamName"), myTeamName)),
+                                AppUtils.safe(d.getString("title")),
                                 AppUtils.safe(d.getString("time")),
                                 AppUtils.safe(d.getString("opponentTeamName")),
-                                AppUtils.safe(d.getString("stadiumName")),
-                                AppUtils.safe(d.getString("address"))
+                                AppUtils.safe(AppUtils.firstNonEmpty(
+                                        d.getString("stadiumName"), d.getString("stadium"))),
+                                AppUtils.safe(AppUtils.firstNonEmpty(
+                                        d.getString("stadiumAddress"), d.getString("address")))
                         );
+                        item.opponentLogoUrl = AppUtils.safe(d.getString("opponentLogoUrl"));
                         scheduleList.add(item);
                     }
                     if (progressSelectedDate != null) progressSelectedDate.setVisibility(View.GONE);
@@ -209,48 +268,91 @@ public class ScheduleActivity extends AppCompatActivity {
 
         for (ScheduleItem it : scheduleList) {
             View card = LayoutInflater.from(this)
-                    .inflate(R.layout.schedule_item, selectedDateList, false);
+                    .inflate(R.layout.view_next_schedule_card, selectedDateList, false);
 
-            TextView tvTitle    = card.findViewById(R.id.tvTitle);
-            TextView tvTime     = card.findViewById(R.id.tvTime);
-            TextView tvOpponent = card.findViewById(R.id.tvOpponent);
-            TextView tvStadium  = card.findViewById(R.id.tvStadium);
-            TextView tvAddr     = card.findViewById(R.id.tvAddress);
-            MaterialButton btnWrite = card.findViewById(R.id.btnWriteRecord);
-            // ✅ 참석 투표 버튼
-            MaterialButton btnVote = card.findViewById(R.id.btnVoteAttendance);
+            ProgressBar loading = card.findViewById(R.id.scheduleLoading);
+            View content        = card.findViewById(R.id.scheduleContent);
+            TextView chip       = card.findViewById(R.id.tvNextDateChip);
+            ImageView ivHome    = card.findViewById(R.id.imgHomeLogo);
+            ImageView ivAway    = card.findViewById(R.id.imgAwayLogo);
+            TextView tvHome     = card.findViewById(R.id.tvHomeName);
+            TextView tvAway     = card.findViewById(R.id.tvAwayName);
+            TextView tvP        = card.findViewById(R.id.tvPlace);
+            TextView tvA        = card.findViewById(R.id.tvAddress);
 
-            if (tvTitle    != null) tvTitle.setText(AppUtils.firstNonEmpty(it.title, it.opponentName, "-"));
-            if (tvTime     != null) tvTime.setText("시간: " + AppUtils.nz(it.time, "-"));
-            if (tvOpponent != null) tvOpponent.setText("상대팀: " + AppUtils.nz(it.opponentName, "-"));
-            if (tvStadium  != null) tvStadium.setText("장소: " + AppUtils.nz(it.stadiumName, "-"));
-            if (tvAddr     != null) tvAddr.setText(AppUtils.safe(it.address));
+            if (loading != null) loading.setVisibility(View.GONE);
+            if (content != null) content.setVisibility(View.VISIBLE);
 
-            // 기록하기 버튼
-            if (btnWrite != null) {
-                btnWrite.setVisibility(View.VISIBLE);
-                btnWrite.setOnClickListener(v -> openWriteRecord(it));
+            String dateChip = DateUtils.appendWeekday(it.date);
+            if (!AppUtils.isEmpty(it.time)) dateChip += " · " + it.time;
+            if (chip != null) chip.setText(dateChip);
+
+            if (tvHome != null) tvHome.setText(AppUtils.isEmpty(myTeamName) ? "우리팀" : myTeamName);
+            if (tvAway != null) tvAway.setText(AppUtils.isEmpty(it.opponentName) ? "-" : it.opponentName);
+
+            if (ivHome != null) {
+                if (!AppUtils.isEmpty(myTeamLogoUrl))
+                    Glide.with(this).load(myTeamLogoUrl)
+                            .placeholder(R.drawable.ic_shield_gray).circleCrop().into(ivHome);
+                else ivHome.setImageResource(R.drawable.ic_shield_gray);
+            }
+            if (ivAway != null) {
+                if (!AppUtils.isEmpty(it.opponentLogoUrl))
+                    Glide.with(this).load(it.opponentLogoUrl)
+                            .placeholder(R.drawable.ic_shield_gray).circleCrop().into(ivAway);
+                else ivAway.setImageResource(R.drawable.ic_shield_gray);
             }
 
-            // ✅ 참석 투표 버튼
-            if (btnVote != null) {
-                final String eventId = it.eventId;
-                btnVote.setOnClickListener(v -> showAttendanceDialog(eventId));
-            }
+            if (tvP != null) tvP.setText(AppUtils.isEmpty(it.stadiumName) ? "-" : it.stadiumName);
+            if (tvA != null) tvA.setText(AppUtils.safe(it.address));
+
+            // ✅ 카드 하단에 선수목록 버튼 동적 추가
+            addPlayerListFooter(card, it);
 
             selectedDateList.addView(card);
         }
     }
 
-    private void openWriteRecord(ScheduleItem item) {
-        android.content.Intent intent = new android.content.Intent(
-                this, com.jjw.soccerclub.ui.team.WriteRecordFragment.class);
-        intent.putExtra("eventId", item.eventId);
-        intent.putExtra("myTeamId", myTeamId);
-        startActivity(intent);
+    /** 카드 하단: 구분선 + 선수목록 버튼 */
+    private void addPlayerListFooter(View cardRoot, ScheduleItem it) {
+        View contentView = cardRoot.findViewById(R.id.scheduleContent);
+        if (!(contentView instanceof LinearLayout)) return;
+        LinearLayout content = (LinearLayout) contentView;
+
+        // 구분선
+        View divider = new View(this);
+        LinearLayout.LayoutParams dLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(1));
+        dLp.topMargin = dp(12);
+        divider.setLayoutParams(dLp);
+        divider.setBackgroundColor(0xFFE0E0E0);
+        content.addView(divider);
+
+        // 버튼 행
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        rowLp.topMargin = dp(8);
+        row.setLayoutParams(rowLp);
+        row.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        content.addView(row);
+
+        MaterialButton btnPlayers = new MaterialButton(this);
+        btnPlayers.setText("선수목록");
+        btnPlayers.setAllCaps(false);
+        btnPlayers.setInsetTop(0);
+        btnPlayers.setInsetBottom(0);
+        btnPlayers.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(0xFF1E88E5));
+        btnPlayers.setTextColor(0xFFFFFFFF);
+        btnPlayers.setCornerRadius(dp(16));
+        btnPlayers.setPadding(dp(16), dp(10), dp(16), dp(10));
+        btnPlayers.setOnClickListener(v -> showAttendanceDialog(it.eventId));
+        row.addView(btnPlayers);
     }
 
-    // ── ✅ 참석 투표 다이얼로그 ──────────────────────────────────────────────────
+    // ── 참석 투표 다이얼로그 ──────────────────────────────────────────────────────
 
     private void showAttendanceDialog(String eventId) {
         View dialogView = LayoutInflater.from(this)
@@ -289,12 +391,10 @@ public class ScheduleActivity extends AppCompatActivity {
                 .setPositiveButton("닫기", null)
                 .create();
 
-        // 투표 데이터 로드
         loadVotes(eventId, myUid, tvMyStatus, tvAttendHeader, tvAbsentHeader,
                 tvNotVotedHeader, attendList, absentList, notVotedList,
                 adAttend, adAbsent, adNotVoted);
 
-        // 참석 버튼
         btnAttend.setOnClickListener(v -> {
             castVote(eventId, "attend");
             tvMyStatus.setText("✓ 참석으로 투표했어요");
@@ -304,7 +404,6 @@ public class ScheduleActivity extends AppCompatActivity {
                     adAttend, adAbsent, adNotVoted);
         });
 
-        // 불참 버튼
         btnAbsent.setOnClickListener(v -> {
             castVote(eventId, "absent");
             tvMyStatus.setText("✗ 불참으로 투표했어요");
@@ -316,8 +415,6 @@ public class ScheduleActivity extends AppCompatActivity {
 
         dialog.show();
     }
-
-    // ── 투표 저장 ─────────────────────────────────────────────────────────────────
 
     private void castVote(String eventId, String status) {
         if (AppUtils.isEmpty(myTeamId) || AppUtils.isEmpty(myUid)) return;
@@ -331,37 +428,34 @@ public class ScheduleActivity extends AppCompatActivity {
                 .collection("votes").document(myUid)
                 .set(vote)
                 .addOnSuccessListener(v ->
-                        CustomToast.success(this, "attend".equals(status) ? "참석으로 투표했어요!" : "불참으로 투표했어요."));
+                        CustomToast.success(this, "attend".equals(status)
+                                ? "참석으로 투표했어요!" : "불참으로 투표했어요."));
     }
 
-    // ── 투표 현황 로드 ────────────────────────────────────────────────────────────
-
+    @SuppressWarnings("unchecked")
     private void loadVotes(String eventId, String myUid,
                            TextView tvMyStatus,
                            TextView tvAttendHeader, TextView tvAbsentHeader, TextView tvNotVotedHeader,
                            List<String> attendList, List<String> absentList, List<String> notVotedList,
                            AttendanceAdapter adAttend, AttendanceAdapter adAbsent, AttendanceAdapter adNotVoted) {
 
-        // 먼저 팀원 목록 가져오기
         db.collection("teams").document(myTeamId).get()
                 .addOnSuccessListener(teamDoc -> {
                     List<String> members = (List<String>) teamDoc.get("members");
                     if (members == null || members.isEmpty()) return;
 
-                    // 투표 현황 가져오기
                     db.collection("schedules").document(myTeamId)
                             .collection("events").document(eventId)
                             .collection("votes").get()
                             .addOnSuccessListener(votesSnap -> {
-                                Map<String, String> voteMap = new HashMap<>(); // uid → status
-                                Map<String, String> nickMap = new HashMap<>(); // uid → nickname
+                                Map<String, String> voteMap = new HashMap<>();
+                                Map<String, String> nickMap = new HashMap<>();
 
                                 for (QueryDocumentSnapshot v : votesSnap) {
                                     voteMap.put(v.getId(), AppUtils.safe(v.getString("status")));
                                     nickMap.put(v.getId(), AppUtils.safe(v.getString("nickname")));
                                 }
 
-                                // 내 투표 상태 업데이트
                                 String myVote = voteMap.get(myUid);
                                 if ("attend".equals(myVote)) {
                                     tvMyStatus.setText("현재 참석으로 투표했어요 ✓");
@@ -374,68 +468,44 @@ public class ScheduleActivity extends AppCompatActivity {
                                     tvMyStatus.setTextColor(0xFF6B7280);
                                 }
 
-                                // 목록 분류 → 닉네임 조회 필요
-                                List<String> attendUids   = new ArrayList<>();
-                                List<String> absentUids   = new ArrayList<>();
-                                List<String> notVotedUids = new ArrayList<>();
+                                attendList.clear();
+                                absentList.clear();
+                                notVotedList.clear();
 
+                                // 팀원 닉네임 보강 조회
+                                List<com.google.android.gms.tasks.Task<DocumentSnapshot>> tasks
+                                        = new ArrayList<>();
                                 for (String uid : members) {
-                                    String vote = voteMap.get(uid);
-                                    if ("attend".equals(vote))       attendUids.add(uid);
-                                    else if ("absent".equals(vote))  absentUids.add(uid);
-                                    else                             notVotedUids.add(uid);
+                                    if (!nickMap.containsKey(uid)) {
+                                        tasks.add(db.collection("profiles").document(uid).get());
+                                    }
                                 }
 
-                                // 닉네임 조회 후 목록 업데이트
-                                fetchNicknames(attendUids, nickMap, attendList, adAttend,
-                                        tvAttendHeader, "참석");
-                                fetchNicknames(absentUids, nickMap, absentList, adAbsent,
-                                        tvAbsentHeader, "불참");
-                                fetchNicknames(notVotedUids, nickMap, notVotedList, adNotVoted,
-                                        tvNotVotedHeader, "미투표");
+                                com.google.android.gms.tasks.Tasks.whenAllSuccess(tasks)
+                                        .addOnSuccessListener(results -> {
+                                            for (Object obj : results) {
+                                                DocumentSnapshot p = (DocumentSnapshot) obj;
+                                                if (p.exists())
+                                                    nickMap.put(p.getId(),
+                                                            AppUtils.safe(p.getString("nickname")));
+                                            }
+                                            for (String uid : members) {
+                                                String nick = AppUtils.firstNonEmpty(
+                                                        nickMap.get(uid), "(이름없음)");
+                                                String st = voteMap.get(uid);
+                                                if ("attend".equals(st)) attendList.add(nick);
+                                                else if ("absent".equals(st)) absentList.add(nick);
+                                                else notVotedList.add(nick);
+                                            }
+                                            tvAttendHeader.setText("참석자 (" + attendList.size() + ")");
+                                            tvAbsentHeader.setText("불참자 (" + absentList.size() + ")");
+                                            tvNotVotedHeader.setText("미투표자 (" + notVotedList.size() + ")");
+                                            adAttend.notifyDataSetChanged();
+                                            adAbsent.notifyDataSetChanged();
+                                            adNotVoted.notifyDataSetChanged();
+                                        });
                             });
                 });
-    }
-
-    private void fetchNicknames(List<String> uids, Map<String, String> nickMap,
-                                List<String> targetList, AttendanceAdapter adapter,
-                                TextView header, String label) {
-        targetList.clear();
-        if (uids.isEmpty()) {
-            adapter.notifyDataSetChanged();
-            header.setText(label + " (0)");
-            return;
-        }
-
-        // 이미 nickMap에 있는 것은 바로 사용
-        List<String> toFetch = new ArrayList<>();
-        for (String uid : uids) {
-            if (nickMap.containsKey(uid)) targetList.add(nickMap.get(uid));
-            else toFetch.add(uid);
-        }
-
-        if (toFetch.isEmpty()) {
-            adapter.notifyDataSetChanged();
-            header.setText(label + " (" + targetList.size() + ")");
-            return;
-        }
-
-        // 닉네임 없는 uid는 profiles에서 조회
-        int[] remaining = {(toFetch.size() + 9) / 10};
-        for (int i = 0; i < toFetch.size(); i += 10) {
-            List<String> chunk = toFetch.subList(i, Math.min(i + 10, toFetch.size()));
-            db.collection("profiles").whereIn("__name__", chunk).get()
-                    .addOnSuccessListener(snap -> {
-                        for (DocumentSnapshot d : snap.getDocuments()) {
-                            targetList.add(AppUtils.safe(d.getString("nickname")));
-                        }
-                        remaining[0]--;
-                        if (remaining[0] <= 0) {
-                            adapter.notifyDataSetChanged();
-                            header.setText(label + " (" + targetList.size() + ")");
-                        }
-                    });
-        }
     }
 
     // ── 어댑터 ────────────────────────────────────────────────────────────────────
@@ -464,6 +534,63 @@ public class ScheduleActivity extends AppCompatActivity {
                 super(v);
                 tvNickname = v.findViewById(R.id.tvMemberNickname);
             }
+        }
+    }
+
+    // ── 시간 계산 헬퍼 ────────────────────────────────────────────────────────────
+
+    private static final long DEFAULT_MATCH_DURATION_MS = 2L * 60L * 60L * 1000L;
+
+    private long[] computeStartEndFromDateTimeStrings(String date, String timeRange) {
+        long start = 0L, end = 0L;
+        try {
+            String startHHmm = null, endHHmm = null;
+            if (timeRange != null && timeRange.contains("~")) {
+                String[] p = timeRange.split("~");
+                startHHmm = p[0].trim();
+                endHHmm   = p[1].trim();
+            }
+            if (startHHmm == null || endHHmm == null || startHHmm.isEmpty() || endHHmm.isEmpty()) {
+                long base = dateToMs(date);
+                start = base + 9 * 60 * 60 * 1000L;
+                end   = start + DEFAULT_MATCH_DURATION_MS;
+            } else {
+                start = computeMatchTs(date, startHHmm);
+                end   = computeMatchTs(date, endHHmm);
+                if (end <= start) end += 24L * 60L * 60L * 1000L;
+            }
+        } catch (Exception e) {
+            long base = System.currentTimeMillis();
+            start = base;
+            end   = base + DEFAULT_MATCH_DURATION_MS;
+        }
+        return new long[]{ start, end };
+    }
+
+    private long computeMatchTs(String date, String hhmm) {
+        try {
+            java.text.SimpleDateFormat sdf =
+                    new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+            return sdf.parse(date + " " + hhmm).getTime();
+        } catch (Exception e) {
+            return System.currentTimeMillis();
+        }
+    }
+
+    private long dateToMs(String date) {
+        try {
+            String[] p = date.split("-");
+            Calendar cal = Calendar.getInstance();
+            cal.set(Calendar.YEAR, Integer.parseInt(p[0]));
+            cal.set(Calendar.MONTH, Integer.parseInt(p[1]) - 1);
+            cal.set(Calendar.DAY_OF_MONTH, Integer.parseInt(p[2]));
+            cal.set(Calendar.HOUR_OF_DAY, 0);
+            cal.set(Calendar.MINUTE, 0);
+            cal.set(Calendar.SECOND, 0);
+            cal.set(Calendar.MILLISECOND, 0);
+            return cal.getTimeInMillis();
+        } catch (Exception e) {
+            return System.currentTimeMillis();
         }
     }
 

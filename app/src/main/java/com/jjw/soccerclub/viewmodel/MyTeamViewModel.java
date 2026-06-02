@@ -60,6 +60,7 @@ public class MyTeamViewModel extends ViewModel {
 
     private boolean initialLoadDone = false;
     private String  cachedTeamId   = null;
+    private String  currentUid     = null;   // ← 추가
 
     // ── 외부에서 호출하는 메서드 ─────────────────────────────────────────────────
 
@@ -87,6 +88,7 @@ public class MyTeamViewModel extends ViewModel {
     // ── 내부 로직 ────────────────────────────────────────────────────────────────
 
     private void resolveTeamId(String uid) {
+        this.currentUid = uid;   // ← 추가
         _isLoading.setValue(true);
         db.collection("profiles").document(uid).get()
                 .addOnSuccessListener(profileDoc -> {
@@ -115,6 +117,17 @@ public class MyTeamViewModel extends ViewModel {
         }
 
         teamInfoObserver = team -> {
+            // ← 추가: 강퇴 감지 — 내가 members 에서 빠졌으면 즉시 "팀 없음" 처리
+            if (team != null && currentUid != null) {
+                List<String> members = team.getMembers();
+                if (members == null || !members.contains(currentUid)) {
+                    stopListeners();
+                    _teamInfo.removeObserver(teamInfoObserver);
+                    _hasNoTeam.setValue(true);
+                    _isLoading.setValue(false);
+                    return;
+                }
+            }
             _isLoading.setValue(false);
             if (team != null) loadMemberProfiles(team);
         };
