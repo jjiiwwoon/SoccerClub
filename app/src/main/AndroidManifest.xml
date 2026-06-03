@@ -71,7 +71,7 @@
 
         <!-- ==================== profile ==================== -->
         <activity android:name=".ui.profile.EditProfileActivity" />
-
+        <activity android:name=".ui.profile.MercenaryActivitiesActivity" />
         <meta-data
             android:name="com.naver.maps.map.NCP_KEY_ID"
             android:value="e5jzg44yn9" />

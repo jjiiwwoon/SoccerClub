@@ -191,6 +191,7 @@ public class ApplicationsListActivity extends AppCompatActivity {
         }
 
         if (adapter != null) adapter.setSessionNewApplicantKeys(newKeys);
+        persistLastSeenForThisSession();
     }
 
     /**

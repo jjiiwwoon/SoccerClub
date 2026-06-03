@@ -141,6 +141,12 @@ public class MyProfileFragment extends Fragment {
             if (loading != null && loading && state != null) state.showLoading();
         });
 
+        View btnMercDetail = view.findViewById(R.id.btnMercDetail);
+        if (btnMercDetail != null) {
+            btnMercDetail.setOnClickListener(v ->
+                    startActivity(new Intent(requireContext(),
+                            com.jjw.soccerclub.ui.profile.MercenaryActivitiesActivity.class)));
+        }
         // ── ✅ 로그아웃 버튼 ──────────────────────────────────────────────────────
         View btnLogout = view.findViewById(R.id.btnLogout);
         if (btnLogout != null) {

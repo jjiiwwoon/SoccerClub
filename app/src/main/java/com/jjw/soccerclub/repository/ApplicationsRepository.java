@@ -204,13 +204,6 @@ public class ApplicationsRepository {
 
     // ── 수락 ─────────────────────────────────────────────────────────────────────
 
-    /**
-     * 신청 수락 처리.
-     * - applicants 상태 업데이트
-     * - 시합이면 matchApplications 상태 업데이트 + 일정 등록
-     * - 모집이면 팀 합류 트랜잭션
-     * - 채팅방 생성 + 수락 메시지 전송
-     */
     public void accept(String currentUid, String myTeamId,
                        ApplicationsAdapter.Item post,
                        ApplicationsAdapter.Applicant applicant,
@@ -227,14 +220,11 @@ public class ApplicationsRepository {
                                     .collection("matchApplications").document(post.postId)
                                     .update("status", "accepted");
                         }
-
-                        // ★ 매치 본문 status → confirmed (목록에서 사라짐)
                         db.collection("matches").document(post.postId)
                                 .update("status", "confirmed",
                                         "opponentTeamId", applicant.teamId,
                                         "opponentName", AppUtils.safe(applicant.teamName),
                                         "opponentLogoUrl", AppUtils.safe(applicant.logoUrl));
-
                         registerSchedule(post, applicant, currentUid, myTeamId);
                     } else {
                         if (!AppUtils.isEmpty(applicant.applicantUserId)) {
@@ -242,7 +232,21 @@ public class ApplicationsRepository {
                                     .collection("applications").document(post.postId)
                                     .update("status", "accepted");
                         }
-                        joinTeamMember(applicant, myTeamId);
+
+                        // ★ recruitType 확인 → 용병 vs 정식선수 분기
+                        db.collection("recruitPosts").document(post.postId).get()
+                                .addOnSuccessListener(recruitDoc -> {
+                                    String rType = AppUtils.normalizeRecruitType(
+                                            AppUtils.safe(recruitDoc.getString("recruitType")));
+
+                                    if ("mercenary".equals(rType)) {
+                                        // ★ 용병: 팀 합류 X → 이벤트에 용병 등록 + 개인 기록 저장
+                                        addMercenaryToEvent(post, applicant, myTeamId, recruitDoc);
+                                    } else {
+                                        // 정식선수: 팀 합류
+                                        joinTeamMember(applicant, myTeamId);
+                                    }
+                                });
                     }
                     String msg = POST_MATCH.equals(post.postType)
                             ? "시합 신청을 수락했어요 ✅ 일정을 확인해주세요!"
@@ -251,6 +255,72 @@ public class ApplicationsRepository {
                     if (onSuccess != null) onSuccess.run();
                 })
                 .addOnFailureListener(e -> { if (onFailure != null) onFailure.run(); });
+    }
+
+    // ★ 새 메서드: 용병을 이벤트에 등록
+    private void addMercenaryToEvent(ApplicationsAdapter.Item post,
+                                     ApplicationsAdapter.Applicant applicant,
+                                     String myTeamId,
+                                     DocumentSnapshot recruitDoc) {
+        if (AppUtils.isEmpty(myTeamId) || AppUtils.isEmpty(applicant.applicantUserId)) return;
+
+        String date = AppUtils.safe(recruitDoc.getString("date"));
+        String time = AppUtils.safe(recruitDoc.getString("time"));
+        String stadiumName = AppUtils.firstNonEmpty(
+                recruitDoc.getString("stadiumName"), recruitDoc.getString("stadium"));
+        String teamName = AppUtils.safe(recruitDoc.getString("teamName"));
+
+        // 1) 해당 날짜의 이벤트 찾기 → mercenaryCandidateIds에 추가
+        db.collection("schedules").document(myTeamId)
+                .collection("events")
+                .whereEqualTo("date", date)
+                .get()
+                .addOnSuccessListener(qs -> {
+                    String targetEventId = null;
+                    for (DocumentSnapshot ev : qs.getDocuments()) {
+                        String evTime = AppUtils.safe(ev.getString("time"));
+                        if (evTime.equals(time) || qs.size() == 1) {
+                            targetEventId = ev.getId();
+                            break;
+                        }
+                    }
+                    if (targetEventId == null && !qs.isEmpty()) {
+                        targetEventId = qs.getDocuments().get(0).getId();
+                    }
+
+                    if (targetEventId != null) {
+                        // 이벤트에 용병 등록
+                        db.collection("schedules").document(myTeamId)
+                                .collection("events").document(targetEventId)
+                                .update("mercenaryCandidateIds",
+                                        FieldValue.arrayUnion(applicant.applicantUserId));
+
+                        // 투표에도 자동 참석 등록
+                        Map<String, Object> voteData = new java.util.LinkedHashMap<>();
+                        voteData.put("status", "attend");
+                        voteData.put("isMercenary", true);
+                        voteData.put("nickname", AppUtils.safe(applicant.nickname));
+                        voteData.put("timestamp", System.currentTimeMillis());
+                        db.collection("schedules").document(myTeamId)
+                                .collection("events").document(targetEventId)
+                                .collection("votes").document(applicant.applicantUserId)
+                                .set(voteData, com.google.firebase.firestore.SetOptions.merge());
+                    }
+                });
+
+        // 2) 용병 개인 프로필에 활동 기록 저장
+        Map<String, Object> mercActivity = new java.util.LinkedHashMap<>();
+        mercActivity.put("postId", post.postId);
+        mercActivity.put("teamId", myTeamId);
+        mercActivity.put("teamName", teamName);
+        mercActivity.put("date", date);
+        mercActivity.put("time", time);
+        mercActivity.put("stadium", stadiumName);
+        mercActivity.put("status", "accepted");
+        mercActivity.put("timestamp", System.currentTimeMillis());
+        db.collection("profiles").document(applicant.applicantUserId)
+                .collection("mercenaryActivities").document(post.postId)
+                .set(mercActivity, com.google.firebase.firestore.SetOptions.merge());
     }
 
     // ── 거절 ─────────────────────────────────────────────────────────────────────

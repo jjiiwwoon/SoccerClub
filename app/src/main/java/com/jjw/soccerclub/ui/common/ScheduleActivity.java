@@ -34,9 +34,12 @@ import com.google.firebase.firestore.QueryDocumentSnapshot;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.gms.tasks.Task;
@@ -496,8 +499,10 @@ public class ScheduleActivity extends AppCompatActivity {
             String label = recorded ? "기록수정" : "기록하기";
             btnRecord.setText(label);
             btnRecord.setOnClickListener(v -> {
+                boolean scoreLockedForApplicant = !AppUtils.isEmpty(it.ownerTeamId) && !myTeamId.equals(it.ownerTeamId);
                 com.jjw.soccerclub.ui.team.WriteRecordFragment fragment =
-                        com.jjw.soccerclub.ui.team.WriteRecordFragment.newInstance(myTeamId, it.eventId);
+                        com.jjw.soccerclub.ui.team.WriteRecordFragment.newInstance(
+                                myTeamId, it.eventId, scoreLockedForApplicant, it.ownerTeamId);
                 getSupportFragmentManager().beginTransaction()
                         .replace(android.R.id.content, fragment, "WriteRecord")
                         .addToBackStack(null)
@@ -614,7 +619,6 @@ public class ScheduleActivity extends AppCompatActivity {
                         CustomToast.success(this, "attend".equals(status)
                                 ? "참석으로 투표했어요!" : "불참으로 투표했어요."));
     }
-
     @SuppressWarnings("unchecked")
     private void loadVotes(String eventId, String myUid,
                            TextView tvMyStatus,
@@ -622,81 +626,96 @@ public class ScheduleActivity extends AppCompatActivity {
                            List<MemberVote> attendList, List<MemberVote> absentList, List<MemberVote> notVotedList,
                            AttendanceAdapter adAttend, AttendanceAdapter adAbsent, AttendanceAdapter adNotVoted) {
 
-        db.collection("teams").document(myTeamId).get()
-                .addOnSuccessListener(teamDoc -> {
-                    List<String> members = (List<String>) teamDoc.get("members");
-                    if (members == null || members.isEmpty()) return;
+        // 먼저 이벤트 문서에서 용병 목록을 가져옴
+        db.collection("schedules").document(myTeamId)
+                .collection("events").document(eventId)
+                .get()
+                .addOnSuccessListener(eventDoc -> {
+                    List<String> mercIds = (List<String>) eventDoc.get("mercenaryCandidateIds");
+                    Set<String> mercSet = new HashSet<>();
+                    if (mercIds != null) mercSet.addAll(mercIds);
 
-                    db.collection("schedules").document(myTeamId)
-                            .collection("events").document(eventId)
-                            .collection("votes").get()
-                            .addOnSuccessListener(votesSnap -> {
-                                Map<String, String> voteMap = new HashMap<>();
-                                Map<String, String> nickMap = new HashMap<>();
+                    db.collection("teams").document(myTeamId).get()
+                            .addOnSuccessListener(teamDoc -> {
+                                List<String> members = (List<String>) teamDoc.get("members");
+                                if (members == null) members = new ArrayList<>();
 
-                                for (QueryDocumentSnapshot v : votesSnap) {
-                                    voteMap.put(v.getId(), AppUtils.safe(v.getString("status")));
-                                    nickMap.put(v.getId(), AppUtils.safe(v.getString("nickname")));
-                                }
+                                // 팀원 + 용병 합쳐서 전체 참여자 목록
+                                Set<String> allParticipants = new LinkedHashSet<>(members);
+                                allParticipants.addAll(mercSet);
 
-                                // 내 투표 상태 표시
-                                String myVote = voteMap.get(myUid);
-                                if ("attend".equals(myVote)) {
-                                    tvMyStatus.setText("현재 참석으로 투표했어요 ✓");
-                                    tvMyStatus.setTextColor(0xFF1565C0);
-                                } else if ("absent".equals(myVote)) {
-                                    tvMyStatus.setText("현재 불참으로 투표했어요 ✗");
-                                    tvMyStatus.setTextColor(0xFFC62828);
-                                } else {
-                                    tvMyStatus.setText("아직 투표하지 않았어요.");
-                                    tvMyStatus.setTextColor(0xFF757575);
-                                }
+                                db.collection("schedules").document(myTeamId)
+                                        .collection("events").document(eventId)
+                                        .collection("votes").get()
+                                        .addOnSuccessListener(votesSnap -> {
+                                            Map<String, String> voteMap = new HashMap<>();
+                                            Map<String, String> nickMap = new HashMap<>();
 
-                                // ★ 각 멤버의 프로필 사진을 일괄 조회
-                                attendList.clear();
-                                absentList.clear();
-                                notVotedList.clear();
-
-                                List<Task<DocumentSnapshot>> profileTasks = new ArrayList<>();
-                                for (String uid : members) {
-                                    profileTasks.add(
-                                            db.collection("profiles").document(uid).get()
-                                    );
-                                }
-
-                                Tasks.whenAllSuccess(profileTasks)
-                                        .addOnSuccessListener(results -> {
-                                            for (Object obj : results) {
-                                                DocumentSnapshot profileDoc = (DocumentSnapshot) obj;
-                                                String uid = profileDoc.getId();
-                                                // 닉네임: 투표 문서 → 프로필 문서 → 기본값 순서
-                                                String nick = nickMap.containsKey(uid)
-                                                        ? AppUtils.safe(nickMap.get(uid))
-                                                        : AppUtils.safe(profileDoc.getString("nickname"));
-                                                if (nick.isEmpty()) nick = "(이름없음)";
-
-                                                String photoUrl = profileDoc.exists()
-                                                        ? AppUtils.safe(profileDoc.getString("profileImageUrl"))
-                                                        : "";
-
-                                                MemberVote mv = new MemberVote(uid, nick, photoUrl);
-
-                                                String st = voteMap.get(uid);
-                                                if ("attend".equals(st)) {
-                                                    attendList.add(mv);
-                                                } else if ("absent".equals(st)) {
-                                                    absentList.add(mv);
-                                                } else {
-                                                    notVotedList.add(mv);
-                                                }
+                                            for (QueryDocumentSnapshot v : votesSnap) {
+                                                voteMap.put(v.getId(), AppUtils.safe(v.getString("status")));
+                                                nickMap.put(v.getId(), AppUtils.safe(v.getString("nickname")));
+                                                // 투표 문서에 있지만 멤버 목록에 없는 사람 추가 (용병 등)
+                                                allParticipants.add(v.getId());
                                             }
 
-                                            tvAttendHeader.setText("참석자 (" + attendList.size() + ")");
-                                            tvAbsentHeader.setText("불참자 (" + absentList.size() + ")");
-                                            tvNotVotedHeader.setText("미투표자 (" + notVotedList.size() + ")");
-                                            adAttend.notifyDataSetChanged();
-                                            adAbsent.notifyDataSetChanged();
-                                            adNotVoted.notifyDataSetChanged();
+                                            // 내 투표 상태
+                                            String myVote = voteMap.get(myUid);
+                                            if ("attend".equals(myVote)) {
+                                                tvMyStatus.setText("현재 참석으로 투표했어요 ✓");
+                                                tvMyStatus.setTextColor(0xFF1565C0);
+                                            } else if ("absent".equals(myVote)) {
+                                                tvMyStatus.setText("현재 불참으로 투표했어요 ✗");
+                                                tvMyStatus.setTextColor(0xFFC62828);
+                                            } else {
+                                                tvMyStatus.setText("아직 투표하지 않았어요.");
+                                                tvMyStatus.setTextColor(0xFF757575);
+                                            }
+
+                                            attendList.clear();
+                                            absentList.clear();
+                                            notVotedList.clear();
+
+                                            List<Task<DocumentSnapshot>> profileTasks = new ArrayList<>();
+                                            List<String> orderedUids = new ArrayList<>(allParticipants);
+                                            for (String uid : orderedUids) {
+                                                profileTasks.add(db.collection("profiles").document(uid).get());
+                                            }
+
+                                            Tasks.whenAllSuccess(profileTasks)
+                                                    .addOnSuccessListener(results -> {
+                                                        for (Object obj : results) {
+                                                            DocumentSnapshot profileDoc = (DocumentSnapshot) obj;
+                                                            String uid = profileDoc.getId();
+                                                            String nick = nickMap.containsKey(uid)
+                                                                    ? AppUtils.safe(nickMap.get(uid))
+                                                                    : AppUtils.safe(profileDoc.getString("nickname"));
+                                                            if (nick.isEmpty()) nick = "(이름없음)";
+                                                            String photoUrl = profileDoc.exists()
+                                                                    ? AppUtils.safe(profileDoc.getString("profileImageUrl"))
+                                                                    : "";
+
+                                                            // ★ 용병 여부 판별
+                                                            boolean isMerc = mercSet.contains(uid);
+
+                                                            MemberVote mv = new MemberVote(uid, nick, photoUrl, isMerc);
+
+                                                            String st = voteMap.get(uid);
+                                                            if ("attend".equals(st)) {
+                                                                attendList.add(mv);
+                                                            } else if ("absent".equals(st)) {
+                                                                absentList.add(mv);
+                                                            } else {
+                                                                notVotedList.add(mv);
+                                                            }
+                                                        }
+
+                                                        tvAttendHeader.setText("참석자 (" + attendList.size() + ")");
+                                                        tvAbsentHeader.setText("불참자 (" + absentList.size() + ")");
+                                                        tvNotVotedHeader.setText("미투표자 (" + notVotedList.size() + ")");
+                                                        adAttend.notifyDataSetChanged();
+                                                        adAbsent.notifyDataSetChanged();
+                                                        adNotVoted.notifyDataSetChanged();
+                                                    });
                                         });
                             });
                 });
@@ -709,11 +728,13 @@ public class ScheduleActivity extends AppCompatActivity {
         String uid;
         String nickname;
         String profileImageUrl;
+        boolean isMercenary;  // ★ 추가
 
-        MemberVote(String uid, String nickname, String profileImageUrl) {
+        MemberVote(String uid, String nickname, String profileImageUrl, boolean isMercenary) {
             this.uid = uid;
             this.nickname = nickname;
             this.profileImageUrl = profileImageUrl;
+            this.isMercenary = isMercenary;
         }
     }
     static class AttendanceAdapter extends RecyclerView.Adapter<AttendanceAdapter.VH> {
@@ -734,13 +755,33 @@ public class ScheduleActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(@NonNull VH h, int pos) {
             MemberVote m = members.get(pos);
+
+            // ★ 용병이면 이름 뒤에 뱃지 추가
+            // 기존 — 이름 뒤에 [용병] 텍스트 추가 (중복)
+            String displayName = m.nickname != null ? m.nickname : "-";
+            if (m.isMercenary) {
+                displayName += "  [용병]";
+            }
+            h.tvNickname.setText(displayName);
+
+// 수정 — 이름만 표시 (주황 뱃지가 옆에 나오니까)
             h.tvNickname.setText(m.nickname != null ? m.nickname : "-");
 
-            // ★ Glide로 프로필 사진 로딩
+            // ★ 용병 뱃지 색상 (tvMemberPosition을 용병 뱃지로 활용)
+            if (h.tvPosition != null) {
+                if (m.isMercenary) {
+                    h.tvPosition.setVisibility(View.VISIBLE);
+                    h.tvPosition.setText("용병");
+                    h.tvPosition.setTextColor(0xFFFF6D00); // 주황색
+                } else {
+                    h.tvPosition.setVisibility(View.GONE);
+                }
+            }
+
+            // 프로필 사진
             if (m.profileImageUrl != null && !m.profileImageUrl.trim().isEmpty()) {
                 Glide.with(h.ivPhoto.getContext())
                         .load(m.profileImageUrl)
-                        .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
                         .placeholder(R.drawable.ic_person_placeholder)
                         .error(R.drawable.ic_person_placeholder)
                         .circleCrop()
@@ -756,11 +797,13 @@ public class ScheduleActivity extends AppCompatActivity {
         static class VH extends RecyclerView.ViewHolder {
             TextView tvNickname;
             ImageView ivPhoto;
+            TextView tvPosition;  // ★ 용병 뱃지용
 
             VH(@NonNull View v) {
                 super(v);
                 tvNickname = v.findViewById(R.id.tvMemberNickname);
                 ivPhoto    = v.findViewById(R.id.ivMemberPhoto);
+                tvPosition = v.findViewById(R.id.tvMemberPosition);  // 기존 레이아웃에 있음
             }
         }
     }
