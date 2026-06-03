@@ -38,6 +38,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
+import com.google.firebase.firestore.SetOptions;
+
 public class ScheduleActivity extends AppCompatActivity {
 
     private StateLayout state;
@@ -58,6 +63,8 @@ public class ScheduleActivity extends AppCompatActivity {
 
     private String myTeamId = "", myTeamName = "", myTeamLogoUrl = "";
     private String myUid = "", myNickname = "";
+
+    private String lastSelectedDate = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -223,6 +230,7 @@ public class ScheduleActivity extends AppCompatActivity {
     // ── 날짜별 일정 ───────────────────────────────────────────────────────────────
 
     private void loadScheduleForDate(String date) {
+        this.lastSelectedDate = date;  // ★ onResume 새로고침용
         if (AppUtils.isEmpty(myTeamId)) return;
         scheduleList.clear();
 
@@ -244,6 +252,8 @@ public class ScheduleActivity extends AppCompatActivity {
                                         d.getString("stadiumAddress"), d.getString("address")))
                         );
                         item.opponentLogoUrl = AppUtils.safe(d.getString("opponentLogoUrl"));
+                        item.ownerTeamId     = AppUtils.safe(d.getString("ownerTeamId"));      // ★ 추가
+                        item.opponentTeamId  = AppUtils.safe(d.getString("opponentTeamId"));   // ★ 추가
                         scheduleList.add(item);
                     }
                     if (progressSelectedDate != null) progressSelectedDate.setVisibility(View.GONE);
@@ -308,12 +318,119 @@ public class ScheduleActivity extends AppCompatActivity {
 
             // ✅ 카드 하단에 선수목록 버튼 동적 추가
             addPlayerListFooter(card, it);
-
+// ★ 완료된 경기 스코어 표시
+            showScoreIfFinished(card, it);
             selectedDateList.addView(card);
         }
     }
+    private void showScoreIfFinished(View card, ScheduleItem it) {
+        // 일정 문서에 저장된 status로 1차 판별
+        if ("finished".equals(it.status)) {
+            // event 문서에서 직접 스코어 읽기 (saveRecord에서 저장함)
+            db.collection("schedules").document(myTeamId)
+                    .collection("events").document(it.eventId)
+                    .get()
+                    .addOnSuccessListener(ev -> {
+                        Long sf = ev.getLong("scoreFor");
+                        Long sa = ev.getLong("scoreAgainst");
 
+                        if (sf != null && sa != null) {
+                            addScoreToCard(card, sf.intValue(), sa.intValue());
+                        } else {
+                            // event에 없으면 matches 문서에서 시도
+                            loadScoreFromMatch(card, it.eventId);
+                        }
+                    });
+        } else {
+            // status가 아직 finished가 아니어도 match 문서가 있을 수 있음
+            loadScoreFromMatch(card, it.eventId);
+        }
+    }
+
+    private void addScoreToCard(View card, int scoreFor, int scoreAgainst) {
+        // 방법 1: tvScore 뷰가 이미 있는 경우 (레이아웃에 포함된 경우)
+        TextView tvScore = card.findViewById(R.id.tvScore);
+        if (tvScore != null) {
+            tvScore.setVisibility(View.VISIBLE);
+            tvScore.setText(scoreFor + " : " + scoreAgainst);
+
+            // 승/무/패에 따라 색상 변경
+            if (scoreFor > scoreAgainst) {
+                tvScore.setTextColor(0xFF1565C0); // 승 - 파란색
+            } else if (scoreFor < scoreAgainst) {
+                tvScore.setTextColor(0xFFC62828); // 패 - 빨간색
+            } else {
+                tvScore.setTextColor(0xFF757575); // 무 - 회색
+            }
+            return;
+        }
+
+        // 방법 2: 동적으로 스코어 텍스트 추가
+        View content = card.findViewById(R.id.scheduleContent);
+        if (!(content instanceof LinearLayout)) return;
+        LinearLayout contentLayout = (LinearLayout) content;
+
+        // 이미 스코어가 추가됐으면 중복 방지
+        if (contentLayout.findViewWithTag("scoreTag") != null) return;
+
+        TextView scoreView = new TextView(this);
+        scoreView.setTag("scoreTag");
+        scoreView.setText(scoreFor + " : " + scoreAgainst);
+        scoreView.setTextSize(22f);
+        scoreView.setTypeface(null, android.graphics.Typeface.BOLD);
+        scoreView.setGravity(android.view.Gravity.CENTER);
+
+        if (scoreFor > scoreAgainst) {
+            scoreView.setTextColor(0xFF1565C0);
+        } else if (scoreFor < scoreAgainst) {
+            scoreView.setTextColor(0xFFC62828);
+        } else {
+            scoreView.setTextColor(0xFF757575);
+        }
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        lp.topMargin = dp(4);
+        lp.bottomMargin = dp(4);
+        scoreView.setLayoutParams(lp);
+
+        // tvNextDateChip 아래, 팀 로고 위에 삽입 (인덱스 1 위치)
+        int insertIdx = 1; // 기본값
+        for (int i = 0; i < contentLayout.getChildCount(); i++) {
+            View child = contentLayout.getChildAt(i);
+            if (child.getId() == R.id.tvNextDateChip) {
+                insertIdx = i + 1;
+                break;
+            }
+        }
+
+        contentLayout.addView(scoreView, Math.min(insertIdx, contentLayout.getChildCount()));
+    }
+    private void loadScoreFromMatch(View card, String eventId) {
+        String docId = eventId + "_" + myTeamId;
+        db.collection("matches").document(docId).get()
+                .addOnSuccessListener(d -> {
+                    if (d != null && d.exists()) {
+                        Long sf = d.getLong("scoreFor");
+                        Long sa = d.getLong("scoreAgainst");
+                        if (sf != null && sa != null) {
+                            addScoreToCard(card, sf.intValue(), sa.intValue());
+                        }
+                    }
+                });
+    }
+    @Override
+    protected void onResume() {
+
+        super.onResume();
+        // ★ WriteRecordFragment에서 돌아왔을 때 선택된 날짜 카드 새로고침
+        if (selectedDateList != null && lastSelectedDate != null) {
+            loadScheduleForDate(lastSelectedDate);
+        }
+    }
     /** 카드 하단: 구분선 + 선수목록 버튼 */
+    /** 카드 하단: 구분선 + 선수목록 + 기록하기 버튼 */
     private void addPlayerListFooter(View cardRoot, ScheduleItem it) {
         View contentView = cardRoot.findViewById(R.id.scheduleContent);
         if (!(contentView instanceof LinearLayout)) return;
@@ -334,15 +451,22 @@ public class ScheduleActivity extends AppCompatActivity {
         LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         rowLp.topMargin = dp(8);
+        rowLp.bottomMargin = dp(4);
         row.setLayoutParams(rowLp);
         row.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
         content.addView(row);
 
+        LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        btnLp.setMarginEnd(dp(8));
+
+        // ① 선수목록 버튼
         MaterialButton btnPlayers = new MaterialButton(this);
         btnPlayers.setText("선수목록");
         btnPlayers.setAllCaps(false);
         btnPlayers.setInsetTop(0);
         btnPlayers.setInsetBottom(0);
+        btnPlayers.setLayoutParams(new LinearLayout.LayoutParams(btnLp));
         btnPlayers.setBackgroundTintList(
                 android.content.res.ColorStateList.valueOf(0xFF1E88E5));
         btnPlayers.setTextColor(0xFFFFFFFF);
@@ -350,8 +474,66 @@ public class ScheduleActivity extends AppCompatActivity {
         btnPlayers.setPadding(dp(16), dp(10), dp(16), dp(10));
         btnPlayers.setOnClickListener(v -> showAttendanceDialog(it.eventId));
         row.addView(btnPlayers);
+
+        // ② 기록하기 버튼 (★ 테스트용: 시간 관계없이 항상 표시)
+        MaterialButton btnRecord = new MaterialButton(this);
+        btnRecord.setAllCaps(false);
+        btnRecord.setInsetTop(0);
+        btnRecord.setInsetBottom(0);
+        btnRecord.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(0xFF26C6DA));
+        btnRecord.setTextColor(0xFFFFFFFF);
+        btnRecord.setCornerRadius(dp(16));
+        btnRecord.setPadding(dp(16), dp(10), dp(16), dp(10));
+
+        // ★ 테스트 모드: isPastOrEnded 체크 없이 무조건 버튼 추가
+        // TODO: 운영 전환 시 아래 주석 해제하고 테스트 코드 제거
+        // long[] se = computeStartEndFromDateTimeStrings(it.date, it.time);
+        // boolean isPastOrEnded = System.currentTimeMillis() >= se[1];
+        // if (isPastOrEnded) { ... }
+
+        checkRecorded(it.eventId, myTeamId, recorded -> {
+            String label = recorded ? "기록수정" : "기록하기";
+            btnRecord.setText(label);
+            btnRecord.setOnClickListener(v -> {
+                com.jjw.soccerclub.ui.team.WriteRecordFragment fragment =
+                        com.jjw.soccerclub.ui.team.WriteRecordFragment.newInstance(myTeamId, it.eventId);
+                getSupportFragmentManager().beginTransaction()
+                        .replace(android.R.id.content, fragment, "WriteRecord")
+                        .addToBackStack(null)
+                        .commit();
+            });
+            row.addView(btnRecord);
+        });
     }
 
+    /**
+     * matches/{eventId}_{teamId} 문서가 존재하고 기록이 있는지 확인.
+     * 콜백: true = 이미 기록됨(기록수정), false = 미기록(기록하기)
+     */
+    private void checkRecorded(String eventId, String teamId,
+                               java.util.function.Consumer<Boolean> cb) {
+        if (AppUtils.isEmpty(teamId)) {
+            cb.accept(false);
+            return;
+        }
+        String docId = eventId + "_" + teamId;
+        db.collection("matches").document(docId).get()
+                .addOnSuccessListener(d -> {
+                    if (d != null && d.exists()) {
+                        String status    = d.getString("status");
+                        boolean hasScore   = d.contains("scoreFor") || d.contains("scoreAgainst");
+                        boolean hasScorers = d.contains("scorers");
+                        boolean hasEvents  = d.contains("goalEvents");
+                        boolean recorded   = "finished".equals(status)
+                                || hasScore || hasScorers || hasEvents;
+                        cb.accept(recorded);
+                    } else {
+                        cb.accept(false);
+                    }
+                })
+                .addOnFailureListener(e -> cb.accept(false));
+    }
     // ── 참석 투표 다이얼로그 ──────────────────────────────────────────────────────
 
     private void showAttendanceDialog(String eventId) {
@@ -368,9 +550,10 @@ public class ScheduleActivity extends AppCompatActivity {
         RecyclerView rvAbsent       = dialogView.findViewById(R.id.rvAbsent);
         RecyclerView rvNotVoted     = dialogView.findViewById(R.id.rvNotVoted);
 
-        List<String> attendList   = new ArrayList<>();
-        List<String> absentList   = new ArrayList<>();
-        List<String> notVotedList = new ArrayList<>();
+        // ★ List<MemberVote> 로 변경
+        List<MemberVote> attendList   = new ArrayList<>();
+        List<MemberVote> absentList   = new ArrayList<>();
+        List<MemberVote> notVotedList = new ArrayList<>();
 
         AttendanceAdapter adAttend   = new AttendanceAdapter(attendList);
         AttendanceAdapter adAbsent   = new AttendanceAdapter(absentList);
@@ -436,7 +619,7 @@ public class ScheduleActivity extends AppCompatActivity {
     private void loadVotes(String eventId, String myUid,
                            TextView tvMyStatus,
                            TextView tvAttendHeader, TextView tvAbsentHeader, TextView tvNotVotedHeader,
-                           List<String> attendList, List<String> absentList, List<String> notVotedList,
+                           List<MemberVote> attendList, List<MemberVote> absentList, List<MemberVote> notVotedList,
                            AttendanceAdapter adAttend, AttendanceAdapter adAbsent, AttendanceAdapter adNotVoted) {
 
         db.collection("teams").document(myTeamId).get()
@@ -456,6 +639,7 @@ public class ScheduleActivity extends AppCompatActivity {
                                     nickMap.put(v.getId(), AppUtils.safe(v.getString("nickname")));
                                 }
 
+                                // 내 투표 상태 표시
                                 String myVote = voteMap.get(myUid);
                                 if ("attend".equals(myVote)) {
                                     tvMyStatus.setText("현재 참석으로 투표했어요 ✓");
@@ -465,38 +649,48 @@ public class ScheduleActivity extends AppCompatActivity {
                                     tvMyStatus.setTextColor(0xFFC62828);
                                 } else {
                                     tvMyStatus.setText("아직 투표하지 않았어요.");
-                                    tvMyStatus.setTextColor(0xFF6B7280);
+                                    tvMyStatus.setTextColor(0xFF757575);
                                 }
 
+                                // ★ 각 멤버의 프로필 사진을 일괄 조회
                                 attendList.clear();
                                 absentList.clear();
                                 notVotedList.clear();
 
-                                // 팀원 닉네임 보강 조회
-                                List<com.google.android.gms.tasks.Task<DocumentSnapshot>> tasks
-                                        = new ArrayList<>();
+                                List<Task<DocumentSnapshot>> profileTasks = new ArrayList<>();
                                 for (String uid : members) {
-                                    if (!nickMap.containsKey(uid)) {
-                                        tasks.add(db.collection("profiles").document(uid).get());
-                                    }
+                                    profileTasks.add(
+                                            db.collection("profiles").document(uid).get()
+                                    );
                                 }
 
-                                com.google.android.gms.tasks.Tasks.whenAllSuccess(tasks)
+                                Tasks.whenAllSuccess(profileTasks)
                                         .addOnSuccessListener(results -> {
                                             for (Object obj : results) {
-                                                DocumentSnapshot p = (DocumentSnapshot) obj;
-                                                if (p.exists())
-                                                    nickMap.put(p.getId(),
-                                                            AppUtils.safe(p.getString("nickname")));
-                                            }
-                                            for (String uid : members) {
-                                                String nick = AppUtils.firstNonEmpty(
-                                                        nickMap.get(uid), "(이름없음)");
+                                                DocumentSnapshot profileDoc = (DocumentSnapshot) obj;
+                                                String uid = profileDoc.getId();
+                                                // 닉네임: 투표 문서 → 프로필 문서 → 기본값 순서
+                                                String nick = nickMap.containsKey(uid)
+                                                        ? AppUtils.safe(nickMap.get(uid))
+                                                        : AppUtils.safe(profileDoc.getString("nickname"));
+                                                if (nick.isEmpty()) nick = "(이름없음)";
+
+                                                String photoUrl = profileDoc.exists()
+                                                        ? AppUtils.safe(profileDoc.getString("profileImageUrl"))
+                                                        : "";
+
+                                                MemberVote mv = new MemberVote(uid, nick, photoUrl);
+
                                                 String st = voteMap.get(uid);
-                                                if ("attend".equals(st)) attendList.add(nick);
-                                                else if ("absent".equals(st)) absentList.add(nick);
-                                                else notVotedList.add(nick);
+                                                if ("attend".equals(st)) {
+                                                    attendList.add(mv);
+                                                } else if ("absent".equals(st)) {
+                                                    absentList.add(mv);
+                                                } else {
+                                                    notVotedList.add(mv);
+                                                }
                                             }
+
                                             tvAttendHeader.setText("참석자 (" + attendList.size() + ")");
                                             tvAbsentHeader.setText("불참자 (" + absentList.size() + ")");
                                             tvNotVotedHeader.setText("미투표자 (" + notVotedList.size() + ")");
@@ -510,11 +704,27 @@ public class ScheduleActivity extends AppCompatActivity {
 
     // ── 어댑터 ────────────────────────────────────────────────────────────────────
 
-    static class AttendanceAdapter extends RecyclerView.Adapter<AttendanceAdapter.VH> {
-        private final List<String> names;
-        AttendanceAdapter(List<String> names) { this.names = names; }
+    /** 투표 목록에 표시할 멤버 정보 */
+    static class MemberVote {
+        String uid;
+        String nickname;
+        String profileImageUrl;
 
-        @NonNull @Override
+        MemberVote(String uid, String nickname, String profileImageUrl) {
+            this.uid = uid;
+            this.nickname = nickname;
+            this.profileImageUrl = profileImageUrl;
+        }
+    }
+    static class AttendanceAdapter extends RecyclerView.Adapter<AttendanceAdapter.VH> {
+        private final List<MemberVote> members;
+
+        AttendanceAdapter(List<MemberVote> members) {
+            this.members = members;
+        }
+
+        @NonNull
+        @Override
         public VH onCreateViewHolder(@NonNull ViewGroup parent, int vt) {
             View v = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.item_attendance_member, parent, false);
@@ -523,16 +733,34 @@ public class ScheduleActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull VH h, int pos) {
-            h.tvNickname.setText(names.get(pos));
+            MemberVote m = members.get(pos);
+            h.tvNickname.setText(m.nickname != null ? m.nickname : "-");
+
+            // ★ Glide로 프로필 사진 로딩
+            if (m.profileImageUrl != null && !m.profileImageUrl.trim().isEmpty()) {
+                Glide.with(h.ivPhoto.getContext())
+                        .load(m.profileImageUrl)
+                        .diskCacheStrategy(DiskCacheStrategy.AUTOMATIC)
+                        .placeholder(R.drawable.ic_person_placeholder)
+                        .error(R.drawable.ic_person_placeholder)
+                        .circleCrop()
+                        .into(h.ivPhoto);
+            } else {
+                h.ivPhoto.setImageResource(R.drawable.ic_person_placeholder);
+            }
         }
 
-        @Override public int getItemCount() { return names.size(); }
+        @Override
+        public int getItemCount() { return members.size(); }
 
         static class VH extends RecyclerView.ViewHolder {
             TextView tvNickname;
+            ImageView ivPhoto;
+
             VH(@NonNull View v) {
                 super(v);
                 tvNickname = v.findViewById(R.id.tvMemberNickname);
+                ivPhoto    = v.findViewById(R.id.ivMemberPhoto);
             }
         }
     }

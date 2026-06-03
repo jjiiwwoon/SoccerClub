@@ -18,29 +18,13 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
-/**
- * 신청 목록 화면.
- *
- * [변경 전] Activity 가 직접 하던 일 (~400줄)
- *   - Firestore db 직접 보유
- *   - collectMine() / collectApplied() Firestore 쿼리 직접 작성
- *   - Tasks.whenAllSuccess() 비동기 병렬 처리 직접 관리
- *   - profileLoaded 플래그 직접 관리
- *   - handleAccept/handleReject 트랜잭션 직접 처리
- *   - sessionMaxTs 뱃지 계산 직접 처리
- *   - onResume() 마다 loadData() 재호출
- *
- * [변경 후] Activity 가 하는 일 (~100줄)
- *   - viewModel.items.observe → adapter.setItems()
- *   - viewModel.isLoading.observe → 로딩 처리 (StateLayout 없으므로 생략)
- *   - viewModel.actionResult.observe → Toast 표시
- *   - 버튼 클릭 → viewModel.load() / accept() / reject() 위임
- *   - Firestore 코드 없음
- *
- * ✅ 주의: activity_applicaitons_list.xml 에 StateLayout 이 없으므로
- *   state 관련 코드는 포함하지 않는다.
- */
 public class ApplicationsListActivity extends AppCompatActivity {
 
     // ── 뷰 ────────────────────────────────────────────────────────────────────────
@@ -55,6 +39,9 @@ public class ApplicationsListActivity extends AppCompatActivity {
     // ── 현재 탭/필터 상태 ─────────────────────────────────────────────────────────
     private boolean mineSelected = true;
     private String  typeFilter   = "all";
+
+    // ★ 세션 중 본 글별 최대 신청자 timestamp (prefKey → maxTs)
+    private final Map<String, Long> sessionMaxApplicantTs = new HashMap<>();
 
     // ── 생명주기 ──────────────────────────────────────────────────────────────────
 
@@ -136,13 +123,16 @@ public class ApplicationsListActivity extends AppCompatActivity {
 
         viewModel = new ViewModelProvider(this).get(ApplicationsViewModel.class);
 
-        // 목록
-        viewModel.items.observe(this, items ->
-                adapter.setItems(
-                        items != null ? items : Collections.emptyList(),
-                        mineSelected
-                                ? ApplicationsAdapter.TYPE_MINE
-                                : ApplicationsAdapter.TYPE_APPLIED));
+        // ★ 목록 — SharedPreferences 기반 NEW 계산 후 adapter에 세팅
+        viewModel.items.observe(this, items -> {
+            List<ApplicationsAdapter.Item> list =
+                    items != null ? items : Collections.emptyList();
+            computeSessionBadgesAndApply(list);
+            adapter.setItems(list,
+                    mineSelected
+                            ? ApplicationsAdapter.TYPE_MINE
+                            : ApplicationsAdapter.TYPE_APPLIED);
+        });
 
         // 수락/거절 결과 토스트
         viewModel.actionResult.observe(this, msg -> {
@@ -150,9 +140,98 @@ public class ApplicationsListActivity extends AppCompatActivity {
             else             CustomToast.error(this, "처리에 실패했어요. 다시 시도해 주세요.");
         });
 
-        // ✅ 변경 전: onCreate 에서 db.collection("profiles") 직접 호출
-        // ✅ 변경 후: ViewModel.init() 에 위임 — 화면 회전 시 재조회 없음
         viewModel.init(user.getUid(), "mine", "all");
+    }
+
+    // ★ 화면을 떠날 때 "본 시간" 저장
+    @Override
+    protected void onPause() {
+        super.onPause();
+        persistLastSeenForThisSession();
+    }
+
+    // ── NEW 뱃지 계산 ─────────────────────────────────────────────────────────────
+
+    /**
+     * SharedPreferences 기반 NEW 계산.
+     * - 각 글의 신청자 timestamp와 lastSeen 비교
+     * - 새 신청자에 NEW 키 세팅
+     * - 세션 중 최대 ts 누적 → onPause에서 저장
+     */
+    private void computeSessionBadgesAndApply(List<ApplicationsAdapter.Item> list) {
+        Set<String> newKeys = new HashSet<>();
+
+        for (ApplicationsAdapter.Item it : list) {
+            if (it.applicants == null) continue;
+
+            String postType = (it.postType == null) ? "" : it.postType.toLowerCase(Locale.ROOT);
+            String postId   = (it.postId == null) ? "" : it.postId;
+
+            long lastSeenTs = getLastSeenTs(postType, postId);
+            long maxTs = lastSeenTs;
+            boolean hasNew = false;
+
+            for (ApplicationsAdapter.Applicant a : it.applicants) {
+                long ts = a.timestamp > 0 ? a.timestamp : 0;
+                if (ts > lastSeenTs) {
+                    newKeys.add(buildApplicantKey(postType, postId, a.applicantDocId));
+                    hasNew = true;
+                }
+                if (ts > maxTs) maxTs = ts;
+            }
+
+            it.hasSessionNew = hasNew;
+
+            // 세션 중 본 최대값 누적 → onPause에서 일괄 저장
+            if (maxTs > 0) {
+                String prefKey = buildPrefKey(postType, postId);
+                sessionMaxApplicantTs.put(prefKey,
+                        Math.max(sessionMaxApplicantTs.getOrDefault(prefKey, 0L), maxTs));
+            }
+        }
+
+        if (adapter != null) adapter.setSessionNewApplicantKeys(newKeys);
+    }
+
+    /**
+     * 세션 중 확인한 '각 게시글의 최대 신청 ts'를 SharedPreferences에 저장.
+     * RecruitMatchFragment와 같은 "badge_prefs" + 같은 키 포맷 사용.
+     */
+    private void persistLastSeenForThisSession() {
+        if (sessionMaxApplicantTs.isEmpty()) return;
+
+        android.content.SharedPreferences.Editor ed =
+                getSharedPreferences("badge_prefs", MODE_PRIVATE).edit();
+
+        for (Map.Entry<String, Long> e : sessionMaxApplicantTs.entrySet()) {
+            long tsMs = normalizeToMillis(e.getValue());
+            if (tsMs > 0) ed.putLong(e.getKey(), tsMs);
+        }
+        ed.apply();
+    }
+
+    // ── 유틸 ──────────────────────────────────────────────────────────────────────
+
+    private long getLastSeenTs(String postType, String postId) {
+        String key = buildPrefKey(postType, postId);
+        return getSharedPreferences("badge_prefs", MODE_PRIVATE).getLong(key, 0L);
+    }
+
+    /** RecruitMatchFragment와 동일한 키 포맷 */
+    private static String buildPrefKey(String postType, String postId) {
+        return "last_seen_" + (postType == null ? "" : postType)
+                + "_" + (postId == null ? "" : postId);
+    }
+
+    private static String buildApplicantKey(String postType, String postId, String applicantDocId) {
+        return (postType == null ? "" : postType.toLowerCase(Locale.ROOT))
+                + ":" + (postId == null ? "" : postId)
+                + ":" + (applicantDocId == null ? "" : applicantDocId);
+    }
+
+    private static long normalizeToMillis(Long v) {
+        if (v == null || v <= 0) return 0L;
+        return (v > 2_000_000_000L) ? v : v * 1000L;
     }
 
     // ── 채팅방 열기 ───────────────────────────────────────────────────────────────

@@ -43,6 +43,9 @@ public class ProfileViewModel extends ViewModel {
 
     private boolean initialLoadDone = false;
 
+    private final MutableLiveData<DocumentSnapshot> _userStats = new MutableLiveData<>();
+    public final LiveData<DocumentSnapshot> userStats = _userStats;
+    private ListenerRegistration userStatsReg;
     // ── 외부에서 호출하는 메서드 ─────────────────────────────────────────────────
 
     /** Fragment 의 onViewCreated 에서 호출. 화면 회전 시 재요청 없음 */
@@ -63,23 +66,13 @@ public class ProfileViewModel extends ViewModel {
 
     // ── 내부 로직 ────────────────────────────────────────────────────────────────
 
-    /**
-     * 1단계: 프로필 조회.
-     *
-     * [변경 전]
-     *   repository.fetchProfile(uid, new MutableLiveData<DocumentSnapshot>() {
-     *       @Override public void setValue(DocumentSnapshot value) { ... }
-     *   });
-     *   → MutableLiveData 를 콜백 목적으로 오버라이드하는 방식. 코드 스멜.
-     *
-     * [변경 후]
-     *   ProfileCallback 인터페이스(람다)로 결과를 받는다.
-     *   훨씬 명확하고 의도가 분명하다.
-     */
     private void loadProfile(String uid) {
         repository.fetchProfile(uid, doc -> {
             _isLoading.setValue(false);
             _profile.setValue(doc);
+
+            // ★ 개인 통계 구독 추가
+            startUserStatsListener(uid);
 
             if (doc != null && doc.exists()) {
                 String teamId = doc.getString("myTeam");
@@ -89,6 +82,16 @@ public class ProfileViewModel extends ViewModel {
                 }
             }
         });
+    }
+
+    // ★ 새 메서드: userStats/{uid} 실시간 구독
+    private void startUserStatsListener(String uid) {
+        if (userStatsReg != null) userStatsReg.remove();
+        userStatsReg = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("userStats").document(uid)
+                .addSnapshotListener((doc, e) -> {
+                    if (doc != null && doc.exists()) _userStats.setValue(doc);
+                });
     }
 
     /** 2단계: 팀 정보 조회 */
@@ -108,5 +111,6 @@ public class ProfileViewModel extends ViewModel {
     protected void onCleared() {
         super.onCleared();
         if (statsReg != null) { statsReg.remove(); statsReg = null; }
+        if (userStatsReg != null) { userStatsReg.remove(); userStatsReg = null; }
     }
 }

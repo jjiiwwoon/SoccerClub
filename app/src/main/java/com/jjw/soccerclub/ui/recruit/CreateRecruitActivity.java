@@ -1,5 +1,6 @@
 package com.jjw.soccerclub.ui.recruit;
 
+import com.jjw.soccerclub.ui.common.SchedulePickerDialog;
 import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.os.Bundle;
@@ -223,8 +224,66 @@ public class CreateRecruitActivity extends AppCompatActivity {
 
         // ✅ 일정에서 가져오기 — 용병 쪽에서만 사용
         if (btnLoadFromSchedule != null) {
-            btnLoadFromSchedule.setOnClickListener(v ->
-                    CustomToast.info(this, "일정 불러오기 기능은 준비 중이에요."));
+            if (btnLoadFromSchedule != null) {
+                btnLoadFromSchedule.setOnClickListener(v -> {
+                    if (AppUtils.isEmpty(myTeamId)) {
+                        CustomToast.warning(this, "팀 정보를 먼저 불러와야 해요.");
+                        return;
+                    }
+
+                    SchedulePickerDialog picker = SchedulePickerDialog.newInstance(
+                            myTeamId, myTeamId, myTeamName);
+
+                    picker.setOnScheduleSelected(doc -> {
+                        // ★ 선택한 일정의 정보를 용병 모집 폼에 자동 채움
+                        String date = AppUtils.safe(doc.getString("date"));
+                        String time = AppUtils.safe(doc.getString("time"));
+                        String sName = AppUtils.firstNonEmpty(
+                                doc.getString("stadiumName"), doc.getString("stadium"));
+                        String sAddr = AppUtils.firstNonEmpty(
+                                doc.getString("stadiumAddress"), doc.getString("address"));
+
+                        // 날짜
+                        if (!AppUtils.isEmpty(date)) {
+                            selectedDate = date;
+                            if (txtDate != null) txtDate.setText(DateUtils.appendWeekday(date));
+                        }
+
+                        // 시간
+                        if (!AppUtils.isEmpty(time)) {
+                            // "HH:mm ~ HH:mm" 또는 "HH:mm" 형태
+                            if (time.contains("~")) {
+                                String[] parts = time.split("~");
+                                selectedStartTime = parts[0].trim();
+                                selectedEndTime   = parts.length > 1 ? parts[1].trim() : "";
+                            } else {
+                                selectedStartTime = time.trim();
+                                selectedEndTime   = DateUtils.addHours(selectedStartTime, 2);
+                            }
+                            String range = selectedStartTime +
+                                    (!AppUtils.isEmpty(selectedEndTime) ? " ~ " + selectedEndTime : "");
+                            if (txtTime != null) txtTime.setText(range);
+                        }
+
+                        // 경기장
+                        if (!AppUtils.isEmpty(sName)) {
+                            stadiumName = sName;
+                            if (editStadium != null) editStadium.setText(sName);
+                        }
+
+                        // 주소
+                        if (!AppUtils.isEmpty(sAddr)) {
+                            stadiumAddr = sAddr;
+                            if (txtSelectedAddress != null) txtSelectedAddress.setText(sAddr);
+                        }
+
+                        CustomToast.success(CreateRecruitActivity.this,
+                                "일정을 불러왔어요! 필요하면 수정할 수 있어요.");
+                    });
+
+                    picker.show(getSupportFragmentManager(), "SchedulePicker");
+                });
+            }
         }
 
         btnSubmit.setOnClickListener(v -> submit());

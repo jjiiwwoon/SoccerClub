@@ -133,7 +133,7 @@ public class MyProfileFragment extends Fragment {
             }
         });
 
-        viewModel.teamStats.observe(getViewLifecycleOwner(), doc -> {
+        viewModel.userStats.observe(getViewLifecycleOwner(), doc -> {
             if (doc != null && doc.exists()) bindStats(doc);
         });
 

@@ -64,12 +64,6 @@ public class ApplicationsRepository {
         TaskCompletionSource<List<ApplicationsAdapter.Item>> tcs = new TaskCompletionSource<>();
 
         List<Task<QuerySnapshot>> queries = new ArrayList<>();
-        if (!AppUtils.isEmpty(myTeamId)) {
-            queries.add(db.collection(collection)
-                    .whereEqualTo("teamId", myTeamId)
-                    .orderBy("matchTs", com.google.firebase.firestore.Query.Direction.DESCENDING)
-                    .get());
-        }
         queries.add(db.collection(collection).whereEqualTo("authorUid", currentUid).get());
         queries.add(db.collection(collection).whereEqualTo("createdBy",  currentUid).get());
 
@@ -102,7 +96,10 @@ public class ApplicationsRepository {
                                 a.logoUrl         = AppUtils.firstNonEmpty(
                                         ap.getString("teamLogoUrl"), ap.getString("logoUrl"));
                                 a.nickname        = AppUtils.safe(ap.getString("nickname"));
-                                a.applicantUserId = AppUtils.safe(ap.getString("userId"));
+                                a.applicantUserId = AppUtils.firstNonEmpty(
+                                        ap.getString("userId"),
+                                        ap.getString("applicantUserId"),
+                                        ap.getId());
                                 a.status          = AppUtils.safe(ap.getString("status"));
                                 Long sk = ap.getLong("skill");
                                 a.skill = sk != null ? sk.intValue() : -1;
@@ -230,6 +227,14 @@ public class ApplicationsRepository {
                                     .collection("matchApplications").document(post.postId)
                                     .update("status", "accepted");
                         }
+
+                        // ★ 매치 본문 status → confirmed (목록에서 사라짐)
+                        db.collection("matches").document(post.postId)
+                                .update("status", "confirmed",
+                                        "opponentTeamId", applicant.teamId,
+                                        "opponentName", AppUtils.safe(applicant.teamName),
+                                        "opponentLogoUrl", AppUtils.safe(applicant.logoUrl));
+
                         registerSchedule(post, applicant, currentUid, myTeamId);
                     } else {
                         if (!AppUtils.isEmpty(applicant.applicantUserId)) {

@@ -13,6 +13,8 @@ public class ScheduleItem {
     public String stadiumName;
     public String address;
     public String opponentLogoUrl;
+    public String ownerTeamId;      // ★ 추가: 매치글 작성팀 ID (기록 권한 판별용)
+    public String opponentTeamId;   // ★ 추가: 상대팀 ID
 
     public ScheduleItem(String eventId, String teamId, String date, String status, String matchId,
                         String title, String time, String opponentName, String stadiumName, String address) {
@@ -27,6 +29,8 @@ public class ScheduleItem {
         this.stadiumName = safe(stadiumName);
         this.address = safe(address);
         this.opponentLogoUrl = "";
+        this.ownerTeamId = "";
+        this.opponentTeamId = "";
     }
 
     private String safe(String s) {
