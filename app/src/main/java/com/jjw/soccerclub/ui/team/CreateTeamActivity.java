@@ -21,6 +21,7 @@ import android.text.method.ScrollingMovementMethod;
 
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.common.CustomToast;
+import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.ui.common.StadiumSearchActivity;
 import com.jjw.soccerclub.util.AppUtils;
 import com.google.firebase.Timestamp;
@@ -39,7 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class CreateTeamActivity extends AppCompatActivity {
+public class CreateTeamActivity extends BaseActivity {
 
     private ImageView imageTeamLogo;
     private Button btnSearchStadium, btnSelectLogo, btnSaveTeam;

@@ -38,7 +38,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class StadiumSearchActivity extends AppCompatActivity implements OnMapReadyCallback {
+public class StadiumSearchActivity extends BaseActivity implements OnMapReadyCallback {
 
     private static final String TAG = "StadiumSearchActivity";
 

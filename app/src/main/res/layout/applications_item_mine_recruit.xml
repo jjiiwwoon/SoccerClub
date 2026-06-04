@@ -2,70 +2,89 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
-    android:background="@drawable/bg_card"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
     android:layout_marginHorizontal="@dimen/spacing_sm"
     android:layout_marginBottom="@dimen/spacing_sm">
 
-    <include android:id="@+id/includePost" layout="@layout/recruit_post_item"/>
+    <!-- ★ 선택 모드 체크박스 (기본 GONE) -->
+    <CheckBox
+        android:id="@+id/cbSelect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:clickable="false"
+        android:focusable="false"
+        android:visibility="gone" />
 
     <LinearLayout
-        android:id="@+id/includeToggleHeader"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingHorizontal="@dimen/spacing_md"
-        android:background="@color/bg_section"
-        android:clickable="true"
-        android:focusable="true">
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:background="@drawable/bg_card">
 
-        <TextView
-            android:id="@+id/textApplicantCount"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0"
-            android:textSize="@dimen/text_sm"
-            android:textColor="@color/text_primary"/>
+        <include android:id="@+id/includePost" layout="@layout/recruit_post_item"/>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="명 신청"
-            android:textSize="@dimen/text_sm"
-            android:textColor="@color/text_secondary"
-            android:layout_marginStart="2dp"/>
+        <LinearLayout
+            android:id="@+id/includeToggleHeader"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="@dimen/spacing_md"
+            android:background="@color/bg_section"
+            android:clickable="true"
+            android:focusable="true">
 
-        <TextView
-            android:id="@+id/textApplicantNew"
-            android:layout_width="wrap_content"
+            <TextView
+                android:id="@+id/textApplicantCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="0"
+                android:textSize="@dimen/text_sm"
+                android:textColor="@color/text_primary"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="명 신청"
+                android:textSize="@dimen/text_sm"
+                android:textColor="@color/text_secondary"
+                android:layout_marginStart="2dp"/>
+
+            <TextView
+                android:id="@+id/textApplicantNew"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="NEW"
+                android:textSize="@dimen/text_xs"
+                android:textColor="@color/white"
+                android:background="@drawable/bg_badge_red_circle"
+                android:paddingHorizontal="@dimen/spacing_xs"
+                android:layout_marginStart="@dimen/spacing_sm"
+                android:visibility="gone"/>
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"/>
+
+            <ImageView
+                android:id="@+id/iconToggleArrow"
+                android:layout_width="@dimen/icon_sm"
+                android:layout_height="@dimen/icon_sm"
+                android:src="@drawable/ic_arrow_down"
+                android:contentDescription="펼치기"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/applicantsContainer"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="NEW"
-            android:textSize="@dimen/text_xs"
-            android:textColor="@color/white"
-            android:background="@drawable/bg_badge_red_circle"
-            android:paddingHorizontal="@dimen/spacing_xs"
-            android:layout_marginStart="@dimen/spacing_sm"
+            android:orientation="vertical"
             android:visibility="gone"/>
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_weight="1"/>
-
-        <ImageView
-            android:id="@+id/iconToggleArrow"
-            android:layout_width="@dimen/icon_sm"
-            android:layout_height="@dimen/icon_sm"
-            android:src="@drawable/ic_arrow_down"
-            android:contentDescription="펼치기"/>
     </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/applicantsContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:visibility="gone"/>
 
 </LinearLayout>

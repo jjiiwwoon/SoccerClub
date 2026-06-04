@@ -20,6 +20,7 @@ import com.google.android.gms.tasks.Tasks;
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.common.CustomToast;
 import com.jjw.soccerclub.common.StateLayout;
+import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.ui.team.TeamDetailActivity;
 import com.jjw.soccerclub.util.AppUtils;
 import com.jjw.soccerclub.util.DateUtils;
@@ -34,7 +35,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class RecruitDetailActivity extends AppCompatActivity {
+public class RecruitDetailActivity extends BaseActivity {
 
     private static final String TAG = "RecruitDetailActivity";
 

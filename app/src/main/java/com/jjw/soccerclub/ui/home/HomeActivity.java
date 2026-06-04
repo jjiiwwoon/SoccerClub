@@ -12,6 +12,7 @@ import androidx.fragment.app.FragmentTransaction;
 
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.ui.chat.ChatFragment;
+import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.ui.profile.MyProfileFragment;
 import com.jjw.soccerclub.ui.recruit.RecruitMatchFragment;
 import com.jjw.soccerclub.ui.team.AllTeamFragment;
@@ -29,8 +30,10 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
  *   - 선택된 탭 색상/크기 변경 자동 처리
  *   - 뱃지 추가도 navBar.getOrCreateBadge(R.id.navChat).setNumber(3) 한 줄로 가능
  */
-public class HomeActivity extends AppCompatActivity {
+public class HomeActivity extends BaseActivity {
 
+    @Override
+    protected boolean skipSystemBarInsets() { return true; }
     // ── 변경: MaterialButton 5개 → BottomNavigationView 1개 ────────────────────
     private BottomNavigationView navBar;
 

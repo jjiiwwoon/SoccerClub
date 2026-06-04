@@ -22,6 +22,7 @@ import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.adapter.TeamMemberAdapter;
 import com.jjw.soccerclub.common.CustomToast;
 import com.jjw.soccerclub.common.StateLayout;
+import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.util.AppUtils;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentReference;
@@ -36,7 +37,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TeamDetailActivity extends AppCompatActivity {
+public class TeamDetailActivity extends BaseActivity {
 
     private StateLayout state;
     private ImageView teamLogo, teamPhoto, introToggle;

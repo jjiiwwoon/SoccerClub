@@ -25,14 +25,17 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.SetOptions;
+import com.jjw.soccerclub.ui.common.BaseActivity;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class ChatRoomActivity extends AppCompatActivity {
+public class ChatRoomActivity extends BaseActivity {
 
+    @Override
+    protected boolean skipSystemBarInsets() { return true; }
     private RecyclerView recyclerChat;
     private View chatRoot, inputBar, btnSend;
     private EditText editMessage;

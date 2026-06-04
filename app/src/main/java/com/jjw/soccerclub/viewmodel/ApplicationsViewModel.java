@@ -10,6 +10,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ApplicationsViewModel extends ViewModel {
 
@@ -26,6 +27,22 @@ public class ApplicationsViewModel extends ViewModel {
 
     private final MutableLiveData<String> _actionResult = new MutableLiveData<>();
     public final LiveData<String> actionResult = _actionResult;
+
+    // ★ 삭제 결과
+    private final MutableLiveData<DeleteResult> _deleteResult = new MutableLiveData<>();
+    public final LiveData<DeleteResult> deleteResult = _deleteResult;
+
+    // ── 삭제 결과 모델 ───────────────────────────────────────────────────────────
+
+    public static class DeleteResult {
+        public final boolean success;
+        public final int deletedCount;
+
+        public DeleteResult(boolean success, int deletedCount) {
+            this.success = success;
+            this.deletedCount = deletedCount;
+        }
+    }
 
     // ── 내부 상태 ────────────────────────────────────────────────────────────────
 
@@ -67,7 +84,6 @@ public class ApplicationsViewModel extends ViewModel {
         if ("mine".equals(mineOrApplied)) {
             repository.fetchMine(currentUid, myTeamId, typeFilter, result -> {
                 _isLoading.setValue(false);
-                // ★ 뱃지 계산은 Activity의 computeSessionBadgesAndApply()에서 처리
                 _items.setValue(result);
             });
         } else {
@@ -96,5 +112,41 @@ public class ApplicationsViewModel extends ViewModel {
                                 ? "시합 신청을 거절했어요."
                                 : "모집 신청을 거절했어요."),
                 () -> _actionResult.setValue(null));
+    }
+
+    // ── ★ 삭제 ───────────────────────────────────────────────────────────────────
+
+    /**
+     * 선택된 아이템들을 Firestore에서 완전 삭제.
+     * 각 아이템의 서브컬렉션(applicants) → 부모 문서 순서로 삭제.
+     */
+    public void deleteItems(List<ApplicationsAdapter.Item> itemsToDelete) {
+        if (itemsToDelete == null || itemsToDelete.isEmpty()) return;
+
+        _isLoading.setValue(true);
+
+        final int total = itemsToDelete.size();
+        final AtomicInteger successCount = new AtomicInteger(0);
+        final AtomicInteger doneCount = new AtomicInteger(0);
+
+        for (ApplicationsAdapter.Item item : itemsToDelete) {
+            repository.deletePost(item,
+                    () -> {
+                        successCount.incrementAndGet();
+                        if (doneCount.incrementAndGet() == total) {
+                            _isLoading.setValue(false);
+                            _deleteResult.setValue(
+                                    new DeleteResult(true, successCount.get()));
+                        }
+                    },
+                    () -> {
+                        if (doneCount.incrementAndGet() == total) {
+                            _isLoading.setValue(false);
+                            int sc = successCount.get();
+                            _deleteResult.setValue(
+                                    new DeleteResult(sc > 0, sc));
+                        }
+                    });
+        }
     }
 }

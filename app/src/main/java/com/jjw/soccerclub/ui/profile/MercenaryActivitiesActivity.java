@@ -14,6 +14,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.jjw.soccerclub.R;
+import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.util.AppUtils;
 import com.jjw.soccerclub.util.DateUtils;
 import com.google.firebase.auth.FirebaseAuth;
@@ -25,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class MercenaryActivitiesActivity extends AppCompatActivity {
+public class MercenaryActivitiesActivity extends BaseActivity {
 
     private RecyclerView recycler;
     private TextView tvEmpty;

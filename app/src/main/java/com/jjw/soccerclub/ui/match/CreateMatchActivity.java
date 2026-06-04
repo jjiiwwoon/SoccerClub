@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.common.CustomToast;
+import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.ui.common.StadiumSearchActivity;
 import com.jjw.soccerclub.util.AppUtils;
 import com.jjw.soccerclub.util.DateUtils;
@@ -29,7 +30,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-public class CreateMatchActivity extends AppCompatActivity {
+public class CreateMatchActivity extends BaseActivity {
 
     private TextView txtDate, txtTime, txtAddressSearch, txtSelectedAddress;
     private EditText editStadium, editDetails;

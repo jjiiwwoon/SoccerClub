@@ -2,8 +2,13 @@ package com.jjw.soccerclub.ui.common;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
+import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -25,13 +30,18 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-public class ApplicationsListActivity extends AppCompatActivity {
+public class ApplicationsListActivity extends BaseActivity {
 
     // ── 뷰 ────────────────────────────────────────────────────────────────────────
     private TextView         btnSubjectMine, btnSubjectApplied;
     private TextView         chipTypeAll, chipTypeRecruit, chipTypeMatch;
     private RecyclerView     recycler;
     private ApplicationsAdapter adapter;
+
+    // ★ 선택 모드 툴바
+    private FrameLayout      selectionToolbar;
+    private TextView         tvSelectionCount;
+    private ImageButton      btnDeleteSelected, btnCancelSelection;
 
     // ── ViewModel ────────────────────────────────────────────────────────────────
     private ApplicationsViewModel viewModel;
@@ -61,6 +71,12 @@ public class ApplicationsListActivity extends AppCompatActivity {
         chipTypeMatch     = findViewById(R.id.chipTypeMatch);
         recycler          = findViewById(R.id.recycler);
 
+        // ★ 선택 모드 툴바 바인딩
+        selectionToolbar   = findViewById(R.id.selectionToolbar);
+        tvSelectionCount   = findViewById(R.id.tvSelectionCount);
+        btnDeleteSelected  = findViewById(R.id.btnDeleteSelected);
+        btnCancelSelection = findViewById(R.id.btnCancelSelection);
+
         recycler.setLayoutManager(new LinearLayoutManager(this));
         adapter = new ApplicationsAdapter();
         adapter.setOnItemClickListener(new ApplicationsAdapter.OnItemClickListener() {
@@ -87,7 +103,50 @@ public class ApplicationsListActivity extends AppCompatActivity {
                 openChat(applicant.applicantUserId);
             }
         });
+
+        // ★ 선택 모드 콜백
+        adapter.setOnSelectionListener(new ApplicationsAdapter.OnSelectionListener() {
+            @Override
+            public void onSelectionModeChanged(boolean active) {
+                if (selectionToolbar != null) {
+                    selectionToolbar.setVisibility(active ? View.VISIBLE : View.GONE);
+                }
+            }
+
+            @Override
+            public void onSelectionCountChanged(int count) {
+                if (tvSelectionCount != null) {
+                    tvSelectionCount.setText(count + "개 선택됨");
+                }
+                if (btnDeleteSelected != null) {
+                    btnDeleteSelected.setEnabled(count > 0);
+                    btnDeleteSelected.setAlpha(count > 0 ? 1f : 0.4f);
+                }
+            }
+        });
+
         recycler.setAdapter(adapter);
+
+        // ★ 선택 모드 버튼 클릭
+        if (btnCancelSelection != null) {
+            btnCancelSelection.setOnClickListener(v -> adapter.exitSelectionMode());
+        }
+        if (btnDeleteSelected != null) {
+            btnDeleteSelected.setOnClickListener(v -> confirmAndDelete());
+        }
+
+        // ★ 뒤로가기 → 선택 모드 해제
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (adapter != null && adapter.isSelectionMode()) {
+                    adapter.exitSelectionMode();
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
 
         // 버튼 초기 스타일
         setBtnStyle(true);
@@ -102,6 +161,8 @@ public class ApplicationsListActivity extends AppCompatActivity {
         btnSubjectApplied.setOnClickListener(v -> {
             mineSelected = false;
             setBtnStyle(false);
+            // ★ 신청한 글 탭에서는 선택 모드 해제
+            if (adapter.isSelectionMode()) adapter.exitSelectionMode();
             viewModel.load("applied", typeFilter);
         });
 
@@ -140,7 +201,36 @@ public class ApplicationsListActivity extends AppCompatActivity {
             else             CustomToast.error(this, "처리에 실패했어요. 다시 시도해 주세요.");
         });
 
+        // ★ 삭제 결과 observe
+        viewModel.deleteResult.observe(this, result -> {
+            if (result == null) return;
+            if (result.success) {
+                CustomToast.success(this, result.deletedCount + "개의 글이 삭제됐어요.");
+                // 리로드
+                viewModel.load("mine", typeFilter);
+            } else {
+                CustomToast.error(this, "삭제 중 오류가 발생했어요. 다시 시도해 주세요.");
+            }
+        });
+
         viewModel.init(user.getUid(), "mine", "all");
+    }
+
+    // ── ★ 삭제 확인 다이얼로그 ────────────────────────────────────────────────────
+
+    private void confirmAndDelete() {
+        List<ApplicationsAdapter.Item> selected = adapter.getSelectedItems();
+        if (selected.isEmpty()) return;
+
+        new AlertDialog.Builder(this)
+                .setTitle("글 삭제")
+                .setMessage("선택한 " + selected.size() + "개의 글을 삭제하시겠어요?\n삭제된 글은 복구되지 않으며, 모집 페이지에서도 사라집니다.")
+                .setPositiveButton("삭제", (d, i) -> {
+                    adapter.exitSelectionMode();
+                    viewModel.deleteItems(selected);
+                })
+                .setNegativeButton("취소", null)
+                .show();
     }
 
     // ★ 화면을 떠날 때 "본 시간" 저장
@@ -152,12 +242,6 @@ public class ApplicationsListActivity extends AppCompatActivity {
 
     // ── NEW 뱃지 계산 ─────────────────────────────────────────────────────────────
 
-    /**
-     * SharedPreferences 기반 NEW 계산.
-     * - 각 글의 신청자 timestamp와 lastSeen 비교
-     * - 새 신청자에 NEW 키 세팅
-     * - 세션 중 최대 ts 누적 → onPause에서 저장
-     */
     private void computeSessionBadgesAndApply(List<ApplicationsAdapter.Item> list) {
         Set<String> newKeys = new HashSet<>();
 
@@ -182,7 +266,6 @@ public class ApplicationsListActivity extends AppCompatActivity {
 
             it.hasSessionNew = hasNew;
 
-            // 세션 중 본 최대값 누적 → onPause에서 일괄 저장
             if (maxTs > 0) {
                 String prefKey = buildPrefKey(postType, postId);
                 sessionMaxApplicantTs.put(prefKey,
@@ -194,10 +277,6 @@ public class ApplicationsListActivity extends AppCompatActivity {
         persistLastSeenForThisSession();
     }
 
-    /**
-     * 세션 중 확인한 '각 게시글의 최대 신청 ts'를 SharedPreferences에 저장.
-     * RecruitMatchFragment와 같은 "badge_prefs" + 같은 키 포맷 사용.
-     */
     private void persistLastSeenForThisSession() {
         if (sessionMaxApplicantTs.isEmpty()) return;
 
@@ -218,7 +297,6 @@ public class ApplicationsListActivity extends AppCompatActivity {
         return getSharedPreferences("badge_prefs", MODE_PRIVATE).getLong(key, 0L);
     }
 
-    /** RecruitMatchFragment와 동일한 키 포맷 */
     private static String buildPrefKey(String postType, String postId) {
         return "last_seen_" + (postType == null ? "" : postType)
                 + "_" + (postId == null ? "" : postId);
@@ -235,8 +313,6 @@ public class ApplicationsListActivity extends AppCompatActivity {
         return (v > 2_000_000_000L) ? v : v * 1000L;
     }
 
-    // ── 채팅방 열기 ───────────────────────────────────────────────────────────────
-
     private void openChat(String otherUid) {
         if (otherUid == null || otherUid.isEmpty()) return;
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
@@ -250,8 +326,6 @@ public class ApplicationsListActivity extends AppCompatActivity {
         intent.putExtra("roomId", roomId);
         startActivity(intent);
     }
-
-    // ── UI 헬퍼 ──────────────────────────────────────────────────────────────────
 
     private void setBtnStyle(boolean mineActive) {
         if (btnSubjectMine == null || btnSubjectApplied == null) return;

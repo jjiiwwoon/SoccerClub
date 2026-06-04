@@ -360,6 +360,82 @@ public class ApplicationsRepository {
                 .addOnFailureListener(e -> { if (onFailure != null) onFailure.run(); });
     }
 
+    public void deletePost(ApplicationsAdapter.Item item,
+                           Runnable onSuccess, Runnable onFailure) {
+
+        if (item == null || AppUtils.isEmpty(item.postId)) {
+            if (onFailure != null) onFailure.run();
+            return;
+        }
+
+        String collection = POST_MATCH.equals(item.postType) ? "matches" : "recruitPosts";
+        DocumentReference postRef = db.collection(collection).document(item.postId);
+
+        // Step 1: 서브컬렉션 applicants 문서들 수집 → 일괄 삭제
+        postRef.collection("applicants").get()
+                .addOnSuccessListener(applicantsSnap -> {
+                    List<com.google.android.gms.tasks.Task<Void>> deleteTasks = new ArrayList<>();
+
+                    for (DocumentSnapshot apDoc : applicantsSnap.getDocuments()) {
+                        // 관련 데이터 정리
+                        cleanupApplicantReferences(item, apDoc);
+                        // 신청자 문서 삭제
+                        deleteTasks.add(apDoc.getReference().delete());
+                    }
+
+                    // Step 2: 서브컬렉션 삭제 완료 → 부모 문서 삭제
+                    com.google.android.gms.tasks.Task<?> waitAll = deleteTasks.isEmpty()
+                            ? com.google.android.gms.tasks.Tasks.forResult(null)
+                            : com.google.android.gms.tasks.Tasks.whenAll(deleteTasks);
+
+                    waitAll.addOnCompleteListener(t -> {
+                        postRef.delete()
+                                .addOnSuccessListener(v -> {
+                                    if (onSuccess != null) onSuccess.run();
+                                })
+                                .addOnFailureListener(e -> {
+                                    if (onFailure != null) onFailure.run();
+                                });
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    // 서브컬렉션 조회 실패해도 부모 문서 삭제 시도
+                    postRef.delete()
+                            .addOnSuccessListener(v -> {
+                                if (onSuccess != null) onSuccess.run();
+                            })
+                            .addOnFailureListener(e2 -> {
+                                if (onFailure != null) onFailure.run();
+                            });
+                });
+    }
+
+    private void cleanupApplicantReferences(ApplicationsAdapter.Item item,
+                                            DocumentSnapshot apDoc) {
+        String postId = item.postId;
+
+        if (POST_MATCH.equals(item.postType)) {
+            // 상대팀의 matchApplications 문서 삭제
+            String teamId = AppUtils.safe(apDoc.getString("teamId"));
+            if (!AppUtils.isEmpty(teamId)) {
+                db.collection("teams").document(teamId)
+                        .collection("matchApplications").document(postId)
+                        .delete();
+            }
+        } else {
+            // recruit: 신청자의 applications 문서 삭제
+            String applicantUid = AppUtils.safe(apDoc.getString("userId"));
+            if (!AppUtils.isEmpty(applicantUid)) {
+                db.collection("profiles").document(applicantUid)
+                        .collection("applications").document(postId)
+                        .delete();
+                // 용병 활동 기록도 삭제
+                db.collection("profiles").document(applicantUid)
+                        .collection("mercenaryActivities").document(postId)
+                        .delete();
+            }
+        }
+    }
     // ── 내부 헬퍼 ────────────────────────────────────────────────────────────────
 
     private ApplicationsAdapter.Item buildItem(DocumentSnapshot d, String postType) {

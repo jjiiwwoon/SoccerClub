@@ -16,6 +16,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.common.CustomToast;
 import com.jjw.soccerclub.common.StateLayout;
+import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.util.AppUtils;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -28,7 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class JoinRequestsActivity extends AppCompatActivity {
+public class JoinRequestsActivity extends BaseActivity {
 
     private StateLayout state;
     private RecyclerView recyclerView;

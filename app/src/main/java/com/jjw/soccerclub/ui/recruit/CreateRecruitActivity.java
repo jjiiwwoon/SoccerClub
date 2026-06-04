@@ -1,5 +1,6 @@
 package com.jjw.soccerclub.ui.recruit;
 
+import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.ui.common.SchedulePickerDialog;
 import android.app.DatePickerDialog;
 import android.content.Intent;
@@ -41,7 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class CreateRecruitActivity extends AppCompatActivity {
+public class CreateRecruitActivity extends BaseActivity {
 
     private RadioGroup radioRecruitType;
     private RadioButton rdoRegular, rdoMercenary;

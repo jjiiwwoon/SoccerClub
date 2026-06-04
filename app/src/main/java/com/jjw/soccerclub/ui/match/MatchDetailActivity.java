@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.common.CustomToast;
 import com.jjw.soccerclub.common.StateLayout;
+import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.ui.team.TeamDetailActivity;
 import com.jjw.soccerclub.util.AppUtils;
 import com.jjw.soccerclub.util.DateUtils;
@@ -27,7 +28,7 @@ import com.google.firebase.firestore.FieldValue;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MatchDetailActivity extends AppCompatActivity {
+public class MatchDetailActivity extends BaseActivity {
 
     private static final int APPLY_ALLOWED       = 0;
     private static final int APPLY_ALREADY       = 1;

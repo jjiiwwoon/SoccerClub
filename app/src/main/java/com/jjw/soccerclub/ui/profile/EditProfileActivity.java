@@ -32,6 +32,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.jjw.soccerclub.ui.common.BaseActivity;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -41,8 +42,9 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class EditProfileActivity extends AppCompatActivity {
-
+public class EditProfileActivity extends BaseActivity {
+    @Override
+    protected boolean skipSystemBarInsets() { return true; }
     private EditText etNickname, etAge, etHeight, etWeight, etIntro;
     private Spinner spinnerPosition, spinnerSkill, spinnerFoot, spinnerPlayerLevel;
     private RadioGroup radioGroupPlayerType;

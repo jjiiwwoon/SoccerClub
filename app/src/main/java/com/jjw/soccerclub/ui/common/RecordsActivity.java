@@ -26,7 +26,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RecordsActivity extends AppCompatActivity {
+public class RecordsActivity extends BaseActivity {
 
     // ── 뷰 ────────────────────────────────────────────────────────────────────────
     private StateLayout state;
