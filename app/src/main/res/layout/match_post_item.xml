@@ -52,13 +52,20 @@
                     android:maxLines="1"
                     android:ellipsize="end"/>
 
-                <!-- 날짜 + 시간 -->
+                <!-- 날짜 + 시간 (달력 아이콘) -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginTop="3dp">
+                    android:layout_marginTop="4dp">
+
+                    <ImageView
+                        android:layout_width="13dp"
+                        android:layout_height="13dp"
+                        android:src="@drawable/ic_calendar"
+                        android:tint="#90A4AE"
+                        android:layout_marginEnd="5dp"/>
 
                     <TextView
                         android:id="@+id/textDate"
@@ -76,16 +83,31 @@
                         android:layout_marginStart="6dp"/>
                 </LinearLayout>
 
-                <!-- 장소 -->
-                <TextView
-                    android:id="@+id/textStadium"
+                <!-- 장소 (핀 아이콘) -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_hint"
-                    android:layout_marginTop="2dp"
-                    android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="3dp">
+
+                    <ImageView
+                        android:layout_width="13dp"
+                        android:layout_height="13dp"
+                        android:src="@drawable/ic_location_pin"
+                        android:tint="#90A4AE"
+                        android:layout_marginEnd="5dp"/>
+
+                    <TextView
+                        android:id="@+id/textStadium"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_hint"
+                        android:maxLines="1"
+                        android:ellipsize="end"/>
+                </LinearLayout>
 
             </LinearLayout>
 

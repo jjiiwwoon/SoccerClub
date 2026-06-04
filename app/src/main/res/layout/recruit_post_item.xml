@@ -54,13 +54,20 @@
                     android:maxLines="1"
                     android:ellipsize="end"/>
 
-                <!-- 날짜 + 시간 -->
+                <!-- 날짜 + 시간 (달력 아이콘) -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginTop="3dp">
+                    android:layout_marginTop="4dp">
+
+                    <ImageView
+                        android:layout_width="13dp"
+                        android:layout_height="13dp"
+                        android:src="@drawable/ic_calendar"
+                        android:tint="#90A4AE"
+                        android:layout_marginEnd="5dp"/>
 
                     <TextView
                         android:id="@+id/textDate"
@@ -78,16 +85,31 @@
                         android:layout_marginStart="6dp"/>
                 </LinearLayout>
 
-                <!-- 장소 -->
-                <TextView
-                    android:id="@+id/textStadium"
+                <!-- 장소 (핀 아이콘) -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_hint"
-                    android:layout_marginTop="2dp"
-                    android:maxLines="1"
-                    android:ellipsize="end"/>
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="3dp">
+
+                    <ImageView
+                        android:layout_width="13dp"
+                        android:layout_height="13dp"
+                        android:src="@drawable/ic_location_pin"
+                        android:tint="#90A4AE"
+                        android:layout_marginEnd="5dp"/>
+
+                    <TextView
+                        android:id="@+id/textStadium"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_hint"
+                        android:maxLines="1"
+                        android:ellipsize="end"/>
+                </LinearLayout>
 
             </LinearLayout>
 
@@ -121,25 +143,24 @@
             android:paddingHorizontal="14dp"
             android:paddingVertical="10dp">
 
+            <!-- 포지션 칩 컨테이너 -->
             <LinearLayout
                 android:id="@+id/positionChipsContainer"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"/>
+                android:orientation="horizontal"/>
 
+            <!-- 실력 -->
             <TextView
                 android:id="@+id/textSkill"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="10dp"
-                android:paddingVertical="4dp"
-                android:textSize="11sp"
-                android:textColor="#2E7D32"
-                android:background="@drawable/bg_badge_skill"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
                 android:layout_marginStart="6dp"/>
 
+            <!-- 시간 -->
             <TextView
                 android:id="@+id/textTimestamp"
                 android:layout_width="wrap_content"

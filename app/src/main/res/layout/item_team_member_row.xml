@@ -2,6 +2,7 @@
 <!--
     팀 멤버 1명 아이템 (가로 2열 그리드용)
     res/layout/item_team_member_row.xml
+    ★ 칩 카드 배경 적용 — 멤버가 적어도 허전하지 않게
 -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -10,9 +11,12 @@
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
+    android:background="@drawable/bg_member_chip"
     android:paddingHorizontal="10dp"
-    android:paddingVertical="8dp"
-    android:background="?attr/selectableItemBackground">
+    android:paddingVertical="9dp"
+    android:layout_margin="4dp"
+    android:clickable="true"
+    android:focusable="true">
 
     <!-- 프로필 사진 -->
     <com.google.android.material.imageview.ShapeableImageView
@@ -21,7 +25,9 @@
         android:layout_height="40dp"
         android:scaleType="centerCrop"
         android:src="@drawable/ic_person_placeholder"
-        app:shapeAppearanceOverlay="@style/CircleImageStyle"/>
+        app:shapeAppearanceOverlay="@style/CircleImageStyle"
+        app:strokeWidth="1.5dp"
+        app:strokeColor="#FFFFFF"/>
 
     <!-- 닉네임 + 역할 -->
     <LinearLayout
