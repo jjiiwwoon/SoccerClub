@@ -109,8 +109,12 @@ public class RecruitMatchFragment extends Fragment
 
         loadChildFragment(new RecruitListFragment(), true);
 
-        btnRecruitTab.setOnClickListener(view -> loadChildFragment(new RecruitListFragment(), true));
+        btnRecruitTab.setOnClickListener(view -> {
+            selectRecruitTab();
+            loadChildFragment(new RecruitListFragment(), true);
+        });
         btnMatchTab.setOnClickListener(view -> {
+            selectMatchTab();
             isTeamMode = false;
             loadChildFragment(new MatchListFragment(), false);
         });
@@ -520,5 +524,32 @@ public class RecruitMatchFragment extends Fragment
     private void recomputeBadgeFromPrefs() {
         if (!isAdded() || badgeNew == null) return;
         updateBadgeVisibility();
+    }
+    // 모집 탭 선택 시
+    private void selectRecruitTab() {
+        btnRecruitTab.setBackgroundResource(R.drawable.bg_tab_pill_selected);
+        btnMatchTab.setBackgroundResource(R.drawable.bg_tab_pill_unselected);
+        if (btnRecruitTab instanceof TextView) {
+            ((TextView) btnRecruitTab).setTextColor(getResources().getColor(R.color.primary));
+            ((TextView) btnRecruitTab).setTypeface(null, android.graphics.Typeface.BOLD);
+        }
+        if (btnMatchTab instanceof TextView) {
+            ((TextView) btnMatchTab).setTextColor(getResources().getColor(R.color.text_hint));
+            ((TextView) btnMatchTab).setTypeface(null, android.graphics.Typeface.NORMAL);
+        }
+    }
+
+    // 시합 탭 선택 시
+    private void selectMatchTab() {
+        btnMatchTab.setBackgroundResource(R.drawable.bg_tab_pill_selected);
+        btnRecruitTab.setBackgroundResource(R.drawable.bg_tab_pill_unselected);
+        if (btnMatchTab instanceof TextView) {
+            ((TextView) btnMatchTab).setTextColor(getResources().getColor(R.color.primary));
+            ((TextView) btnMatchTab).setTypeface(null, android.graphics.Typeface.BOLD);
+        }
+        if (btnRecruitTab instanceof TextView) {
+            ((TextView) btnRecruitTab).setTextColor(getResources().getColor(R.color.text_hint));
+            ((TextView) btnRecruitTab).setTypeface(null, android.graphics.Typeface.NORMAL);
+        }
     }
 }

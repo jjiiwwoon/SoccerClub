@@ -326,7 +326,13 @@ public class MyTeamFragment extends Fragment {
             actDisplay = tStart + " ~ " + tEnd;
         }
         setTextOrGone(teamActivityDay, actDisplay);
+        View actRow = getView() != null ? getView().findViewById(R.id.activityDayRow) : null;
+        if (actRow != null) actRow.setVisibility(actDisplay != null ? View.VISIBLE : View.GONE);
+
         setTextOrGone(teamHomeStadiumName, team.getStadium());
+        View stadiumBox = getView() != null ? getView().findViewById(R.id.homeStadiumBox) : null;
+        if (stadiumBox != null) stadiumBox.setVisibility(
+                !AppUtils.isEmpty(team.getStadium()) ? View.VISIBLE : View.GONE);
 
         loadTeamImages(team);
         if (state != null) state.showContent();
@@ -424,6 +430,13 @@ public class MyTeamFragment extends Fragment {
         if (tvLosses != null) tvLosses.setText(String.valueOf(losses));
         if (tvGF     != null) tvGF.setText(String.valueOf(gf));
         if (tvGA     != null) tvGA.setText(String.valueOf(ga));
+
+        if (tvWins   != null) tvWins.setTextColor(0xFF1E88E5);   // 승: 파랑
+        if (tvLosses != null) tvLosses.setTextColor(0xFFE53935);  // 패: 빨강
+        if (tvGF     != null) tvGF.setTextColor(0xFF1E88E5);      // 득점: 파랑
+        if (tvGA     != null) tvGA.setTextColor(0xFFE53935);       // 실점: 빨강
+        if (tvDraws  != null) tvDraws.setTextColor(0xFF333333);    // 무: 검정
+        if (tvGames  != null) tvGames.setTextColor(0xFF333333);    // 경기: 검정
         if (tvWinRate != null)
             tvWinRate.setText(games > 0 ? Math.round((wins * 100f) / games) + "%" : "-");
         if (recordSection != null) recordSection.setVisibility(View.VISIBLE);
@@ -441,7 +454,10 @@ public class MyTeamFragment extends Fragment {
         }
 
         nextScheduleCard.setVisibility(View.VISIBLE);
-        if (nextScheduleContainer != null) nextScheduleContainer.removeAllViews();
+        if (nextScheduleContainer != null) {
+            View old = nextScheduleContainer.findViewWithTag("emptyUpcomingMsg");
+            if (old != null) nextScheduleContainer.removeView(old);
+        }
 
         String date        = doc.getString("date");
         String time        = doc.getString("time");
@@ -483,17 +499,31 @@ public class MyTeamFragment extends Fragment {
             else
                 imgAwayLogo.setImageResource(R.drawable.ic_shield_gray);
         }
+
+        if (scheduleContent != null) scheduleContent.setVisibility(View.VISIBLE);
     }
 
     private void showNoScheduleMessage() {
         if (nextScheduleContainer == null) return;
-        nextScheduleContainer.removeAllViews();
+
+        // ✅ 변경: removeAllViews() → 태그 기반 중복 방지
+        View old = nextScheduleContainer.findViewWithTag("emptyUpcomingMsg");
+        if (old != null) nextScheduleContainer.removeView(old);
+
         TextView msg = new TextView(requireContext());
-        msg.setText("예정된 일정이 없습니다.");
+        msg.setTag("emptyUpcomingMsg");  // ✅ 태그 추가
+        msg.setText("다가오는 일정이 없습니다.");
         msg.setTextSize(14f);
         msg.setTextColor(0xFF6B7280);
         msg.setGravity(android.view.Gravity.CENTER);
         msg.setPadding(0, dp(24), 0, dp(24));
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        msg.setLayoutParams(lp);
+
         nextScheduleContainer.addView(msg);
     }
 

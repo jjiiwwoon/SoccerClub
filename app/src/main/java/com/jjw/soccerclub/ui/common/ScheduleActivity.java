@@ -54,6 +54,7 @@ public class ScheduleActivity extends BaseActivity {
     private LinearLayout selectedDateList;
     private View nextScheduleCard, scheduleLoading, scheduleContent;
     private TextView tvNextDateChip, tvHomeName, tvAwayName, tvPlace, tvAddress;
+    private TextView tvNoScheduleMsg;
     private ImageView imgHomeLogo, imgAwayLogo;
 
     // ✅ 다가오는 일정 투표 버튼 (제목 옆) + 대상 eventId
@@ -69,16 +70,19 @@ public class ScheduleActivity extends BaseActivity {
 
     private String lastSelectedDate = null;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_schedule);
+
 
         state                = findViewById(R.id.stateLayout);
         tvSelectedDateTitle  = findViewById(R.id.tvSelectedDateTitle);
         progressSelectedDate = findViewById(R.id.progressSelectedDate);
         selectedDateList     = findViewById(R.id.selectedDateList);
         nextScheduleCard     = findViewById(R.id.nextScheduleCard);
+        tvNoScheduleMsg = findViewById(R.id.tvNoScheduleMsg);
         scheduleLoading      = findViewById(R.id.scheduleLoading);
         scheduleContent      = findViewById(R.id.scheduleContent);
         tvNextDateChip       = findViewById(R.id.tvNextDateChip);
@@ -191,9 +195,11 @@ public class ScheduleActivity extends BaseActivity {
                         nextStartMs = bestStart;
                         bindNextScheduleCard(bestDoc);
                         if (nextScheduleCard != null) nextScheduleCard.setVisibility(View.VISIBLE);
+                        if (tvNoScheduleMsg != null) tvNoScheduleMsg.setVisibility(View.GONE);
                     } else {
                         if (nextScheduleCard != null) nextScheduleCard.setVisibility(View.GONE);
                         if (btnVoteAttendance != null) btnVoteAttendance.setVisibility(View.GONE);
+                        if (tvNoScheduleMsg != null) tvNoScheduleMsg.setVisibility(View.VISIBLE);
                     }
                 });
     }

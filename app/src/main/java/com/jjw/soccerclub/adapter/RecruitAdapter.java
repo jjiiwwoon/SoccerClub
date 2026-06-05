@@ -55,8 +55,16 @@ public class RecruitAdapter extends RecyclerView.Adapter<RecruitAdapter.ViewHold
         // 시간
         h.tvTime.setText(AppUtils.safe(it.time));
 
-        // 장소
-        h.tvStadium.setText(AppUtils.firstNonEmpty(it.stadiumName, it.stadiumAddress));
+        // 장소 (구장명 | 주소)
+        String stadium = AppUtils.safe(it.stadiumName);
+        String addr = AppUtils.safe(it.stadiumAddress);
+        String stadiumText;
+        if (!AppUtils.isEmpty(stadium) && !AppUtils.isEmpty(addr)) {
+            stadiumText = stadium + " | " + addr;
+        } else {
+            stadiumText = AppUtils.firstNonEmpty(stadium, addr, "-");
+        }
+        h.tvStadium.setText(stadiumText);
 
         // ── 모집 유형 뱃지 ────────────────────────────────────────────────────
         String type = AppUtils.safe(it.recruitType).toLowerCase();
@@ -76,26 +84,25 @@ public class RecruitAdapter extends RecyclerView.Adapter<RecruitAdapter.ViewHold
             h.tvRecruitType.setVisibility(View.GONE);
         }
 
-        // ── 포지션 칩 동적 생성 ───────────────────────────────────────────────
-        // 기존: ChipGroup 대신 LinearLayout 에 TextView 동적 추가
+        // ── 포지션 칩 동적 생성 (포지션별 색상) ─────────────────────────────
         h.positionChipsContainer.removeAllViews();
         if (it.positions != null && !it.positions.isEmpty()) {
             for (String pos : it.positions) {
                 if (AppUtils.isEmpty(pos)) continue;
                 TextView chip = (TextView) LayoutInflater.from(ctx)
                         .inflate(R.layout.item_position_chip, h.positionChipsContainer, false);
-                chip.setText(pos.toUpperCase());
+                String upper = pos.trim().toUpperCase();
+                chip.setText(upper);
+                stylePositionChip(chip, upper);
                 h.positionChipsContainer.addView(chip);
             }
         }
 
-        // ── 실력 뱃지 ─────────────────────────────────────────────────────────
+        // 실력 뱃지 (칩 스타일)
         if (it.skillMin != null || it.skillMax != null) {
-            String skillText = "실력 ";
-            if (it.skillMin != null) skillText += it.skillMin;
-            skillText += "~";
-            if (it.skillMax != null) skillText += it.skillMax;
-            h.tvSkill.setText(skillText);
+            String minStr = it.skillMin != null ? String.valueOf(it.skillMin) : "-";
+            String maxStr = it.skillMax != null ? String.valueOf(it.skillMax) : "-";
+            h.tvSkill.setText("실력: " + minStr + " ~ " + maxStr);
             h.tvSkill.setVisibility(View.VISIBLE);
         } else {
             h.tvSkill.setVisibility(View.GONE);
@@ -151,5 +158,38 @@ public class RecruitAdapter extends RecyclerView.Adapter<RecruitAdapter.ViewHold
         public Integer skillMin, skillMax;
         public List<String> positions;
         public long createdAtMs, createdAt, postTs, matchTs;
+    }
+
+    private static void stylePositionChip(TextView chip, String pos) {
+        int textColor, bgColor;
+        switch (pos) {
+            case "FW":
+                textColor = 0xFFD50000;
+                bgColor   = 0x1AD50000;
+                break;
+            case "MF":
+                textColor = 0xFF00C853;
+                bgColor   = 0x1A00C853;
+                break;
+            case "DF":
+                textColor = 0xFF2962FF;
+                bgColor   = 0x1A2962FF;
+                break;
+            case "GK":
+                textColor = 0xFFE65100;
+                bgColor   = 0x1AE65100;
+                break;
+            default:
+                textColor = 0xFF666666;
+                bgColor   = 0x1A666666;
+                break;
+        }
+        chip.setTextColor(textColor);
+        android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+        gd.setShape(android.graphics.drawable.GradientDrawable.RECTANGLE);
+        gd.setCornerRadius(20f);
+        gd.setColor(bgColor);
+        gd.setStroke(2, textColor);
+        chip.setBackground(gd);
     }
 }

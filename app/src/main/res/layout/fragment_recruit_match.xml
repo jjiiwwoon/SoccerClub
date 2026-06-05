@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Capstone 스타일: pill 탭 + 구분된 필터 영역 -->
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -11,42 +12,50 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- 상단 탭 (모집 / 시합) -->
+        <!-- ★ 상단 탭 (Pill 스타일) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="14dp"
             android:background="@color/bg_surface">
 
             <TextView
                 android:id="@+id/btnRecruitTab"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="36dp"
                 android:layout_weight="1"
                 android:gravity="center"
                 android:text="모집"
-                android:textSize="@dimen/text_lg"
-                android:textColor="@color/tab_text_selector"
+                android:textSize="@dimen/text_md"
+                android:textStyle="bold"
+                android:textColor="@color/primary"
+                android:background="@drawable/bg_tab_pill_selected"
+                android:layout_marginEnd="6dp"
                 android:clickable="true"
                 android:focusable="true"/>
 
             <TextView
                 android:id="@+id/btnMatchTab"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="36dp"
                 android:layout_weight="1"
                 android:gravity="center"
                 android:text="시합"
-                android:textSize="@dimen/text_lg"
-                android:textColor="@color/tab_text_selector"
+                android:textSize="@dimen/text_md"
+                android:textColor="@color/text_hint"
+                android:background="@drawable/bg_tab_pill_unselected"
+                android:layout_marginEnd="6dp"
                 android:clickable="true"
                 android:focusable="true"/>
 
-            <!-- 신청 목록 버튼 + 배지 -->
+            <!-- 신청 목록 버튼 + 뱃지 -->
             <FrameLayout
                 android:id="@+id/btnApplicationsList"
-                android:layout_width="48dp"
-                android:layout_height="match_parent"
+                android:layout_width="40dp"
+                android:layout_height="36dp"
+                android:background="@drawable/bg_filter_button"
                 android:clickable="true"
                 android:focusable="true">
 
@@ -61,7 +70,7 @@
                     android:layout_width="8dp"
                     android:layout_height="8dp"
                     android:layout_gravity="top|end"
-                    android:layout_margin="10dp"
+                    android:layout_margin="4dp"
                     android:background="@drawable/bg_badge_red_circle"
                     android:visibility="gone"/>
             </FrameLayout>
@@ -101,7 +110,7 @@
                 android:focusable="true"/>
         </LinearLayout>
 
-        <!-- 필터 바 -->
+        <!-- ★ 필터 바 (Capstone 스타일) -->
         <LinearLayout
             android:id="@+id/filterBarContainer"
             android:layout_width="match_parent"
@@ -109,22 +118,42 @@
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:background="@color/bg_surface"
-            android:paddingHorizontal="@dimen/spacing_sm"
-            android:paddingVertical="@dimen/spacing_xs">
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="8dp">
 
-            <ImageView
+            <!-- 필터 아이콘 + 텍스트 -->
+            <LinearLayout
                 android:id="@+id/btnOpenFilter"
-                android:layout_width="@dimen/icon_md"
-                android:layout_height="@dimen/icon_md"
-                android:src="@drawable/ic_filter"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingHorizontal="10dp"
+                android:background="@drawable/bg_filter_button"
                 android:clickable="true"
-                android:focusable="true"
-                android:layout_marginEnd="@dimen/spacing_sm"/>
+                android:focusable="true">
 
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_filter"
+                    android:tint="@color/primary"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="필터"
+                    android:textSize="13sp"
+                    android:textColor="@color/primary"
+                    android:layout_marginStart="4dp"/>
+            </LinearLayout>
+
+            <!-- 선택된 필터 칩 -->
             <HorizontalScrollView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_marginStart="8dp"
                 android:scrollbars="none">
 
                 <LinearLayout
@@ -163,7 +192,7 @@
         android:background="#66000000"
         android:visibility="gone"/>
 
-    <!-- ★ Speed Dial 액션들 — Capstone 스타일: 아이콘 + 텍스트 -->
+    <!-- Speed Dial 액션: 아이콘 + 텍스트 -->
     <LinearLayout
         android:id="@+id/speedDialActions"
         android:layout_width="wrap_content"
@@ -174,7 +203,6 @@
         android:layout_marginEnd="@dimen/spacing_lg"
         android:visibility="gone">
 
-        <!-- 선수 모집 버튼 -->
         <LinearLayout
             android:id="@+id/btnActionRecruit"
             android:layout_width="wrap_content"
@@ -202,7 +230,6 @@
                 android:textColor="#000000"/>
         </LinearLayout>
 
-        <!-- 시합 모집 버튼 -->
         <LinearLayout
             android:id="@+id/btnActionMatch"
             android:layout_width="wrap_content"
