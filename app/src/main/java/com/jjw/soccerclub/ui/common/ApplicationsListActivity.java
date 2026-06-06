@@ -8,12 +8,15 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.adapter.ApplicationsAdapter;
 import com.jjw.soccerclub.common.CustomToast;
@@ -101,6 +104,31 @@ public class ApplicationsListActivity extends BaseActivity {
             public void onApplicantChat(ApplicationsAdapter.Item post,
                                         ApplicationsAdapter.Applicant applicant) {
                 openChat(applicant.applicantUserId);
+            }
+
+            @Override
+            public void onApplicationWithdraw(ApplicationsAdapter.Item item) {
+                String coll = "match".equalsIgnoreCase(item.postType) ? "matches" : "recruitPosts";
+                String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+                db.collection(coll).document(item.postId)
+                        .collection("applicants")
+                        .whereEqualTo("userId", uid)
+                        .get()
+                        .addOnSuccessListener(snap -> {
+                            for (DocumentSnapshot doc : snap.getDocuments()) {
+                                doc.getReference().delete();
+                            }
+                            db.collection("profiles").document(uid)
+                                    .collection("applications").document(item.postId)
+                                    .delete();
+                            CustomToast.info(ApplicationsListActivity.this, "신청이 취소되었습니다.");
+                            viewModel.load("applied", typeFilter);
+                        })
+                        .addOnFailureListener(e ->
+                                CustomToast.error(ApplicationsListActivity.this, "취소에 실패했습니다.")
+                        );
             }
         });
 
@@ -222,15 +250,54 @@ public class ApplicationsListActivity extends BaseActivity {
         List<ApplicationsAdapter.Item> selected = adapter.getSelectedItems();
         if (selected.isEmpty()) return;
 
-        new AlertDialog.Builder(this)
-                .setTitle("글 삭제")
-                .setMessage("선택한 " + selected.size() + "개의 글을 삭제하시겠어요?\n삭제된 글은 복구되지 않으며, 모집 페이지에서도 사라집니다.")
-                .setPositiveButton("삭제", (d, i) -> {
-                    adapter.exitSelectionMode();
-                    viewModel.deleteItems(selected);
-                })
-                .setNegativeButton("취소", null)
-                .show();
+        if (mineSelected) {
+            // 내가 올린 글 삭제
+            new AlertDialog.Builder(this)
+                    .setTitle("글 삭제")
+                    .setMessage("선택한 " + selected.size() + "개의 글을 삭제하시겠어요?\n삭제된 글은 복구되지 않으며, 모집 페이지에서도 사라집니다.")
+                    .setPositiveButton("삭제", (d, i) -> {
+                        adapter.exitSelectionMode();
+                        viewModel.deleteItems(selected);
+                    })
+                    .setNegativeButton("취소", null)
+                    .show();
+        } else {
+            // 신청한 글 취소
+            new AlertDialog.Builder(this)
+                    .setTitle("신청 취소")
+                    .setMessage("선택한 " + selected.size() + "개의 신청을 취소하시겠어요?")
+                    .setPositiveButton("취소하기", (d, i) -> {
+                        adapter.exitSelectionMode();
+                        withdrawApplications(selected);
+                    })
+                    .setNegativeButton("닫기", null)
+                    .show();
+        }
+    }
+
+    private void withdrawApplications(List<ApplicationsAdapter.Item> items) {
+        String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        for (ApplicationsAdapter.Item item : items) {
+            String coll = "match".equalsIgnoreCase(item.postType) ? "matches" : "recruitPosts";
+            // applicants 서브컬렉션에서 내 신청 삭제
+            db.collection(coll).document(item.postId)
+                    .collection("applicants")
+                    .whereEqualTo("userId", uid)
+                    .get()
+                    .addOnSuccessListener(snap -> {
+                        for (DocumentSnapshot doc : snap.getDocuments()) {
+                            doc.getReference().delete();
+                        }
+                    });
+            // 내 applications에서도 삭제
+            db.collection("profiles").document(uid)
+                    .collection("applications").document(item.postId)
+                    .delete();
+        }
+        CustomToast.info(this, items.size() + "개 신청이 취소되었습니다.");
+        viewModel.load("applied", typeFilter);
     }
 
     // ★ 화면을 떠날 때 "본 시간" 저장
@@ -329,14 +396,30 @@ public class ApplicationsListActivity extends BaseActivity {
 
     private void setBtnStyle(boolean mineActive) {
         if (btnSubjectMine == null || btnSubjectApplied == null) return;
+        // 활성 탭: 파란 글씨 + 흰 배경 / 비활성: 회색 글씨 + 투명
         btnSubjectMine.setTextColor(mineActive ? 0xFF1976D2 : 0xFF888888);
+        btnSubjectMine.setTypeface(null, mineActive ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+        btnSubjectMine.setBackgroundResource(mineActive ? R.drawable.bg_segment_active : android.R.color.transparent);
+
         btnSubjectApplied.setTextColor(mineActive ? 0xFF888888 : 0xFF1976D2);
+        btnSubjectApplied.setTypeface(null, mineActive ? android.graphics.Typeface.NORMAL : android.graphics.Typeface.BOLD);
+        btnSubjectApplied.setBackgroundResource(mineActive ? android.R.color.transparent : R.drawable.bg_segment_active);
     }
 
     private void setTypeSelected(String type) {
         if (chipTypeAll == null || chipTypeRecruit == null || chipTypeMatch == null) return;
-        chipTypeAll.setTextColor("all".equals(type)         ? 0xFF1976D2 : 0xFF888888);
+        // 선택된 칩: 파란 글씨 + 파란 아웃라인 배경 / 미선택: 회색 + 기본 칩
+        chipTypeAll.setTextColor("all".equals(type) ? 0xFF1976D2 : 0xFF888888);
+        chipTypeAll.setTypeface(null, "all".equals(type) ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+        chipTypeAll.setBackgroundResource("all".equals(type) ? R.drawable.bg_chip_selected : R.drawable.bg_chip);
+
+        chipTypeMatch.setTextColor("match".equals(type) ? 0xFF1976D2 : 0xFF888888);
+        chipTypeMatch.setTypeface(null, "match".equals(type) ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+        chipTypeMatch.setBackgroundResource("match".equals(type) ? R.drawable.bg_chip_selected : R.drawable.bg_chip);
+
         chipTypeRecruit.setTextColor("recruit".equals(type) ? 0xFF1976D2 : 0xFF888888);
-        chipTypeMatch.setTextColor("match".equals(type)     ? 0xFF1976D2 : 0xFF888888);
+        chipTypeRecruit.setTypeface(null, "recruit".equals(type) ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+        chipTypeRecruit.setBackgroundResource("recruit".equals(type) ? R.drawable.bg_chip_selected : R.drawable.bg_chip);
     }
+
 }

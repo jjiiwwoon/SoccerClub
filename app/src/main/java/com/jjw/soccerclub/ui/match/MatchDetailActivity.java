@@ -96,6 +96,8 @@ public class MatchDetailActivity extends BaseActivity {
         }
 
         btnApply.setText("신청하기");
+        btnApply.setBackgroundTintList(
+                android.content.res.ColorStateList.valueOf(0xFFEF4444));
         btnApply.setEnabled(false);
 
         btnApply.setOnClickListener(v -> {

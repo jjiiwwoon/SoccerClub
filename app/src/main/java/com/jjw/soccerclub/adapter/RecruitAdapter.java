@@ -50,7 +50,12 @@ public class RecruitAdapter extends RecyclerView.Adapter<RecruitAdapter.ViewHold
         h.tvTeamName.setText(AppUtils.safe(it.teamName));
 
         // 날짜 + 요일
-        h.tvDate.setText(DateUtils.appendWeekday(it.date));
+        String dateText = DateUtils.appendWeekday(it.date);
+// 날짜가 요일만 있는 경우 (회원 모집) "매주" 접두어 추가
+        if (!AppUtils.isEmpty(it.date) && it.date.length() <= 2) {
+            dateText = "매주 " + it.date;
+        }
+        h.tvDate.setText(dateText);
 
         // 시간
         h.tvTime.setText(AppUtils.safe(it.time));

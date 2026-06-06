@@ -184,7 +184,17 @@ public class MyProfileFragment extends Fragment {
 
         if (textNickname    != null) textNickname.setText(!TextUtils.isEmpty(nickname) ? nickname : "닉네임 없음");
         if (textAge         != null) textAge.setText(ageLong != null ? ageLong + "세" : "-");
-        if (textPositionBox != null) textPositionBox.setText(!TextUtils.isEmpty(position) ? position : "-");
+        if (textPositionBox != null) {
+            String pos = !TextUtils.isEmpty(position) ? position : "-";
+            textPositionBox.setText(pos);
+            switch (pos.toUpperCase()) {
+                case "FW": textPositionBox.setTextColor(0xFFD50000); break;
+                case "MF": textPositionBox.setTextColor(0xFF00C853); break;
+                case "DF": textPositionBox.setTextColor(0xFF2962FF); break;
+                case "GK": textPositionBox.setTextColor(0xFFE65100); break;
+                default:   textPositionBox.setTextColor(0xFF666666); break;
+            }
+        }
         if (textSkill       != null) textSkill.setText(skillLong != null ? String.valueOf(skillLong) : "-");
         if (textFoot        != null) textFoot.setText(!TextUtils.isEmpty(foot) ? foot : "-");
         if (textHeight      != null) textHeight.setText(h != null ? h + "cm" : "-");

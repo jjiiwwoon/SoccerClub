@@ -63,7 +63,8 @@ public class MyTeamFragment extends Fragment {
     private ImageView    teamLogo, teamPhoto, introToggle;
     private TextView     teamName, teamIntro, teamRegion, teamSkill, teamAge;
     private TextView     teamActivityDay, teamHomeStadiumName, teamHomeStadiumAddress;
-    private Button       btnInvite, btnLeaveTeam, btnEditTeam, btnJoinRequests;
+    private View btnInvite, btnEditTeam, btnJoinRequests;
+    private Button btnLeaveTeam;
     private LinearLayout playerListLayout, recordSection, nextScheduleContainer;
     private TextView     tvGames, tvWins, tvDraws, tvLosses, tvGF, tvGA, tvWinRate, tvSeeDetails;
     private TextView     tvMemberTitle, btnSeeAllSchedule;

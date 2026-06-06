@@ -88,6 +88,8 @@ public class ApplicationsRepository {
                         .collection("applicants").get()
                         .addOnSuccessListener(apSnap -> {
                             List<ApplicationsAdapter.Applicant> applicants = new ArrayList<>();
+                            List<Task<DocumentSnapshot>> profGets = new ArrayList<>();  // ✅ 추가
+
                             for (DocumentSnapshot ap : apSnap.getDocuments()) {
                                 ApplicationsAdapter.Applicant a = new ApplicationsAdapter.Applicant();
                                 a.applicantDocId  = ap.getId();
@@ -106,10 +108,35 @@ public class ApplicationsRepository {
                                 Long ts = ap.getLong("timestamp");
                                 a.timestamp = ts != null ? ts : 0L;
                                 applicants.add(a);
+
+                                // ✅ 추가: profiles에서 프로필 이미지/포지션 가져오기
+                                if (!AppUtils.isEmpty(a.applicantUserId)) {
+                                    Task<DocumentSnapshot> t = db.collection("profiles")
+                                            .document(a.applicantUserId)
+                                            .get()
+                                            .addOnSuccessListener(p -> {
+                                                if (p != null && p.exists()) {
+                                                    a.profileImageUrl = AppUtils.safe(p.getString("profileImageUrl"));
+                                                    a.position = AppUtils.safe(p.getString("position"));
+                                                    if (AppUtils.isEmpty(a.nickname))
+                                                        a.nickname = AppUtils.safe(p.getString("nickname"));
+                                                    if (a.skill < 0) {
+                                                        Long s = p.getLong("skill");
+                                                        a.skill = s != null ? s.intValue() : -1;
+                                                    }
+                                                }
+                                            });
+                                    profGets.add(t);
+                                }
                             }
-                            it.applicants = applicants;
-                            list.add(it);
-                            if (++done[0] >= total) tcs.setResult(list);
+
+                            // ✅ 변경: 프로필 조회 완료 후 결과 반환
+                            (profGets.isEmpty() ? Tasks.forResult(null) : Tasks.whenAllComplete(profGets))
+                                    .addOnCompleteListener(x -> {
+                                        it.applicants = applicants;
+                                        list.add(it);
+                                        if (++done[0] >= total) tcs.setResult(list);
+                                    });
                         })
                         .addOnFailureListener(e -> {
                             list.add(it);

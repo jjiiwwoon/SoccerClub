@@ -207,7 +207,15 @@ public class RecruitDetailActivity extends BaseActivity {
         String norm = AppUtils.normalizeRecruitType(recruitTypeRaw);
         boolean isMercenary = "mercenary".equals(norm);
 
-        if (tvRecruitType  != null) tvRecruitType.setText(isMercenary ? "용병" : "회원");
+        if (tvRecruitType  != null) {
+            tvRecruitType.setText(isMercenary ? "용병" : "회원");
+            tvRecruitType.setBackgroundResource(isMercenary
+                    ? R.drawable.bg_badge_recruit_merc
+                    : R.drawable.bg_badge_recruit);
+            tvRecruitType.setTextColor(isMercenary
+                    ? 0xFFE65100    // 주황
+                    : 0xFF1565C0);  // 파랑
+        }
         if (tvTimeLabel    != null) tvTimeLabel.setText(isMercenary ? "시합 시간" : "활동 시간");
         if (tvStadiumLabel != null) tvStadiumLabel.setText(isMercenary ? "시합 장소" : "주 활동 장소");
 
@@ -344,6 +352,15 @@ public class RecruitDetailActivity extends BaseActivity {
     private void updateEligibilityAndShow(int stateCode, String label) {
         this.applyState = stateCode;
         btnApply.setText(label);
+        // 신청 불가 → 빨간 배경, 그 외 → 파란 배경
+        if ("신청 불가".equals(label)) {
+            btnApply.setBackgroundTintList(
+                    android.content.res.ColorStateList.valueOf(0xFFEF4444));
+        } else {
+            btnApply.setBackgroundTintList(
+                    android.content.res.ColorStateList.valueOf(
+                            getResources().getColor(R.color.primary)));
+        }
         finishLoadingAndShow();
     }
 

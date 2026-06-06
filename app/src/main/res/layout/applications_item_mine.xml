@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:layout_marginHorizontal="@dimen/spacing_sm"
-    android:layout_marginBottom="@dimen/spacing_sm">
+    android:layout_marginHorizontal="12dp"
+    android:layout_marginBottom="14dp">
 
-    <!-- ★ 선택 모드 체크박스 (기본 GONE) -->
     <CheckBox
         android:id="@+id/cbSelect"
         android:layout_width="wrap_content"
@@ -15,76 +15,112 @@
         android:layout_marginEnd="4dp"
         android:clickable="false"
         android:focusable="false"
-        android:visibility="gone" />
+        android:visibility="gone"/>
 
-    <LinearLayout
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:orientation="vertical"
-        android:background="@drawable/bg_card">
-
-        <include android:id="@+id/includePost" layout="@layout/match_post_item"/>
-
-        <LinearLayout
-            android:id="@+id/includeToggleHeader"
-            android:layout_width="match_parent"
-            android:layout_height="40dp"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:paddingHorizontal="@dimen/spacing_md"
-            android:background="@color/bg_section"
-            android:clickable="true"
-            android:focusable="true">
-
-            <TextView
-                android:id="@+id/textApplicantCount"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="0"
-                android:textSize="@dimen/text_sm"
-                android:textColor="@color/text_primary"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="명 신청"
-                android:textSize="@dimen/text_sm"
-                android:textColor="@color/text_secondary"
-                android:layout_marginStart="2dp"/>
-
-            <TextView
-                android:id="@+id/textApplicantNew"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="NEW"
-                android:textSize="@dimen/text_xs"
-                android:textColor="@color/white"
-                android:background="@drawable/bg_badge_red_circle"
-                android:paddingHorizontal="@dimen/spacing_xs"
-                android:layout_marginStart="@dimen/spacing_sm"
-                android:visibility="gone"/>
-
-            <View
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1"/>
-
-            <ImageView
-                android:id="@+id/iconToggleArrow"
-                android:layout_width="@dimen/icon_sm"
-                android:layout_height="@dimen/icon_sm"
-                android:src="@drawable/ic_arrow_down"
-                android:contentDescription="펼치기"/>
-        </LinearLayout>
+        app:cardCornerRadius="14dp"
+        app:cardElevation="2dp"
+        app:strokeColor="#B8C5D6"
+        app:strokeWidth="1dp"
+        app:cardBackgroundColor="#FFFFFF">
 
         <LinearLayout
-            android:id="@+id/applicantsContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone"/>
+            android:orientation="vertical">
 
-    </LinearLayout>
+            <!-- 시합 카드 (margin=0 으로 오버라이드 → 바깥 카드만 보임) -->
+            <include
+                android:id="@+id/includePost"
+                layout="@layout/match_post_item"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="0dp"/>
 
+            <!-- 구분선 -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#C5D0DE"/>
+
+            <!-- 신청자 토글 헤더 -->
+            <LinearLayout
+                android:id="@+id/includeToggleHeader"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:background="#EDF1F8"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_baseline_group_24"
+                    android:tint="#42A5F5"
+                    android:layout_marginEnd="6dp"/>
+
+                <TextView
+                    android:id="@+id/textApplicantCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="#1976D2"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="명 신청"
+                    android:textSize="13sp"
+                    android:textColor="#6B7280"
+                    android:layout_marginStart="2dp"/>
+
+                <TextView
+                    android:id="@+id/textApplicantNew"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="NEW"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/bg_badge_red_circle"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="1dp"
+                    android:layout_marginStart="6dp"
+                    android:visibility="gone"/>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"/>
+
+                <ImageView
+                    android:id="@+id/iconToggleArrow"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@drawable/ic_arrow_down"
+                    android:tint="#9CA3AF"/>
+            </LinearLayout>
+
+            <!-- 신청자 리스트 -->
+            <LinearLayout
+                android:id="@+id/applicantsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="#EDF1F8"
+                android:paddingHorizontal="8dp"
+                android:paddingBottom="6dp"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 </LinearLayout>

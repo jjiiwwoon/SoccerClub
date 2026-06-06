@@ -7,193 +7,315 @@
     android:layout_height="match_parent"
     app:loadingLayout="@layout/view_state_loading"
     app:emptyLayout="@layout/view_state_empty"
-    android:background="@color/bg_page">
+    android:background="#E4EBF5">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:clipToPadding="false">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="@dimen/page_padding_horizontal">
+            android:paddingBottom="24dp">
 
-            <!-- 팀 정보 -->
-            <LinearLayout
-                android:id="@+id/teamInfoBox"
+            <!-- ═══ 팀 헤더 카드 ═══ -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="@drawable/bg_card"
-                android:padding="@dimen/card_padding"
-                android:layout_marginTop="@dimen/spacing_lg"
-                android:clickable="true"
-                android:focusable="true">
+                app:cardCornerRadius="0dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="#FFFFFF">
 
-                <ImageView
-                    android:id="@+id/imgTeamLogo"
-                    android:layout_width="@dimen/avatar_md"
-                    android:layout_height="@dimen/avatar_md"
-                    android:scaleType="centerCrop"
-                    android:contentDescription="팀 로고"
-                    android:src="@drawable/ic_shield_gray"/>
-
-                <TextView
-                    android:id="@+id/txtTeamName"
-                    android:layout_width="0dp"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginStart="@dimen/spacing_md"
-                    android:textSize="@dimen/text_xl"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary"/>
-            </LinearLayout>
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-            <!-- 칩 (나이대 / 지역 / 실력) -->
-            <LinearLayout
+                    <!-- 팀 로고 + 이름 -->
+                    <LinearLayout
+                        android:id="@+id/teamInfoBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:background="@drawable/bg_card_light"
+                        android:padding="12dp"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <ImageView
+                            android:id="@+id/imgTeamLogo"
+                            android:layout_width="56dp"
+                            android:layout_height="56dp"
+                            android:scaleType="centerCrop"
+                            android:src="@drawable/ic_shield_gray"/>
+
+                        <TextView
+                            android:id="@+id/txtTeamName"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:layout_marginStart="14dp"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="#111827"/>
+
+                        <ImageView
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:src="@drawable/ic_arrow_down"
+                            android:rotation="-90"
+                            android:tint="#9CA3AF"/>
+                    </LinearLayout>
+
+                    <!-- 칩 (나이대/지역/실력) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:layout_marginTop="12dp">
+
+                        <TextView android:id="@+id/chipAge"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="5dp"
+                            android:background="@drawable/bg_chip_outline_blue"
+                            android:textSize="12sp"
+                            android:textColor="#1565C0"
+                            android:layout_marginEnd="6dp"/>
+
+                        <TextView android:id="@+id/chipRegion"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="5dp"
+                            android:background="@drawable/bg_chip_outline_blue"
+                            android:textSize="12sp"
+                            android:textColor="#1565C0"
+                            android:layout_marginEnd="6dp"/>
+
+                        <TextView android:id="@+id/chipSkill"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="5dp"
+                            android:background="@drawable/bg_chip_outline_blue"
+                            android:textSize="12sp"
+                            android:textColor="#1565C0"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ═══ 일정 정보 카드 ═══ -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:layout_marginTop="@dimen/spacing_sm">
+                android:layout_marginHorizontal="14dp"
+                android:layout_marginTop="12dp"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="1dp"
+                app:strokeColor="#E0E7F1"
+                app:strokeWidth="0.5dp"
+                app:cardBackgroundColor="#FFFFFF">
 
-                <TextView android:id="@+id/chipAge"
-                    android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:paddingHorizontal="@dimen/chip_padding_horizontal"
-                    android:paddingVertical="@dimen/chip_padding_vertical"
-                    android:background="@drawable/bg_chip"
-                    android:textSize="@dimen/text_sm" android:textColor="@color/chip_text"
-                    android:layout_marginEnd="@dimen/spacing_xs"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-                <TextView android:id="@+id/chipRegion"
-                    android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:paddingHorizontal="@dimen/chip_padding_horizontal"
-                    android:paddingVertical="@dimen/chip_padding_vertical"
-                    android:background="@drawable/bg_chip"
-                    android:textSize="@dimen/text_sm" android:textColor="@color/chip_text"
-                    android:layout_marginEnd="@dimen/spacing_xs"/>
+                    <!-- 일정 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="10dp">
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp"
+                            android:src="@drawable/ic_calendar" android:tint="#42A5F5"
+                            android:layout_marginEnd="10dp"/>
+                        <TextView android:layout_width="55dp" android:layout_height="wrap_content"
+                            android:text="일정" android:textSize="13sp" android:textColor="#6B7280"/>
+                        <TextView android:id="@+id/txtDateTime"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:textSize="14sp"
+                            android:textStyle="bold" android:textColor="#111827"/>
+                    </LinearLayout>
 
-                <TextView android:id="@+id/chipSkill"
-                    android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:paddingHorizontal="@dimen/chip_padding_horizontal"
-                    android:paddingVertical="@dimen/chip_padding_vertical"
-                    android:background="@drawable/bg_chip"
-                    android:textSize="@dimen/text_sm" android:textColor="@color/chip_text"/>
-            </LinearLayout>
+                    <!-- 구장 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="10dp">
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp"
+                            android:src="@drawable/ic_location_pin" android:tint="#42A5F5"
+                            android:layout_marginEnd="10dp"/>
+                        <TextView android:layout_width="55dp" android:layout_height="wrap_content"
+                            android:text="구장" android:textSize="13sp" android:textColor="#6B7280"/>
+                        <TextView android:id="@+id/txtStadium"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:textSize="14sp" android:textColor="#111827"/>
+                    </LinearLayout>
 
-            <!-- 구분선 -->
-            <View android:layout_width="match_parent" android:layout_height="@dimen/divider_height"
-                android:background="@color/bg_divider"
-                android:layout_marginVertical="@dimen/spacing_md"/>
+                    <!-- 주소 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical">
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp"
+                            android:src="@drawable/ic_location_pin" android:tint="#9CA3AF"
+                            android:layout_marginEnd="10dp"/>
+                        <TextView android:layout_width="55dp" android:layout_height="wrap_content"
+                            android:text="주소" android:textSize="13sp" android:textColor="#6B7280"/>
+                        <TextView android:id="@+id/txtAddress"
+                            android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:textSize="13sp"
+                            android:textColor="#1976D2" android:clickable="true" android:focusable="true"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-            <!-- 날짜/시간 -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:layout_marginBottom="@dimen/spacing_sm">
-                <TextView android:layout_width="80dp" android:layout_height="wrap_content"
-                    android:text="일정" android:textColor="@color/text_secondary" android:textSize="@dimen/text_md"/>
-                <TextView android:id="@+id/txtDateTime" android:layout_width="0dp"
-                    android:layout_height="wrap_content" android:layout_weight="1"
-                    android:textColor="@color/text_primary" android:textSize="@dimen/text_md"/>
-            </LinearLayout>
+            <!-- ═══ 최근 전적 카드 ═══ -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="14dp"
+                android:layout_marginTop="10dp"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="1dp"
+                app:strokeColor="#E0E7F1"
+                app:strokeWidth="0.5dp"
+                app:cardBackgroundColor="#FFFFFF">
 
-            <!-- 장소 -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:layout_marginBottom="@dimen/spacing_sm">
-                <TextView android:layout_width="80dp" android:layout_height="wrap_content"
-                    android:text="구장" android:textColor="@color/text_secondary" android:textSize="@dimen/text_md"/>
-                <TextView android:id="@+id/txtStadium" android:layout_width="0dp"
-                    android:layout_height="wrap_content" android:layout_weight="1"
-                    android:textColor="@color/text_primary" android:textSize="@dimen/text_md"/>
-            </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-            <!-- 주소 -->
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:layout_marginBottom="@dimen/spacing_sm">
-                <TextView android:layout_width="80dp" android:layout_height="wrap_content"
-                    android:text="주소" android:textColor="@color/text_secondary" android:textSize="@dimen/text_md"/>
-                <TextView android:id="@+id/txtAddress" android:layout_width="0dp"
-                    android:layout_height="wrap_content" android:layout_weight="1"
-                    android:textColor="@color/primary" android:textSize="@dimen/text_md"
-                    android:clickable="true" android:focusable="true"/>
-            </LinearLayout>
+                    <!-- 헤더 -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp"
+                            android:src="@drawable/ic_baseline_bar_chart_24" android:tint="#42A5F5"
+                            android:layout_marginEnd="6dp"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="최근 전적" android:textStyle="bold"
+                            android:textSize="15sp" android:textColor="#111827"/>
+                    </LinearLayout>
 
-            <!-- 구분선 -->
-            <View android:layout_width="match_parent" android:layout_height="@dimen/divider_height"
-                android:background="@color/bg_divider"
-                android:layout_marginVertical="@dimen/spacing_md"/>
+                    <!-- 5경기 타일 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:layout_marginBottom="10dp">
+                        <TextView android:id="@+id/tile1" android:layout_width="40dp" android:layout_height="40dp"
+                            android:gravity="center" android:text="-" android:textSize="14sp"
+                            android:background="@drawable/bg_result_neutral" android:layout_marginEnd="4dp"/>
+                        <TextView android:id="@+id/tile2" android:layout_width="40dp" android:layout_height="40dp"
+                            android:gravity="center" android:text="-" android:textSize="14sp"
+                            android:background="@drawable/bg_result_neutral" android:layout_marginEnd="4dp"/>
+                        <TextView android:id="@+id/tile3" android:layout_width="40dp" android:layout_height="40dp"
+                            android:gravity="center" android:text="-" android:textSize="14sp"
+                            android:background="@drawable/bg_result_neutral" android:layout_marginEnd="4dp"/>
+                        <TextView android:id="@+id/tile4" android:layout_width="40dp" android:layout_height="40dp"
+                            android:gravity="center" android:text="-" android:textSize="14sp"
+                            android:background="@drawable/bg_result_neutral" android:layout_marginEnd="4dp"/>
+                        <TextView android:id="@+id/tile5" android:layout_width="40dp" android:layout_height="40dp"
+                            android:gravity="center" android:text="-" android:textSize="14sp"
+                            android:background="@drawable/bg_result_neutral"/>
+                    </LinearLayout>
 
-            <!-- 최근 전적 -->
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="최근 전적" android:textStyle="bold"
-                android:textSize="@dimen/text_lg" android:textColor="@color/text_primary"
-                android:layout_marginBottom="@dimen/spacing_sm"/>
+                    <!-- 승/무/패 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:layout_marginBottom="4dp">
+                        <TextView android:id="@+id/tvRecentWin" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textColor="@color/win"
+                            android:textSize="12sp" android:text="승 0"/>
+                        <TextView android:id="@+id/tvRecentDraw" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textColor="@color/draw"
+                            android:textSize="12sp" android:text="  ·  무 0"/>
+                        <TextView android:id="@+id/tvRecentLoss" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textColor="@color/loss"
+                            android:textSize="12sp" android:text="  ·  패 0"/>
+                    </LinearLayout>
 
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:gravity="center"
-                android:layout_marginBottom="@dimen/spacing_sm">
+                    <!-- 득점/실점 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center">
+                        <TextView android:id="@+id/tvRecentGF" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textColor="@color/goal_for"
+                            android:textSize="12sp" android:text="득점 0"/>
+                        <TextView android:id="@+id/tvRecentGA" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textColor="@color/goal_against"
+                            android:textSize="12sp" android:text=" · 실점 0"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-                <TextView android:id="@+id/tile1" android:layout_width="40dp" android:layout_height="40dp"
-                    android:gravity="center" android:text="-" android:textSize="@dimen/text_md"
-                    android:background="@drawable/bg_result_neutral" android:layout_marginEnd="4dp"/>
-                <TextView android:id="@+id/tile2" android:layout_width="40dp" android:layout_height="40dp"
-                    android:gravity="center" android:text="-" android:textSize="@dimen/text_md"
-                    android:background="@drawable/bg_result_neutral" android:layout_marginEnd="4dp"/>
-                <TextView android:id="@+id/tile3" android:layout_width="40dp" android:layout_height="40dp"
-                    android:gravity="center" android:text="-" android:textSize="@dimen/text_md"
-                    android:background="@drawable/bg_result_neutral" android:layout_marginEnd="4dp"/>
-                <TextView android:id="@+id/tile4" android:layout_width="40dp" android:layout_height="40dp"
-                    android:gravity="center" android:text="-" android:textSize="@dimen/text_md"
-                    android:background="@drawable/bg_result_neutral" android:layout_marginEnd="4dp"/>
-                <TextView android:id="@+id/tile5" android:layout_width="40dp" android:layout_height="40dp"
-                    android:gravity="center" android:text="-" android:textSize="@dimen/text_md"
-                    android:background="@drawable/bg_result_neutral"/>
-            </LinearLayout>
+            <!-- ═══ 시합 소개 카드 ═══ -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="14dp"
+                android:layout_marginTop="10dp"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="1dp"
+                app:strokeColor="#E0E7F1"
+                app:strokeWidth="0.5dp"
+                app:cardBackgroundColor="#FFFFFF">
 
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:gravity="center"
-                android:layout_marginBottom="@dimen/spacing_sm">
-                <TextView android:id="@+id/tvRecentWin"  android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:textColor="@color/win"  android:textSize="@dimen/text_sm" android:text="승 0"/>
-                <TextView android:id="@+id/tvRecentDraw" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:textColor="@color/draw" android:textSize="@dimen/text_sm" android:text="  ·  무 0"/>
-                <TextView android:id="@+id/tvRecentLoss" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:textColor="@color/loss" android:textSize="@dimen/text_sm" android:text="  ·  패 0"/>
-            </LinearLayout>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
 
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:gravity="center"
-                android:layout_marginBottom="@dimen/spacing_md">
-                <TextView android:id="@+id/tvRecentGF" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:textColor="@color/goal_for" android:textSize="@dimen/text_sm" android:text="득점 0"/>
-                <TextView android:id="@+id/tvRecentGA" android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:textColor="@color/goal_against" android:textSize="@dimen/text_sm" android:text=" · 실점 0"/>
-            </LinearLayout>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="시합 소개"
+                        android:textStyle="bold"
+                        android:textSize="15sp"
+                        android:textColor="#111827"
+                        android:layout_marginBottom="8dp"/>
 
-            <!-- 설명 -->
-            <View android:layout_width="match_parent" android:layout_height="@dimen/divider_height"
-                android:background="@color/bg_divider"
-                android:layout_marginVertical="@dimen/spacing_md"/>
+                    <TextView android:id="@+id/txtDescription"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textSize="14sp"
+                        android:textColor="#4B5563"
+                        android:lineSpacingMultiplier="1.5"
+                        android:minHeight="48dp"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="시합 소개" android:textStyle="bold"
-                android:textSize="@dimen/text_lg" android:textColor="@color/text_primary"
-                android:layout_marginBottom="@dimen/spacing_xs"/>
-
-            <TextView android:id="@+id/txtDescription"
-                android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:textSize="@dimen/text_md" android:textColor="@color/text_secondary"
-                android:lineSpacingMultiplier="1.4"/>
-
-            <!-- 신청 버튼 -->
+            <!-- ═══ 신청 버튼 ═══ -->
             <Button android:id="@+id/btnApply"
-                android:layout_width="match_parent" android:layout_height="@dimen/btn_height"
-                android:layout_marginTop="@dimen/spacing_xl"
-                android:layout_marginBottom="@dimen/spacing_xl"
-                android:text="신청하기" android:textAllCaps="false"
-                android:textColor="@color/white"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginHorizontal="14dp"
+                android:layout_marginTop="16dp"
+                android:text="신청하기"
+                android:textAllCaps="false"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
                 android:backgroundTint="@color/primary"
-                app:cornerRadius="@dimen/btn_radius"/>
+                app:cornerRadius="12dp"/>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

@@ -79,6 +79,7 @@ public class MatchPostAdapter extends RecyclerView.Adapter<MatchPostAdapter.Matc
         String address = AppUtils.firstNonEmpty(post.getAddress(), post.getStadiumAddress());
         holder.textStadium.setText(AppUtils.safe(stadium) + " | " + AppUtils.safe(address));
         holder.textSkill.setText("실력 : " + post.getSkill());
+        holder.textSkill.setVisibility(View.VISIBLE);
 
         long ts = post.getTimestamp() > 0
                 ? post.getTimestamp()

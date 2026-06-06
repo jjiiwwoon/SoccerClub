@@ -125,7 +125,6 @@ public class TeamDetailActivity extends BaseActivity {
         tvSeeDetails           = findViewById(R.id.tvSeeDetails);
         tvMemberTitle          = findViewById(R.id.tvMemberTitle);
         playerListLayout       = findViewById(R.id.playerListLayout);
-        btnJoinTeam            = findViewById(R.id.btnJoinTeam);
 
         introToggle.setOnClickListener(v -> {
             isIntroExpanded = !isIntroExpanded;

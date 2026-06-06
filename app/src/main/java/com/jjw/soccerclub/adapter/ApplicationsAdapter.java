@@ -16,6 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.util.AppUtils;
 import com.jjw.soccerclub.util.DateUtils;
@@ -95,6 +96,7 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
         default void onApplicantAccept(@NonNull Item post, @NonNull Applicant applicant) {}
         default void onApplicantReject(@NonNull Item post, @NonNull Applicant applicant) {}
         default void onApplicantChat(@NonNull Item post, @NonNull Applicant applicant) {}
+        default void onApplicationWithdraw(@NonNull Item post) {}   // ✅ 추가
     }
 
     // ★ 선택 모드 콜백
@@ -240,7 +242,7 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
             ((MineVH) h).setSessionNewKeys(sessionNewApplicantKeys);
             ((MineVH) h).bind(it, listener, pos);
         } else if (h instanceof AppliedVH) {
-            ((AppliedVH) h).bind(it, listener);
+            ((AppliedVH) h).bind(it, listener, pos);
         }
     }
 
@@ -248,6 +250,18 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     private static void bindCommonPost(@NonNull View root, @NonNull Item it,
                                        OnItemClickListener cb) {
+
+        if (root instanceof com.google.android.material.card.MaterialCardView) {
+            com.google.android.material.card.MaterialCardView innerCard =
+                    (com.google.android.material.card.MaterialCardView) root;
+            innerCard.setCardElevation(0);
+            innerCard.setStrokeWidth(0);
+            innerCard.setRadius(0);
+            ViewGroup.MarginLayoutParams lp =
+                    (ViewGroup.MarginLayoutParams) innerCard.getLayoutParams();
+            if (lp != null) { lp.setMargins(0, 0, 0, 0); innerCard.setLayoutParams(lp); }
+        }
+
         TextView tvTeamName  = root.findViewById(R.id.textTeamName);
         TextView tvDate      = root.findViewById(R.id.textDate);
         TextView tvTime      = root.findViewById(R.id.textTime);
@@ -326,21 +340,21 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                     expanded = false;
                 }
             }  else {
-            // 일반 모드: 롱클릭 → 선택 모드 진입
-            itemView.setOnLongClickListener(v -> {
-                enterSelectionMode(position);
-                return true;
-            });
-            itemView.setOnClickListener(null);
-
-            // ★ 포스트 영역에도 롱클릭 추가 (사용자가 시합 내용 부분을 눌러도 선택 모드 진입)
-            if (includePost != null) {
-                includePost.setOnClickListener(v -> { if (cb != null) cb.onPostClicked(it); });
-                includePost.setOnLongClickListener(v -> {
+                // 일반 모드: 롱클릭 → 선택 모드 진입
+                itemView.setOnLongClickListener(v -> {
                     enterSelectionMode(position);
                     return true;
                 });
-            }
+                itemView.setOnClickListener(null);
+
+                // ★ 포스트 영역에도 롱클릭 추가
+                if (includePost != null) {
+                    includePost.setOnClickListener(v -> { if (cb != null) cb.onPostClicked(it); });
+                    includePost.setOnLongClickListener(v -> {
+                        enterSelectionMode(position);
+                        return true;
+                    });
+                }
 
                 // 신청자 토글 원래 동작
                 if (toggleHeader != null) {
@@ -387,12 +401,41 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
                 String displayName = AppUtils.firstNonEmpty(a.nickname, a.teamName, "(알 수 없음)");
                 if (tvName  != null) tvName.setText(displayName);
                 if (tvSkill != null) tvSkill.setText("실력: " + (a.skill < 0 ? "-" : String.valueOf(a.skill)));
-                if (ivLogo  != null) GlideHelper.loadTeamLogo(ivLogo.getContext(), a.logoUrl, ivLogo);
-
+                // 개인 프로필 이미지 우선, 없으면 팀 로고 사용
+                String imageUrl = AppUtils.firstNonEmpty(a.profileImageUrl, a.logoUrl);
+                if (ivLogo != null) {
+                    if (!AppUtils.isEmpty(imageUrl)) {
+                        Glide.with(ivLogo.getContext())
+                                .load(imageUrl)
+                                .placeholder(R.drawable.ic_person_placeholder)
+                                .into(ivLogo);
+                    } else {
+                        ivLogo.setImageResource(R.drawable.ic_person_placeholder);
+                    }
+                }
                 String st = AppUtils.safe(a.status).toLowerCase(Locale.ROOT);
                 boolean pending = !"accepted".equals(st) && !"rejected".equals(st);
                 if (btnAccept != null) btnAccept.setVisibility(pending ? View.VISIBLE : View.GONE);
                 if (btnReject != null) btnReject.setVisibility(pending ? View.VISIBLE : View.GONE);
+
+                // ✅ 처리 상태 표시
+                TextView tvStatus = row.findViewById(R.id.textApplicantStatus);
+                if (tvStatus != null) {
+                    if ("accepted".equals(st)) {
+                        tvStatus.setText("수락됨");
+                        tvStatus.setTextColor(0xFF1976D2);
+                        tvStatus.setBackgroundResource(R.drawable.bg_chip_outline_blue);
+                        tvStatus.setVisibility(View.VISIBLE);
+                    } else if ("rejected".equals(st)) {
+                        tvStatus.setText("거절됨");
+                        tvStatus.setTextColor(0xFFEF4444);
+                        tvStatus.setBackgroundResource(R.drawable.bg_status_chip_rejected);
+                        tvStatus.setTextColor(0xFFFFFFFF);
+                        tvStatus.setVisibility(View.VISIBLE);
+                    } else {
+                        tvStatus.setVisibility(View.GONE);
+                    }
+                }
 
                 if (btnAccept != null) {
                     btnAccept.setOnClickListener(v -> {
@@ -420,25 +463,80 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
 
     // ── AppliedVH (내가 신청한 글) ────────────────────────────────────────────────
 
-    public static class AppliedVH extends RecyclerView.ViewHolder {
+    // ── AppliedVH (내가 신청한 글 — 선택 모드 지원) ─────────────────────────────
+
+    public class AppliedVH extends RecyclerView.ViewHolder {
         final View includePost;
         final TextView textStatus;
+        final TextView textAppliedTimestamp;
+        final CheckBox cbSelect;
 
         public AppliedVH(@NonNull View v) {
             super(v);
             includePost = v.findViewById(R.id.includePost);
             textStatus  = v.findViewById(R.id.textApplicationStatus);
+            textAppliedTimestamp = v.findViewById(R.id.textAppliedTimestamp);
+            cbSelect    = v.findViewById(R.id.cbSelect);
         }
 
-        void bind(@NonNull Item it, OnItemClickListener cb) {
+        void bind(@NonNull Item it, OnItemClickListener cb, int position) {
             if (includePost != null) bindCommonPost(includePost, it, cb);
+
+            // 상태 칩 색상
             if (textStatus != null) {
                 String st = AppUtils.safe(it.status).toLowerCase(Locale.ROOT);
                 switch (st) {
-                    case "accepted": textStatus.setText("수락됨"); break;
-                    case "rejected": textStatus.setText("거절됨"); break;
-                    case "pending":  textStatus.setText("대기중"); break;
-                    default:         textStatus.setText(AppUtils.isEmpty(st) ? "대기중" : st);
+                    case "accepted":
+                        textStatus.setText("수락됨");
+                        textStatus.setBackgroundResource(R.drawable.bg_chip_outline_blue);
+                        textStatus.setTextColor(0xFF1976D2);
+                        break;
+                    case "rejected":
+                        textStatus.setText("거절됨");
+                        textStatus.setBackgroundResource(R.drawable.bg_status_chip_rejected);
+                        textStatus.setTextColor(0xFFFFFFFF);
+                        break;
+                    default:
+                        textStatus.setText("대기중");
+                        textStatus.setBackgroundResource(R.drawable.bg_status_chip_pending);
+                        textStatus.setTextColor(0xFFFFFFFF);
+                        break;
+                }
+            }
+
+            // 푸터 시간
+            if (textAppliedTimestamp != null) {
+                long ts = it.timestamp > 0 ? it.timestamp
+                        : it.matchTs > 0 ? it.matchTs
+                        : DateUtils.computeStartMillis(it.date, it.time);
+                textAppliedTimestamp.setText(DateUtils.formatRelativeTime(ts));
+            }
+
+            // ★ 체크박스 & 선택 모드 처리
+            boolean selected = it.postId != null && selectedPostIds.contains(it.postId);
+            if (cbSelect != null) {
+                cbSelect.setVisibility(selectionMode ? View.VISIBLE : View.GONE);
+                cbSelect.setChecked(selected);
+            }
+
+            if (selectionMode) {
+                itemView.setOnClickListener(v -> toggleSelection(position));
+                itemView.setOnLongClickListener(null);
+                if (includePost != null) includePost.setOnClickListener(v -> toggleSelection(position));
+            } else {
+                // 일반 모드: 롱클릭 → 선택 모드 진입
+                itemView.setOnLongClickListener(v -> {
+                    enterSelectionMode(position);
+                    return true;
+                });
+                itemView.setOnClickListener(null);
+
+                if (includePost != null) {
+                    includePost.setOnClickListener(v -> { if (cb != null) cb.onPostClicked(it); });
+                    includePost.setOnLongClickListener(v -> {
+                        enterSelectionMode(position);
+                        return true;
+                    });
                 }
             }
         }
@@ -492,4 +590,6 @@ public class ApplicationsAdapter extends RecyclerView.Adapter<RecyclerView.ViewH
     private static int dp(Context ctx, int v) {
         return Math.round(v * ctx.getResources().getDisplayMetrics().density);
     }
+
+
 }
