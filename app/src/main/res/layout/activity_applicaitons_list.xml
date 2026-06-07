@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/bg_page">
+    android:background="#E8EFF8">
 
     <!-- ★ 선택 모드 툴바 (기본 GONE) -->
     <FrameLayout

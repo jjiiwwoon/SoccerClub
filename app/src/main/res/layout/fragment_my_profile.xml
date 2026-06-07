@@ -1,13 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    ✅ 모든 기존 ID 유지:
-    state / profileImageView / textNickname / textAge / textPositionBox /
-    textSkill / textFoot / textHeight / textWeight / textPlayerType /
-    textIntroContent / toggleIntroArrow / textTeam / teamLogo /
-    statsTeamGames / statsTeamGoals / statsTeamAssists /
-    statsMercGames / statsMercGoals / statsMercAssists /
-    btnEditProfile / btnLogout
--->
+
 <com.jjw.soccerclub.common.StateLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -16,7 +8,7 @@
     android:layout_height="match_parent"
     app:loadingLayout="@layout/view_state_loading"
     app:emptyLayout="@layout/view_state_empty"
-    android:background="@color/bg_page">
+    android:background="#E8EFF8">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"

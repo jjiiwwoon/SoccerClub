@@ -22,7 +22,6 @@ import com.jjw.soccerclub.model.RecruitFilters;
 import com.jjw.soccerclub.ui.common.ApplicationsListActivity;
 import com.jjw.soccerclub.ui.match.MatchFilterSheet;
 import com.jjw.soccerclub.ui.match.MatchListFragment;
-import com.jjw.soccerclub.ui.team.TeamMatchFragment;
 import com.jjw.soccerclub.util.AppUtils;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
@@ -43,16 +42,12 @@ public class RecruitMatchFragment extends Fragment
 
     private View btnRecruitTab, btnMatchTab;
     private View btnApplicationsList;
-    private View matchModeTabsCard;
-    private View btnMatchListTab, btnTeamMatchTab;
-    private View btnTeamFindGlobal;
     private View filterBarContainer;
     private View btnOpenFilter;
     private LinearLayout selectedFilterChips;
     private View badgeNew;
 
     private boolean isRecruitTab = true;
-    private boolean isTeamMode   = false;
     private boolean isOpen       = false;
     private boolean hasTeam      = false;
     private boolean canWrite     = false;
@@ -83,10 +78,6 @@ public class RecruitMatchFragment extends Fragment
 
         btnRecruitTab     = v.findViewById(R.id.btnRecruitTab);
         btnMatchTab       = v.findViewById(R.id.btnMatchTab);
-        matchModeTabsCard = v.findViewById(R.id.matchModeTabsCard);
-        btnMatchListTab   = v.findViewById(R.id.btnMatchListTab);
-        btnTeamMatchTab   = v.findViewById(R.id.btnTeamMatchTab);
-        btnTeamFindGlobal = v.findViewById(R.id.btnTeamFindGlobal);
         filterBarContainer = v.findViewById(R.id.filterBarContainer);
         btnOpenFilter     = v.findViewById(R.id.btnOpenFilter);
         selectedFilterChips = v.findViewById(R.id.selectedFilterChips);
@@ -97,6 +88,12 @@ public class RecruitMatchFragment extends Fragment
         fab               = v.findViewById(R.id.fabSpeedDial);
         btnActionRecruit  = v.findViewById(R.id.btnActionRecruit);
         btnActionMatch    = v.findViewById(R.id.btnActionMatch);
+
+        // 팀 매칭 관련 뷰 숨김 (제거됨)
+        View matchModeTabsCard = v.findViewById(R.id.matchModeTabsCard);
+        if (matchModeTabsCard != null) matchModeTabsCard.setVisibility(View.GONE);
+        View btnTeamFindGlobal = v.findViewById(R.id.btnTeamFindGlobal);
+        if (btnTeamFindGlobal != null) btnTeamFindGlobal.setVisibility(View.GONE);
 
         if (btnApplicationsList != null) {
             btnApplicationsList.setOnClickListener(view -> {
@@ -115,35 +112,8 @@ public class RecruitMatchFragment extends Fragment
         });
         btnMatchTab.setOnClickListener(view -> {
             selectMatchTab();
-            isTeamMode = false;
             loadChildFragment(new MatchListFragment(), false);
         });
-
-        if (btnMatchListTab != null) {
-            btnMatchListTab.setOnClickListener(view -> {
-                isRecruitTab = false;
-                isTeamMode   = false;
-                loadChildFragment(new MatchListFragment(), false);
-            });
-        }
-
-        if (btnTeamMatchTab != null) {
-            btnTeamMatchTab.setOnClickListener(view -> {
-                isRecruitTab = false;
-                isTeamMode   = true;
-                loadChildFragment(new TeamMatchFragment(), false);
-            });
-        }
-
-        if (btnTeamFindGlobal != null) {
-            btnTeamFindGlobal.setOnClickListener(view -> {
-                Fragment current = getChildFragmentManager()
-                        .findFragmentById(R.id.recruit_match_container);
-                if (current instanceof TeamMatchFragment) {
-                    ((TeamMatchFragment) current).openFilterDialog();
-                }
-            });
-        }
 
         fab.setOnClickListener(view -> toggleSpeedDial());
         scrim.setOnClickListener(view -> closeSpeedDial());
@@ -194,10 +164,7 @@ public class RecruitMatchFragment extends Fragment
                 .commit();
 
         isRecruitTab = recruitSelected;
-        if (!recruitSelected) isTeamMode = fragment instanceof TeamMatchFragment;
-
         updateTabs(recruitSelected);
-        updateMatchModeTabs();
 
         if (recruitSelected && fragment instanceof RecruitListFragment)
             ((RecruitListFragment) fragment).applyExternalFilters(currentRecruitFilters);
@@ -220,30 +187,7 @@ public class RecruitMatchFragment extends Fragment
         }
     }
 
-    private void updateMatchModeTabs() {
-        if (matchModeTabsCard == null) return;
-        matchModeTabsCard.setVisibility(isRecruitTab ? View.GONE : View.VISIBLE);
-
-        setMatchTabStyle(btnMatchListTab, !isTeamMode);
-        setMatchTabStyle(btnTeamMatchTab, isTeamMode);
-
-        if (filterBarContainer != null)
-            filterBarContainer.setVisibility(
-                    (!isRecruitTab && isTeamMode) ? View.GONE : View.VISIBLE);
-        if (btnTeamFindGlobal != null)
-            btnTeamFindGlobal.setVisibility(
-                    (!isRecruitTab && isTeamMode) ? View.VISIBLE : View.GONE);
-    }
-
-    private void setMatchTabStyle(View btn, boolean selected) {
-        if (btn instanceof TextView) {
-            ((TextView) btn).setTypeface(null, selected ? Typeface.BOLD : Typeface.NORMAL);
-            ((TextView) btn).setTextColor(selected ? 0xFF2196F3 : 0xFF9E9E9E);
-        }
-    }
-
     private void openFilterSheet() {
-        if (!isRecruitTab && isTeamMode) return;
         if (isRecruitTab) {
             RecruitFilterSheet.newInstance(currentRecruitFilters)
                     .show(getChildFragmentManager(), "RecruitFilterSheet");
@@ -276,7 +220,6 @@ public class RecruitMatchFragment extends Fragment
     private void renderFilterChips() {
         if (!isAdded() || selectedFilterChips == null) return;
         selectedFilterChips.removeAllViews();
-        if (!isRecruitTab && isTeamMode) return;
         if (isRecruitTab) renderRecruitChips();
         else renderMatchChips();
     }
@@ -401,7 +344,6 @@ public class RecruitMatchFragment extends Fragment
                         return;
                     }
 
-                    // ✅ captainUID/viceCaptainUID는 profiles가 아닌 teams 문서에서 읽어야 함
                     db.collection("teams").document(myTeamId).get()
                             .addOnSuccessListener(teamSnap -> {
                                 if (!isAdded()) return;
@@ -525,31 +467,30 @@ public class RecruitMatchFragment extends Fragment
         if (!isAdded() || badgeNew == null) return;
         updateBadgeVisibility();
     }
-    // 모집 탭 선택 시
+
     private void selectRecruitTab() {
         btnRecruitTab.setBackgroundResource(R.drawable.bg_tab_pill_selected);
         btnMatchTab.setBackgroundResource(R.drawable.bg_tab_pill_unselected);
         if (btnRecruitTab instanceof TextView) {
             ((TextView) btnRecruitTab).setTextColor(getResources().getColor(R.color.primary));
-            ((TextView) btnRecruitTab).setTypeface(null, android.graphics.Typeface.BOLD);
+            ((TextView) btnRecruitTab).setTypeface(null, Typeface.BOLD);
         }
         if (btnMatchTab instanceof TextView) {
             ((TextView) btnMatchTab).setTextColor(getResources().getColor(R.color.text_hint));
-            ((TextView) btnMatchTab).setTypeface(null, android.graphics.Typeface.NORMAL);
+            ((TextView) btnMatchTab).setTypeface(null, Typeface.NORMAL);
         }
     }
 
-    // 시합 탭 선택 시
     private void selectMatchTab() {
         btnMatchTab.setBackgroundResource(R.drawable.bg_tab_pill_selected);
         btnRecruitTab.setBackgroundResource(R.drawable.bg_tab_pill_unselected);
         if (btnMatchTab instanceof TextView) {
             ((TextView) btnMatchTab).setTextColor(getResources().getColor(R.color.primary));
-            ((TextView) btnMatchTab).setTypeface(null, android.graphics.Typeface.BOLD);
+            ((TextView) btnMatchTab).setTypeface(null, Typeface.BOLD);
         }
         if (btnRecruitTab instanceof TextView) {
             ((TextView) btnRecruitTab).setTextColor(getResources().getColor(R.color.text_hint));
-            ((TextView) btnRecruitTab).setTypeface(null, android.graphics.Typeface.NORMAL);
+            ((TextView) btnRecruitTab).setTypeface(null, Typeface.NORMAL);
         }
     }
 }

@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -47,7 +48,7 @@ public class TeamDetailActivity extends BaseActivity {
     private TextView tvGames, tvWins, tvDraws, tvLosses, tvGF, tvGA, tvWinRate, tvSeeDetails;
     private TextView tvMemberTitle;
     private LinearLayout playerListLayout;
-    private TextView btnJoinTeam;
+    private Button btnJoinTeam;
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
     private String teamId, currentUid;
@@ -215,12 +216,12 @@ public class TeamDetailActivity extends BaseActivity {
         boolean isFull   = members != null && members.size() >= 30;
 
         if (isMyTeam || isMember) {
-            btnJoinTeam.setVisibility(View.GONE);
+            if (btnJoinTeam != null) btnJoinTeam.setVisibility(View.GONE);
         } else {
-            btnJoinTeam.setVisibility(View.VISIBLE);
-            btnJoinTeam.setText(isFull ? "팀원 모집 마감" : "팀 가입 신청");
-            btnJoinTeam.setEnabled(!isFull);
-            if (!isFull) btnJoinTeam.setOnClickListener(v -> joinTeam());
+            if (btnJoinTeam != null) btnJoinTeam.setVisibility(View.VISIBLE);
+            if (btnJoinTeam != null) btnJoinTeam.setText(isFull ? "팀원 모집 마감" : "팀 가입 신청");
+            if (btnJoinTeam != null) btnJoinTeam.setEnabled(!isFull);
+            if (!isFull && btnJoinTeam != null) btnJoinTeam.setOnClickListener(v -> joinTeam());
         }
     }
 
@@ -406,8 +407,8 @@ public class TeamDetailActivity extends BaseActivity {
                                         .addOnSuccessListener(v -> {
                                             CustomToast.success(this,
                                                     "가입 신청 완료!\n주장의 수락을 기다려주세요.");
-                                            btnJoinTeam.setText("신청 완료");
-                                            btnJoinTeam.setEnabled(false);
+                                            if (btnJoinTeam != null) btnJoinTeam.setText("신청 완료");
+                                            if (btnJoinTeam != null) btnJoinTeam.setEnabled(false);
                                         })
                                         .addOnFailureListener(e ->
                                                 CustomToast.error(this, "신청 실패: " + e.getMessage()));

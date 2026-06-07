@@ -6,7 +6,6 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -239,7 +238,8 @@ public class TeamMatchFragment extends Fragment
             Integer avg   = item.getSkillAverage();
             String ageRange = AppUtils.nz(item.getAgeRange(), "미정");
             String skillStr = (avg != null && avg > 0) ? String.valueOf(avg) : "-";
-            h.teamSkillAge.setText("실력: " + skillStr + "   나이: " + ageRange);
+            h.teamSkill.setText("실력: " + skillStr);
+            h.teamAge.setText("나이: " + ageRange);
 
             String logoUrl = item.getLogoUrl();
             if (!AppUtils.isEmpty(logoUrl)) {
@@ -248,11 +248,6 @@ public class TeamMatchFragment extends Fragment
             } else {
                 h.teamLogo.setImageResource(R.drawable.ic_shield_gray);
             }
-
-            h.btnProposeMatch.setVisibility(View.VISIBLE);
-            h.btnProposeMatch.setOnClickListener(v -> {
-                if (listener != null) listener.onProposeMatch(item);
-            });
         }
 
         @Override
@@ -260,16 +255,15 @@ public class TeamMatchFragment extends Fragment
 
         static class VH extends RecyclerView.ViewHolder {
             ImageView teamLogo;
-            TextView teamName, teamRegion, teamSkillAge;
-            Button btnProposeMatch;
+            TextView teamName, teamRegion, teamSkill, teamAge;
 
             VH(@NonNull View v) {
                 super(v);
-                teamLogo      = v.findViewById(R.id.teamLogo);
-                teamName      = v.findViewById(R.id.teamName);
-                teamRegion    = v.findViewById(R.id.teamRegion);
-                teamSkillAge  = v.findViewById(R.id.teamSkillAge);
-                btnProposeMatch = v.findViewById(R.id.btnProposeMatch);
+                teamLogo        = v.findViewById(R.id.teamLogo);
+                teamName        = v.findViewById(R.id.teamName);
+                teamRegion      = v.findViewById(R.id.teamRegion);
+                teamSkill       = v.findViewById(R.id.teamSkill);
+                teamAge         = v.findViewById(R.id.teamAge);
             }
         }
     }

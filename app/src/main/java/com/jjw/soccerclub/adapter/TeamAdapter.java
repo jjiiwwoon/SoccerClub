@@ -37,8 +37,6 @@ public class TeamAdapter extends RecyclerView.Adapter<TeamAdapter.TeamViewHolder
         this.teamList = teamList != null ? teamList : new ArrayList<>();
     }
 
-    // ✅ AllTeamViewModel 에서 새 List 를 전달할 때 호출
-    // teamList 가 final 이므로 clear + addAll 방식으로 내용 교체
     public void updateList(List<Team> newList) {
         teamList.clear();
         if (newList != null) teamList.addAll(newList);
@@ -58,12 +56,11 @@ public class TeamAdapter extends RecyclerView.Adapter<TeamAdapter.TeamViewHolder
         Team team = teamList.get(position);
 
         holder.teamName.setText(AppUtils.safe(team.getTeamName()));
-        holder.teamRegion.setText("활동 지역: " + AppUtils.safe(team.getRegion()));
-        holder.teamSkillAge.setText(
-                "실력: " + AppUtils.safeInt(
-                        (long)(team.getSkillAverage() != null ? team.getSkillAverage() : 0), 0)
-                        + "  |  나이: " + AppUtils.nz(team.getAgeRange(), "-")
-        );
+        holder.teamRegion.setText(AppUtils.safe(team.getRegion()));
+
+        int skill = team.getSkillAverage() != null ? team.getSkillAverage().intValue() : 0;
+        holder.teamSkill.setText("실력: " + skill);
+        holder.teamAge.setText("나이: " + AppUtils.nz(team.getAgeRange(), "-"));
 
         GlideHelper.loadTeamLogo(context, team.getLogoUrl(), holder.teamLogo);
 
@@ -79,14 +76,15 @@ public class TeamAdapter extends RecyclerView.Adapter<TeamAdapter.TeamViewHolder
 
     public static class TeamViewHolder extends RecyclerView.ViewHolder {
         ImageView teamLogo;
-        TextView  teamName, teamRegion, teamSkillAge;
+        TextView  teamName, teamRegion, teamSkill, teamAge;
 
         public TeamViewHolder(@NonNull View itemView) {
             super(itemView);
-            teamLogo     = itemView.findViewById(R.id.teamLogo);
-            teamName     = itemView.findViewById(R.id.teamName);
-            teamRegion   = itemView.findViewById(R.id.teamRegion);
-            teamSkillAge = itemView.findViewById(R.id.teamSkillAge);
+            teamLogo   = itemView.findViewById(R.id.teamLogo);
+            teamName   = itemView.findViewById(R.id.teamName);
+            teamRegion = itemView.findViewById(R.id.teamRegion);
+            teamSkill  = itemView.findViewById(R.id.teamSkill);
+            teamAge    = itemView.findViewById(R.id.teamAge);
         }
     }
 }
