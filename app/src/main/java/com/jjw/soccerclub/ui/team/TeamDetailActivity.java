@@ -126,6 +126,7 @@ public class TeamDetailActivity extends BaseActivity {
         tvSeeDetails           = findViewById(R.id.tvSeeDetails);
         tvMemberTitle          = findViewById(R.id.tvMemberTitle);
         playerListLayout       = findViewById(R.id.playerListLayout);
+        btnJoinTeam            = findViewById(R.id.btnJoinTeam);
 
         introToggle.setOnClickListener(v -> {
             isIntroExpanded = !isIntroExpanded;
@@ -431,6 +432,7 @@ public class TeamDetailActivity extends BaseActivity {
     }
 
     private void setTextOrGone(TextView tv, String value) {
+        if (tv == null) return;
         if (AppUtils.isEmpty(value)) tv.setVisibility(View.GONE);
         else { tv.setVisibility(View.VISIBLE); tv.setText(value); }
     }

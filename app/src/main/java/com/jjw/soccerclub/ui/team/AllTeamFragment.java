@@ -22,9 +22,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.adapter.TeamAdapter;
 import com.jjw.soccerclub.common.CustomToast;
+import com.jjw.soccerclub.util.AppUtils;
 import com.jjw.soccerclub.viewmodel.AllTeamViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,7 +85,18 @@ public class AllTeamFragment extends Fragment {
                     CustomToast.info(requireContext(), "로그인이 필요합니다.");
                     return;
                 }
-                startActivity(new Intent(requireContext(), CreateTeamActivity.class));
+                // 팀이 있는지 확인 후 진행
+                String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
+                FirebaseFirestore.getInstance().collection("profiles").document(uid).get()
+                        .addOnSuccessListener(doc -> {
+                            if (!isAdded()) return;
+                            String myTeam = doc.getString("myTeam");
+                            if (!AppUtils.isEmpty(myTeam)) {
+                                CustomToast.info(requireContext(), "이미 팀이 있습니다.");
+                            } else {
+                                startActivity(new Intent(requireContext(), CreateTeamActivity.class));
+                            }
+                        });
             });
         }
 
@@ -92,6 +105,11 @@ public class AllTeamFragment extends Fragment {
         setupSearchBox();
 
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
     }
 
     @Override
@@ -216,8 +234,6 @@ public class AllTeamFragment extends Fragment {
 
     private List<String> getDistricts(String city) {
         if (city == null || city.equals(ALL) || !districtMap.containsKey(city)) {
-            // ✅ 수정: List.of() → Arrays.asList()
-            // List.of()는 API 30 미만에서 크래시 가능성 있음
             return new ArrayList<>(Arrays.asList(ALL));
         }
         return districtMap.get(city);
