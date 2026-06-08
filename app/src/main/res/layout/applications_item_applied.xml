@@ -51,7 +51,7 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:paddingHorizontal="14dp"
-                android:background="#F5F7FA">
+                android:background="#FFF8E1">
 
                 <TextView
                     android:id="@+id/textApplicationStatus"

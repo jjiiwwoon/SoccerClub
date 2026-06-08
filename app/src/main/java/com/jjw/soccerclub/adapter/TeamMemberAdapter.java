@@ -16,18 +16,6 @@ import com.jjw.soccerclub.util.AppUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-
-/**
- * 팀 멤버 목록 어댑터.
- *
- * [변경 전] 큰 카드 형태 → 멤버 많을 때 스크롤이 너무 길어짐
- * [변경 후] 가로 2열 리스트 + 포지션 헤더에 컬러 바
- *   - FW : 빨간색  #E53935
- *   - MF : 파란색  #1E88E5
- *   - DF : 초록색  #43A047
- *   - GK : 주황색  #FB8C00
- *   - 헤더는 span 2, 멤버 아이템은 span 1 (GridLayoutManager 필요)
- */
 public class TeamMemberAdapter
         extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
@@ -107,19 +95,20 @@ public class TeamMemberAdapter
     private void bindHeader(HeaderVH h, MemberItem item) {
         h.tvHeader.setText(item.header);
 
-        // 포지션별 컬러 바
+        // 포지션별 컬러 바 + 텍스트 색상
         int color = positionColor(item.header);
         if (h.positionBar != null) h.positionBar.setBackgroundColor(color);
+        if (h.tvHeader != null) h.tvHeader.setTextColor(color);
     }
 
     /** 포지션 헤더 텍스트에서 컬러 결정 */
     private int positionColor(String header) {
         if (header == null) return 0xFF9E9E9E;
         String h = header.toUpperCase();
-        if (h.startsWith("FW")) return 0xFFE53935; // 빨강
-        if (h.startsWith("MF")) return 0xFF1E88E5; // 파랑
-        if (h.startsWith("DF")) return 0xFF43A047; // 초록
-        if (h.startsWith("GK")) return 0xFFFB8C00; // 주황
+        if (h.startsWith("FW")) return 0xFFD50000; // 빨강
+        if (h.startsWith("MF")) return 0xFF00C853; // 초록
+        if (h.startsWith("DF")) return 0xFF2962FF; // 파랑
+        if (h.startsWith("GK")) return 0xFFF9A825; // 노랑
         return 0xFF9E9E9E;
     }
 

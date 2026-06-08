@@ -2,6 +2,7 @@ package com.jjw.soccerclub.ui.profile;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
@@ -31,7 +32,6 @@ import com.google.firebase.firestore.DocumentSnapshot;
 
 public class MyProfileFragment extends Fragment {
 
-    // ── 뷰 ────────────────────────────────────────────────────────────────────────
     private StateLayout state;
     private ImageView   profileImageView, teamLogo, toggleIntroArrow;
     private TextView    textNickname, textAge, textPositionBox, textSkill, textFoot;
@@ -40,7 +40,6 @@ public class MyProfileFragment extends Fragment {
     private TextView    statsMercGames, statsMercGoals, statsMercAssists;
 
     private boolean isIntroExpanded = false;
-
     private ProfileViewModel viewModel;
 
     private final ActivityResultLauncher<Intent> editProfileLauncher =
@@ -55,8 +54,6 @@ public class MyProfileFragment extends Fragment {
                             }
                         }
                     });
-
-    // ── 생명주기 ──────────────────────────────────────────────────────────────────
 
     @Nullable
     @Override
@@ -102,8 +99,6 @@ public class MyProfileFragment extends Fragment {
 
         viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
 
-        // ── LiveData 구독 ─────────────────────────────────────────────────────────
-
         viewModel.profile.observe(getViewLifecycleOwner(), doc -> {
             if (doc == null || !doc.exists()) {
                 if (state != null) state.showEmpty();
@@ -147,7 +142,7 @@ public class MyProfileFragment extends Fragment {
                     startActivity(new Intent(requireContext(),
                             com.jjw.soccerclub.ui.profile.MercenaryActivitiesActivity.class)));
         }
-        // ── ✅ 로그아웃 버튼 ──────────────────────────────────────────────────────
+
         View btnLogout = view.findViewById(R.id.btnLogout);
         if (btnLogout != null) {
             btnLogout.setOnClickListener(v ->
@@ -184,17 +179,14 @@ public class MyProfileFragment extends Fragment {
 
         if (textNickname    != null) textNickname.setText(!TextUtils.isEmpty(nickname) ? nickname : "닉네임 없음");
         if (textAge         != null) textAge.setText(ageLong != null ? ageLong + "세" : "-");
+
+        // ★ 포지션 — 칩 스타일 색상 적용 (모집 칩과 동일 색상)
         if (textPositionBox != null) {
             String pos = !TextUtils.isEmpty(position) ? position : "-";
             textPositionBox.setText(pos);
-            switch (pos.toUpperCase()) {
-                case "FW": textPositionBox.setTextColor(0xFFD50000); break;
-                case "MF": textPositionBox.setTextColor(0xFF00C853); break;
-                case "DF": textPositionBox.setTextColor(0xFF2962FF); break;
-                case "GK": textPositionBox.setTextColor(0xFFE65100); break;
-                default:   textPositionBox.setTextColor(0xFF666666); break;
-            }
+            applyPositionColor(textPositionBox, pos);
         }
+
         if (textSkill       != null) textSkill.setText(skillLong != null ? String.valueOf(skillLong) : "-");
         if (textFoot        != null) textFoot.setText(!TextUtils.isEmpty(foot) ? foot : "-");
         if (textHeight      != null) textHeight.setText(h != null ? h + "cm" : "-");
@@ -232,6 +224,26 @@ public class MyProfileFragment extends Fragment {
                     editProfileLauncher.launch(
                             new Intent(requireContext(), EditProfileActivity.class)));
         }
+    }
+
+    // ★ 포지션별 색상 — 모집 칩과 통일 (FW=빨강, MF=초록, DF=파랑, GK=노랑)
+    private void applyPositionColor(TextView tv, String pos) {
+        if (tv == null || pos == null) return;
+        int color;
+        switch (pos.trim().toUpperCase()) {
+            case "FW": color = 0xFFD50000; break;
+            case "MF": color = 0xFF00C853; break;
+            case "DF": color = 0xFF2962FF; break;
+            case "GK": color = 0xFFF9A825; break;
+            default:   color = 0xFF666666; break;
+        }
+        tv.setTextColor(color);
+        GradientDrawable gd = new GradientDrawable();
+        gd.setShape(GradientDrawable.RECTANGLE);
+        gd.setCornerRadius(40f);
+        gd.setColor(0x00000000);
+        gd.setStroke(4, color);
+        tv.setBackground(gd);
     }
 
     private void bindStats(DocumentSnapshot doc) {

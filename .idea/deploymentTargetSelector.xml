@@ -4,10 +4,10 @@
     <selectionStates>
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DIALOG" />
-        <DropdownSelection timestamp="2026-06-06T14:57:48.077033800Z">
+        <DropdownSelection timestamp="2026-06-08T08:09:06.019567800Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=R3CW20JGN2N" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\CookAndroid\.android\avd\Pixel_9_Pro.avd" />
             </handle>
           </Target>
         </DropdownSelection>
@@ -15,12 +15,12 @@
           <targets>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="PhysicalDevice" identifier="serial=R3CW20JGN2N" />
+                <DeviceId pluginId="LocalEmulator" identifier="path=C:\CookAndroid\.android\avd\Pixel_9_Pro.avd" />
               </handle>
             </Target>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=C:\CookAndroid\.android\avd\Pixel_8.avd" />
+                <DeviceId pluginId="PhysicalDevice" identifier="serial=R3CW20JGN2N" />
               </handle>
             </Target>
           </targets>
