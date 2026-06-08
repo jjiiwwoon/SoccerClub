@@ -202,11 +202,34 @@ public class CreateRecruitActivity extends BaseActivity {
                 positionSet.remove(label);
                 positions.remove(label);
             }
+            applyPositionChipStyle(c, label, c.isChecked());
         };
         chipGK.setOnClickListener(toggle);
         chipDF.setOnClickListener(toggle);
         chipMF.setOnClickListener(toggle);
         chipFW.setOnClickListener(toggle);
+    }
+
+    private void applyPositionChipStyle(Chip chip, String pos, boolean checked) {
+        int textColor, bgColor;
+        switch (pos) {
+            case "FW": textColor = 0xFFD50000; bgColor = 0x33D50000; break;
+            case "MF": textColor = 0xFF00C853; bgColor = 0x3300C853; break;
+            case "DF": textColor = 0xFF2962FF; bgColor = 0x332962FF; break;
+            case "GK": textColor = 0xFFF9A825; bgColor = 0x33F9A825; break;
+            default:   textColor = 0xFF666666; bgColor = 0x33666666; break;
+        }
+        if (checked) {
+            chip.setChipBackgroundColor(android.content.res.ColorStateList.valueOf(bgColor));
+            chip.setTextColor(textColor);
+            chip.setChipStrokeColor(android.content.res.ColorStateList.valueOf(textColor));
+            chip.setChipStrokeWidth(2f);
+        } else {
+            chip.setChipBackgroundColor(android.content.res.ColorStateList.valueOf(0xFFF5F5F5));
+            chip.setTextColor(0xFF888888);
+            chip.setChipStrokeColor(android.content.res.ColorStateList.valueOf(0xFFE0E0E0));
+            chip.setChipStrokeWidth(1f);
+        }
     }
 
     private void initClicks() {
@@ -325,12 +348,17 @@ public class CreateRecruitActivity extends BaseActivity {
     private void applyTeamToRegularUI() {
         // ✅ 구장 - 팀 정보로 기본 세팅 (클릭하면 변경 가능)
         if (tvRegularStadium != null) {
-            tvRegularStadium.setText(AppUtils.isEmpty(myHomeStadiumName) ? "주활동구장 미설정 (탭하여 설정)" : myHomeStadiumName);
+            boolean hasStadium = !AppUtils.isEmpty(myHomeStadiumName);
+            tvRegularStadium.setText(hasStadium ? myHomeStadiumName : "주활동구장 미설정 (탭하여 설정)");
+            tvRegularStadium.setTextColor(hasStadium ? 0xFF000000 : 0xFF999999);
             tvRegularStadium.setOnClickListener(v ->
                     addressSearchLauncher.launch(new Intent(this, StadiumSearchActivity.class)));
         }
-        if (tvRegularAddress != null)
-            tvRegularAddress.setText(AppUtils.isEmpty(myStadiumAddress) ? "주소 미설정" : myStadiumAddress);
+        if (tvRegularAddress != null) {
+            boolean hasAddr = !AppUtils.isEmpty(myStadiumAddress);
+            tvRegularAddress.setText(hasAddr ? myStadiumAddress : "주소 미설정");
+            tvRegularAddress.setTextColor(hasAddr ? 0xFF000000 : 0xFF999999);
+        }
 
         stadiumName = myHomeStadiumName;
         stadiumAddr = myStadiumAddress;
@@ -341,7 +369,9 @@ public class CreateRecruitActivity extends BaseActivity {
         selectedStartTime = myTimeStart;
         selectedEndTime   = myTimeEnd;
         if (tvRegularTime != null) {
-            tvRegularTime.setText(AppUtils.isEmpty(timeRange) ? "시간 미설정 (탭하여 설정)" : timeRange);
+            boolean hasTime = !AppUtils.isEmpty(timeRange);
+            tvRegularTime.setText(hasTime ? timeRange : "시간 미설정 (탭하여 설정)");
+            tvRegularTime.setTextColor(hasTime ? 0xFF000000 : 0xFF999999);
             tvRegularTime.setOnClickListener(v -> showTimeRangePicker(true));
         }
 
@@ -350,8 +380,10 @@ public class CreateRecruitActivity extends BaseActivity {
             if (!AppUtils.isEmpty(myActivityDay)) {
                 selectedDate = myActivityDay;
                 tvRegularDate.setText(DateUtils.appendWeekday(myActivityDay));
+                tvRegularDate.setTextColor(0xFF000000);
             } else {
                 tvRegularDate.setText("활동 날짜 선택 (탭하여 설정)");
+                tvRegularDate.setTextColor(0xFF999999);
             }
             tvRegularDate.setOnClickListener(v -> pickRegularDate());
         }
@@ -367,18 +399,54 @@ public class CreateRecruitActivity extends BaseActivity {
     }
 
     // ✅ 시간 선택 (isRegular: true면 tvRegularTime, false면 txtTime 업데이트)
+    // ✅ 시간 선택 — 시작/종료 각각 선택 (dialog_time_range_picker 사용)
     private void showTimeRangePicker(boolean isRegular) {
-        Calendar c = Calendar.getInstance();
-        new android.app.TimePickerDialog(this, (v, h, min) -> {
-            selectedStartTime = String.format("%02d:%02d", h, min);
-            selectedEndTime   = DateUtils.addHours(selectedStartTime, 2);
-            String range = selectedStartTime + " ~ " + selectedEndTime;
-            if (isRegular) {
-                if (tvRegularTime != null) tvRegularTime.setText(range);
-            } else {
-                if (txtTime != null) txtTime.setText(range);
-            }
-        }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true).show();
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_time_range_picker, null);
+        android.widget.NumberPicker sh = dialogView.findViewById(R.id.pickerStartHour);
+        android.widget.NumberPicker eh = dialogView.findViewById(R.id.pickerEndHour);
+        android.widget.NumberPicker sm = dialogView.findViewById(R.id.pickerStartMinute);
+        android.widget.NumberPicker em = dialogView.findViewById(R.id.pickerEndMinute);
+
+        for (android.widget.NumberPicker p : new android.widget.NumberPicker[]{sh, eh}) {
+            p.setMinValue(0); p.setMaxValue(23);
+            p.setFormatter(i -> String.format(java.util.Locale.getDefault(), "%02d", i));
+        }
+        String[] mins = {"00","10","20","30","40","50"};
+        for (android.widget.NumberPicker p : new android.widget.NumberPicker[]{sm, em}) {
+            p.setMinValue(0); p.setMaxValue(mins.length - 1);
+            p.setDisplayedValues(mins);
+        }
+
+        // 기존 값 복원
+        if (!AppUtils.isEmpty(selectedStartTime) && selectedStartTime.contains(":")) {
+            try {
+                String[] parts = selectedStartTime.split(":");
+                sh.setValue(Integer.parseInt(parts[0]));
+                for (int i = 0; i < mins.length; i++) { if (mins[i].equals(parts[1])) { sm.setValue(i); break; } }
+            } catch (Exception ignored) {}
+        }
+        if (!AppUtils.isEmpty(selectedEndTime) && selectedEndTime.contains(":")) {
+            try {
+                String[] parts = selectedEndTime.split(":");
+                eh.setValue(Integer.parseInt(parts[0]));
+                for (int i = 0; i < mins.length; i++) { if (mins[i].equals(parts[1])) { em.setValue(i); break; } }
+            } catch (Exception ignored) {}
+        }
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setPositiveButton("확인", (d, w) -> {
+                    selectedStartTime = String.format(java.util.Locale.getDefault(), "%02d", sh.getValue()) + ":" + mins[sm.getValue()];
+                    selectedEndTime   = String.format(java.util.Locale.getDefault(), "%02d", eh.getValue()) + ":" + mins[em.getValue()];
+                    String range = selectedStartTime + " ~ " + selectedEndTime;
+                    if (isRegular) {
+                        if (tvRegularTime != null) tvRegularTime.setText(range);
+                    } else {
+                        if (txtTime != null) txtTime.setText(range);
+                    }
+                })
+                .setNegativeButton("취소", null)
+                .show();
     }
 
     private void submit() {
@@ -439,6 +507,7 @@ public class CreateRecruitActivity extends BaseActivity {
         data.put("stadiumAddress", stadiumAddr);
         data.put("skillMin",       skillMin);
         data.put("skillMax",       skillMax);
+        positions.sort((a, b) -> posOrder(a) - posOrder(b));
         data.put("positions",      new ArrayList<>(positions));
         data.put("recruitType",    recruitType);
         data.put("intro",          details);
@@ -459,6 +528,15 @@ public class CreateRecruitActivity extends BaseActivity {
                     CustomToast.error(this, "등록 실패: " + e.getMessage());
                     btnSubmit.setEnabled(true);
                 });
+    }
+    private int posOrder(String pos) {
+        switch (pos) {
+            case "GK": return 0;
+            case "DF": return 1;
+            case "MF": return 2;
+            case "FW": return 3;
+            default:   return 9;
+        }
     }
 
     private int parseInt(String s, int def) {

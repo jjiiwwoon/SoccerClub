@@ -1,5 +1,6 @@
 package com.jjw.soccerclub.ui.common;
 
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -8,6 +9,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -19,6 +21,8 @@ import com.jjw.soccerclub.repository.RecordsRepository.PlayerStat;
 import com.jjw.soccerclub.util.AppUtils;
 import com.jjw.soccerclub.viewmodel.RecordsViewModel;
 import com.jjw.soccerclub.viewmodel.RecordsViewModel.SortKey;
+import com.jjw.soccerclub.viewmodel.RecordsViewModel.SortDir;
+import com.jjw.soccerclub.viewmodel.RecordsViewModel.SortState;
 import com.jjw.soccerclub.viewmodel.RecordsViewModel.TeamStats;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -51,6 +55,13 @@ public class RecordsActivity extends BaseActivity {
 
     // 정렬 헤더 버튼
     private LinearLayout hGames, hGoals, hAssists;
+
+    // 정렬 헤더 텍스트 + 화살표
+    private TextView  tvHdrGames, tvHdrGoals, tvHdrAssists;
+    private ImageView icHdrGames, icHdrGoals, icHdrAssists;
+
+    // 현재 정렬 상태 (어댑터 하이라이트용)
+    private SortKey currentSortKey = SortKey.GOALS;
 
     // ── ViewModel ────────────────────────────────────────────────────────────────
     private RecordsViewModel viewModel;
@@ -98,6 +109,9 @@ public class RecordsActivity extends BaseActivity {
             if (personalAdapter != null) personalAdapter.submitList(stats);
             updateTop3(stats);
         });
+
+        // ★ 정렬 상태 관찰 → 헤더 비주얼 업데이트
+        viewModel.sortState.observe(this, this::applyHeaderVisual);
     }
 
     // ── 팀 전적 요약 바인딩 ──────────────────────────────────────────────────────
@@ -166,6 +180,55 @@ public class RecordsActivity extends BaseActivity {
         if (hGames   != null) hGames.setOnClickListener(v   -> viewModel.sort(SortKey.GAMES));
     }
 
+    /** 정렬 상태에 따라 헤더 텍스트 색상 + 화살표 방향 업데이트 */
+    private void applyHeaderVisual(SortState sortState) {
+        if (sortState == null) return;
+
+        // 현재 키 저장 (어댑터 하이라이트용)
+        currentSortKey = sortState.key;
+
+        // 전체 리셋
+        resetHeader(tvHdrGames,   icHdrGames);
+        resetHeader(tvHdrGoals,   icHdrGoals);
+        resetHeader(tvHdrAssists, icHdrAssists);
+
+        // 활성 헤더 결정
+        TextView  activeTv;
+        ImageView activeIc;
+        switch (sortState.key) {
+            case GAMES:   activeTv = tvHdrGames;   activeIc = icHdrGames;   break;
+            case ASSISTS: activeTv = tvHdrAssists;  activeIc = icHdrAssists;  break;
+            default:      activeTv = tvHdrGoals;    activeIc = icHdrGoals;    break;
+        }
+
+        // 활성 헤더 하이라이트
+        int primaryColor = ContextCompat.getColor(this, R.color.primary);
+        if (activeTv != null) {
+            activeTv.setTextColor(primaryColor);
+            activeTv.setTypeface(null, Typeface.BOLD);
+        }
+        if (activeIc != null) {
+            activeIc.setAlpha(1.0f);
+            // DESC(내림차순) → 아래 화살표(0도), ASC(오름차순) → 위 화살표(180도)
+            activeIc.setRotation(sortState.dir == SortDir.DESC ? 0f : 180f);
+            activeIc.setColorFilter(primaryColor);
+        }
+
+        // 어댑터에도 알려서 활성 컬럼 하이라이트
+        if (personalAdapter != null) personalAdapter.notifyDataSetChanged();
+    }
+
+    private void resetHeader(TextView tv, ImageView ic) {
+        if (tv != null) {
+            tv.setTextColor(ContextCompat.getColor(this, R.color.text_hint));
+            tv.setTypeface(null, Typeface.NORMAL);
+        }
+        if (ic != null) {
+            ic.setAlpha(0f);
+            ic.setColorFilter(null);
+        }
+    }
+
     // ── teamId 없을 때 profiles 에서 조회 ────────────────────────────────────────
 
     private void resolveTeamIdFromProfile() {
@@ -221,6 +284,14 @@ public class RecordsActivity extends BaseActivity {
         hGoals              = findViewById(R.id.hGoals);
         hAssists            = findViewById(R.id.hAssists);
 
+        // 정렬 헤더 텍스트 + 화살표
+        tvHdrGames          = findViewById(R.id.tvHdrGames);
+        tvHdrGoals          = findViewById(R.id.tvHdrGoals);
+        tvHdrAssists        = findViewById(R.id.tvHdrAssists);
+        icHdrGames          = findViewById(R.id.icHdrGames);
+        icHdrGoals          = findViewById(R.id.icHdrGoals);
+        icHdrAssists        = findViewById(R.id.icHdrAssists);
+
         if (rvPersonal != null) {
             rvPersonal.setLayoutManager(new LinearLayoutManager(this));
             personalAdapter = new PersonalStatsAdapter();
@@ -258,6 +329,7 @@ public class RecordsActivity extends BaseActivity {
             h.tvGames.setText(String.valueOf(p.games));
             h.tvGoals.setText(String.valueOf(p.goals));
             h.tvAssists.setText(String.valueOf(p.assists));
+
             if (!TextUtils.isEmpty(p.photoUrl)) {
                 Glide.with(RecordsActivity.this)
                         .load(p.photoUrl)
@@ -266,6 +338,32 @@ public class RecordsActivity extends BaseActivity {
                         .into(h.imgProfile);
             } else {
                 h.imgProfile.setImageResource(R.drawable.ic_person_placeholder);
+            }
+
+            // ★ 활성 컬럼 하이라이트
+            int normalColor = ContextCompat.getColor(RecordsActivity.this, R.color.text_secondary);
+            int activeColor = ContextCompat.getColor(RecordsActivity.this, R.color.primary);
+
+            h.tvGames.setTextColor(normalColor);
+            h.tvGoals.setTextColor(normalColor);
+            h.tvAssists.setTextColor(normalColor);
+            h.tvGames.setTypeface(null, Typeface.NORMAL);
+            h.tvGoals.setTypeface(null, Typeface.NORMAL);
+            h.tvAssists.setTypeface(null, Typeface.NORMAL);
+
+            switch (currentSortKey) {
+                case GAMES:
+                    h.tvGames.setTextColor(activeColor);
+                    h.tvGames.setTypeface(null, Typeface.BOLD);
+                    break;
+                case ASSISTS:
+                    h.tvAssists.setTextColor(activeColor);
+                    h.tvAssists.setTypeface(null, Typeface.BOLD);
+                    break;
+                default: // GOALS
+                    h.tvGoals.setTextColor(activeColor);
+                    h.tvGoals.setTypeface(null, Typeface.BOLD);
+                    break;
             }
         }
 

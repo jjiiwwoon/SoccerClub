@@ -44,7 +44,7 @@
     <!-- 경기 -->
     <TextView
         android:id="@+id/tvGames"
-        android:layout_width="44dp"
+        android:layout_width="50dp"
         android:layout_height="wrap_content"
         android:textSize="13sp"
         android:textColor="@color/text_secondary"
@@ -53,7 +53,7 @@
     <!-- 득점 -->
     <TextView
         android:id="@+id/tvGoals"
-        android:layout_width="44dp"
+        android:layout_width="50dp"
         android:layout_height="wrap_content"
         android:textSize="14sp"
         android:textStyle="bold"
@@ -63,7 +63,7 @@
     <!-- 도움 -->
     <TextView
         android:id="@+id/tvAssists"
-        android:layout_width="44dp"
+        android:layout_width="50dp"
         android:layout_height="wrap_content"
         android:textSize="13sp"
         android:textColor="@color/text_secondary"

@@ -7,7 +7,7 @@
     android:layout_height="match_parent"
     app:loadingLayout="@layout/view_state_loading"
     app:emptyLayout="@layout/view_state_empty"
-    android:background="@color/bg_page">
+    android:background="#E8EFF8">>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerChatList"

@@ -233,11 +233,15 @@ public class RecruitDetailActivity extends BaseActivity {
 
         chipGroupPositions.removeAllViews();
         if (positions != null) {
-            for (String pos : positions) {
+            List<String> sorted = new java.util.ArrayList<>(positions);
+            sorted.sort((a, b) -> posOrder(a) - posOrder(b));
+            for (String pos : sorted) {
                 if (AppUtils.isEmpty(pos)) continue;
                 Chip chip = new Chip(this);
-                chip.setText(pos);
+                chip.setText(pos.trim().toUpperCase());
                 chip.setClickable(false);
+                chip.setCheckable(false);
+                stylePositionChip(chip, pos.trim().toUpperCase());
                 chipGroupPositions.addView(chip);
             }
         }
@@ -254,6 +258,32 @@ public class RecruitDetailActivity extends BaseActivity {
 
         // ✅ 작성자 전용 마감/삭제 버튼 설정
         setupWriterActions(ds);
+    }
+
+    private void stylePositionChip(Chip chip, String pos) {
+        int color;
+        switch (pos) {
+            case "FW": color = 0xFFD50000; break;
+            case "MF": color = 0xFF00C853; break;
+            case "DF": color = 0xFF2962FF; break;
+            case "GK": color = 0xFFF9A825; break;
+            default:   color = 0xFF666666; break;
+        }
+        chip.setChipBackgroundColor(android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
+        chip.setTextColor(color);
+        chip.setChipStrokeColor(android.content.res.ColorStateList.valueOf(color));
+        chip.setChipStrokeWidth(2f);
+        chip.setEnsureMinTouchTargetSize(false);
+    }
+
+    private int posOrder(String pos) {
+        switch (pos.trim().toUpperCase()) {
+            case "GK": return 0;
+            case "DF": return 1;
+            case "MF": return 2;
+            case "FW": return 3;
+            default:   return 9;
+        }
     }
 
     // ✅ 작성자 본인에게만 마감/삭제 버튼 표시

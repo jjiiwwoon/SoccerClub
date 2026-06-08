@@ -116,7 +116,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@color/bg_page"
+                android:background="#E8EFF8"
                 android:layout_marginTop="-20dp"
                 android:paddingTop="4dp"
                 android:paddingHorizontal="16dp">

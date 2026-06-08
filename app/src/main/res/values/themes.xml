@@ -2,7 +2,9 @@
 <resources>
 
     <!-- 기본 앱 테마 -->
-    <style name="Theme.SoccerClub" parent="Theme.Material3.DayNight.NoActionBar" />
+    <style name="Theme.SoccerClub" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:windowBackground">#E8EFF8</item>
+    </style>
 
     <!-- ✅ 스플래시 전용 테마 — 상태바/네비게이션 바를 primary 색상으로 통일 -->
     <style name="Theme.SoccerClub.Splash" parent="Theme.SoccerClub">
@@ -12,5 +14,6 @@
         <item name="android:windowLightStatusBar">false</item>
         <item name="android:windowLightNavigationBar">false</item>
     </style>
+
 
 </resources>

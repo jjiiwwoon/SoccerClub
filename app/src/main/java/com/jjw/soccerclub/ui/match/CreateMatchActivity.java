@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.NumberPicker;
 import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
@@ -86,14 +87,7 @@ public class CreateMatchActivity extends BaseActivity {
             }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
         });
 
-        txtTime.setOnClickListener(v -> {
-            Calendar c = Calendar.getInstance();
-            new android.app.TimePickerDialog(this, (view, h, min) -> {
-                selectedStartTime = String.format(Locale.getDefault(), "%02d:%02d", h, min);
-                selectedEndTime   = DateUtils.addHours(selectedStartTime, 2);
-                txtTime.setText(selectedStartTime + " ~ " + selectedEndTime);
-            }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true).show();
-        });
+        txtTime.setOnClickListener(v -> showTimeRangePicker());
 
         txtAddressSearch.setOnClickListener(v ->
                 stadiumLauncher.launch(new Intent(this, StadiumSearchActivity.class)));
@@ -109,9 +103,59 @@ public class CreateMatchActivity extends BaseActivity {
         });
     }
 
+    // ✅ 시간 선택 — 시작/종료 각각 선택 (dialog_time_range_picker 사용)
+    private void showTimeRangePicker() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_time_range_picker, null);
+        NumberPicker sh = dialogView.findViewById(R.id.pickerStartHour);
+        NumberPicker eh = dialogView.findViewById(R.id.pickerEndHour);
+        NumberPicker sm = dialogView.findViewById(R.id.pickerStartMinute);
+        NumberPicker em = dialogView.findViewById(R.id.pickerEndMinute);
+
+        for (NumberPicker p : new NumberPicker[]{sh, eh}) {
+            p.setMinValue(0);
+            p.setMaxValue(23);
+            p.setFormatter(i -> String.format(Locale.getDefault(), "%02d", i));
+        }
+        String[] mins = {"00", "10", "20", "30", "40", "50"};
+        for (NumberPicker p : new NumberPicker[]{sm, em}) {
+            p.setMinValue(0);
+            p.setMaxValue(mins.length - 1);
+            p.setDisplayedValues(mins);
+        }
+
+        // 기존 값 복원
+        if (!AppUtils.isEmpty(selectedStartTime) && selectedStartTime.contains(":")) {
+            try {
+                String[] parts = selectedStartTime.split(":");
+                sh.setValue(Integer.parseInt(parts[0]));
+                for (int i = 0; i < mins.length; i++) {
+                    if (mins[i].equals(parts[1])) { sm.setValue(i); break; }
+                }
+            } catch (Exception ignored) {}
+        }
+        if (!AppUtils.isEmpty(selectedEndTime) && selectedEndTime.contains(":")) {
+            try {
+                String[] parts = selectedEndTime.split(":");
+                eh.setValue(Integer.parseInt(parts[0]));
+                for (int i = 0; i < mins.length; i++) {
+                    if (mins[i].equals(parts[1])) { em.setValue(i); break; }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setPositiveButton("확인", (d, w) -> {
+                    selectedStartTime = String.format(Locale.getDefault(), "%02d", sh.getValue()) + ":" + mins[sm.getValue()];
+                    selectedEndTime   = String.format(Locale.getDefault(), "%02d", eh.getValue()) + ":" + mins[em.getValue()];
+                    txtTime.setText(selectedStartTime + " ~ " + selectedEndTime);
+                })
+                .setNegativeButton("취소", null)
+                .show();
+    }
+
     // ✅ 작성 취소 확인 다이얼로그
     private void showExitConfirm() {
-        // 입력 내용이 있을 때만 확인
         boolean hasInput = !AppUtils.isEmpty(selectedDate)
                 || !AppUtils.isEmpty(selectedAddress)
                 || (editDetails != null && !editDetails.getText().toString().trim().isEmpty())
@@ -206,7 +250,7 @@ public class CreateMatchActivity extends BaseActivity {
         data.put("region",         myTeamRegion);
         String currentUid = FirebaseAuth.getInstance().getCurrentUser() != null
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid() : "";
-        data.put("authorUid",      currentUid); // ✅ 내 글 탭 조회용
+        data.put("authorUid",      currentUid);
         data.put("createdBy",      currentUid);
         data.put("createdAt",      Timestamp.now());
 

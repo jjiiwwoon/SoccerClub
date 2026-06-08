@@ -141,7 +141,6 @@
                             android:text="득점 TOP3" android:textSize="13sp" android:textStyle="bold"
                             android:textColor="@color/text_primary" android:layout_marginBottom="8dp"/>
 
-                        <!-- 포디움: 2위 / 1위 / 3위 순서 -->
                         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                             android:orientation="horizontal" android:gravity="bottom">
 
@@ -320,25 +319,51 @@
                             android:layout_weight="1" android:text="이름"
                             android:textSize="12sp" android:textColor="@color/text_hint" android:layout_marginStart="8dp"/>
 
+                        <!-- 경기 헤더 (정렬 가능) -->
                         <LinearLayout android:id="@+id/hGames"
-                            android:layout_width="44dp" android:layout_height="wrap_content"
-                            android:orientation="vertical" android:gravity="center" android:clickable="true" android:focusable="true">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:layout_width="50dp" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center"
+                            android:clickable="true" android:focusable="true">
+                            <TextView android:id="@+id/tvHdrGames"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"
                                 android:text="경기" android:textSize="12sp" android:textColor="@color/text_hint"/>
+                            <ImageView android:id="@+id/icHdrGames"
+                                android:layout_width="10dp" android:layout_height="10dp"
+                                android:layout_marginStart="1dp"
+                                android:src="@drawable/ic_arrow_down"
+                                android:alpha="0"
+                                android:importantForAccessibility="no"/>
                         </LinearLayout>
 
+                        <!-- 득점 헤더 (정렬 가능, 기본 활성) -->
                         <LinearLayout android:id="@+id/hGoals"
-                            android:layout_width="44dp" android:layout_height="wrap_content"
-                            android:orientation="vertical" android:gravity="center" android:clickable="true" android:focusable="true">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:layout_width="50dp" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center"
+                            android:clickable="true" android:focusable="true">
+                            <TextView android:id="@+id/tvHdrGoals"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"
                                 android:text="득점" android:textSize="12sp" android:textColor="@color/primary" android:textStyle="bold"/>
+                            <ImageView android:id="@+id/icHdrGoals"
+                                android:layout_width="10dp" android:layout_height="10dp"
+                                android:layout_marginStart="1dp"
+                                android:src="@drawable/ic_arrow_down"
+                                android:importantForAccessibility="no"/>
                         </LinearLayout>
 
+                        <!-- 도움 헤더 (정렬 가능) -->
                         <LinearLayout android:id="@+id/hAssists"
-                            android:layout_width="44dp" android:layout_height="wrap_content"
-                            android:orientation="vertical" android:gravity="center" android:clickable="true" android:focusable="true">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:layout_width="50dp" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center"
+                            android:clickable="true" android:focusable="true">
+                            <TextView android:id="@+id/tvHdrAssists"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"
                                 android:text="도움" android:textSize="12sp" android:textColor="@color/text_hint"/>
+                            <ImageView android:id="@+id/icHdrAssists"
+                                android:layout_width="10dp" android:layout_height="10dp"
+                                android:layout_marginStart="1dp"
+                                android:src="@drawable/ic_arrow_down"
+                                android:alpha="0"
+                                android:importantForAccessibility="no"/>
                         </LinearLayout>
                     </LinearLayout>
 

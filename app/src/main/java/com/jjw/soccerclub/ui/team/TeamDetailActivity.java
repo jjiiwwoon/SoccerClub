@@ -206,7 +206,7 @@ public class TeamDetailActivity extends BaseActivity {
                     ? actDay + " | " + timeS + " ~ " + timeE : actDay;
             setTextOrGone(teamActivityDay, display);
         } else {
-            teamActivityDay.setVisibility(View.GONE);
+            if (teamActivityDay != null) teamActivityDay.setVisibility(View.GONE);
         }
 
         setTextOrGone(teamHomeStadiumName,    stadName);

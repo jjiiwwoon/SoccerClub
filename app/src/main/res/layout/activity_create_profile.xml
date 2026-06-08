@@ -1,21 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    프로필 생성/편집 화면 (CreateProfileActivity + EditProfileActivity 공용)
-    변경: 모던 카드 섹션 UI
-    ✅ 기존 뷰 ID 전부 유지:
-       editNickname / editAge / editHeight / editWeight / editIntroduction
-       spinnerPosition / spinnerSkill / spinnerFoot / spinnerPlayerLevel
-       radioGroupPlayerType / radioNonPro / radioPro
-       layoutSelectPlayerLevel
-       imageProfile / profileClickableArea / textProfileHint / btnSaveProfile
--->
+
 <androidx.core.widget.NestedScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/mainRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_page"
+    android:background="#E8EFF8"
     android:fillViewport="true">
 
     <LinearLayout

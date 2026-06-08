@@ -181,8 +181,8 @@ public class RecruitAdapter extends RecyclerView.Adapter<RecruitAdapter.ViewHold
                 bgColor   = 0x1A2962FF;
                 break;
             case "GK":
-                textColor = 0xFFE65100;
-                bgColor   = 0x1AE65100;
+                textColor = 0xFFF9A825;
+                bgColor   = 0x1AF9A825;
                 break;
             default:
                 textColor = 0xFF666666;

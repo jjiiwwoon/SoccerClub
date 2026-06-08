@@ -2,6 +2,7 @@ package com.jjw.soccerclub.ui.recruit;
 
 import android.app.DatePickerDialog;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,6 +21,7 @@ import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.model.RecruitFilters;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -136,16 +138,15 @@ public class RecruitFilterSheet extends BottomSheetDialogFragment {
         setText(textTimeFrom, nullToAll(current.timeFrom));
         setText(textTimeTo,   nullToAll(current.timeTo));
         selectRecruitTypeChip(nullToAll(current.recruitType));
-        restorePositionChip(nullToAll(current.position));
-        selectWeekdayChip(nullToAll(current.weekday));
+        restorePositionChipsFromCurrent();
+        restoreWeekdayChipsFromCurrent();
     }
 
     private void setupListeners() {
         String[] cities = requireContext().getResources().getStringArray(R.array.city_array);
-        String[] skillItems = new String[12];
+        String[] skillItems = new String[11];
         skillItems[0] = ALL;
         for (int i = 1; i <= 10; i++) skillItems[i] = String.valueOf(i);
-        skillItems[11] = "10";
 
         btnCity.setOnClickListener(v -> showPopup(btnCity, cities, sel -> {
             setText(textCity, sel);
@@ -226,6 +227,8 @@ public class RecruitFilterSheet extends BottomSheetDialogFragment {
         }));
     }
 
+    // ── 모집유형 (단일 선택) ──────────────────────────────────────────────────
+
     private void selectRecruitTypeChip(String type) {
         current.recruitType = ALL.equals(type) ? "전체" : type;
         setChipSelected(chipRecruitTypeAll,     ALL.equals(type));
@@ -233,30 +236,79 @@ public class RecruitFilterSheet extends BottomSheetDialogFragment {
         setChipSelected(chipRecruitTypeMerc,    "mercenary".equals(type));
     }
 
+    // ── 포지션 (다중 선택 토글) ──────────────────────────────────────────────
+
     private void selectPositionChip(String pos) {
-        current.position = ALL.equals(pos) ? "전체" : pos;
-        setChipSelected(chipPosAll, ALL.equals(pos));
-        setChipSelected(chipPosGK,  "GK".equals(pos));
-        setChipSelected(chipPosDF,  "DF".equals(pos));
-        setChipSelected(chipPosMF,  "MF".equals(pos));
-        setChipSelected(chipPosFW,  "FW".equals(pos));
+        if (ALL.equals(pos)) {
+            current.position = "전체";
+        } else {
+            String raw = current.position == null ? "" : current.position.trim();
+            List<String> selected = new ArrayList<>();
+            if (!raw.isEmpty() && !"전체".equals(raw)) {
+                selected.addAll(Arrays.asList(raw.split(",")));
+            }
+            if (selected.contains(pos)) selected.remove(pos);
+            else selected.add(pos);
+
+            current.position = selected.isEmpty() ? "전체" : TextUtils.join(",", selected);
+        }
+        restorePositionChipsFromCurrent();
     }
 
-    private void restorePositionChip(String pos) {
-        selectPositionChip(pos == null || pos.isEmpty() || ALL.equals(pos) ? ALL : pos);
+    private void restorePositionChipsFromCurrent() {
+        String raw = current.position;
+        boolean isAll = raw == null || raw.trim().isEmpty() || "전체".equals(raw.trim());
+        setChipSelected(chipPosAll, isAll);
+        if (isAll) {
+            setChipSelected(chipPosGK, false);
+            setChipSelected(chipPosDF, false);
+            setChipSelected(chipPosMF, false);
+            setChipSelected(chipPosFW, false);
+        } else {
+            setChipSelected(chipPosGK, raw.contains("GK"));
+            setChipSelected(chipPosDF, raw.contains("DF"));
+            setChipSelected(chipPosMF, raw.contains("MF"));
+            setChipSelected(chipPosFW, raw.contains("FW"));
+        }
     }
+
+    // ── 요일 (다중 선택 토글) ────────────────────────────────────────────────
 
     private void selectWeekdayChip(String day) {
-        current.weekday = ALL.equals(day) ? "전체" : day;
-        setChipSelected(chipWeekAll, ALL.equals(day));
-        setChipSelected(chipWeekMon, "월".equals(day));
-        setChipSelected(chipWeekTue, "화".equals(day));
-        setChipSelected(chipWeekWed, "수".equals(day));
-        setChipSelected(chipWeekThu, "목".equals(day));
-        setChipSelected(chipWeekFri, "금".equals(day));
-        setChipSelected(chipWeekSat, "토".equals(day));
-        setChipSelected(chipWeekSun, "일".equals(day));
+        if (ALL.equals(day)) {
+            current.weekday = "전체";
+        } else {
+            String raw = current.weekday == null ? "" : current.weekday.trim();
+            List<String> selected = new ArrayList<>();
+            if (!raw.isEmpty() && !"전체".equals(raw)) {
+                selected.addAll(Arrays.asList(raw.split(",")));
+            }
+            if (selected.contains(day)) selected.remove(day);
+            else selected.add(day);
+
+            current.weekday = selected.isEmpty() ? "전체" : TextUtils.join(",", selected);
+        }
+        restoreWeekdayChipsFromCurrent();
     }
+
+    private void restoreWeekdayChipsFromCurrent() {
+        String raw = current.weekday;
+        boolean isAll = raw == null || raw.trim().isEmpty() || "전체".equals(raw.trim());
+        setChipSelected(chipWeekAll, isAll);
+        if (isAll) {
+            setChipSelected(chipWeekMon, false); setChipSelected(chipWeekTue, false);
+            setChipSelected(chipWeekWed, false); setChipSelected(chipWeekThu, false);
+            setChipSelected(chipWeekFri, false); setChipSelected(chipWeekSat, false);
+            setChipSelected(chipWeekSun, false);
+        } else {
+            setChipSelected(chipWeekMon, raw.contains("월")); setChipSelected(chipWeekTue, raw.contains("화"));
+            setChipSelected(chipWeekWed, raw.contains("수")); setChipSelected(chipWeekThu, raw.contains("목"));
+            setChipSelected(chipWeekFri, raw.contains("금")); setChipSelected(chipWeekSat, raw.contains("토"));
+            setChipSelected(chipWeekSun, raw.contains("일"));
+        }
+    }
+
+    // ── 공통 UI 헬퍼 ─────────────────────────────────────────────────────────
 
     private void setChipSelected(TextView chip, boolean selected) {
         if (chip == null) return;
@@ -321,8 +373,22 @@ public class RecruitFilterSheet extends BottomSheetDialogFragment {
 
     private void initDistrictMap() {
         districtMap = new HashMap<>();
-        districtMap.put("서울", Arrays.asList(ALL,"강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구","동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구","용산구","은평구","종로구","중구","중랑구"));
-        districtMap.put("부산", Arrays.asList(ALL,"강서구","금정구","기장군","남구","동구","동래구","부산진구","북구","사상구","사하구","서구","수영구","연제구","영도구","중구","해운대구"));
-        districtMap.put("경기도", Arrays.asList(ALL,"가평군","고양시","과천시","광명시","광주시","구리시","군포시","김포시","남양주시","동두천시","부천시","성남시","수원시","시흥시","안산시","안성시","안양시","양주시","양평군","여주시","연천군","오산시","용인시","의왕시","의정부시","이천시","파주시","평택시","포천시","하남시","화성시"));
+        districtMap.put("서울", Arrays.asList("전체","강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구","동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구","용산구","은평구","종로구","중구","중랑구"));
+        districtMap.put("부산", Arrays.asList("전체","강서구","금정구","기장군","남구","동구","동래구","부산진구","북구","사상구","사하구","서구","수영구","연제구","영도구","중구","해운대구"));
+        districtMap.put("대구", Arrays.asList("전체","남구","달서구","달성군","동구","북구","서구","수성구","중구"));
+        districtMap.put("인천", Arrays.asList("전체","강화군","계양구","남동구","동구","미추홀구","부평구","서구","연수구","옹진군","중구"));
+        districtMap.put("광주", Arrays.asList("전체","광산구","남구","동구","북구","서구"));
+        districtMap.put("대전", Arrays.asList("전체","대덕구","동구","서구","유성구","중구"));
+        districtMap.put("울산", Arrays.asList("전체","남구","동구","북구","중구","울주군"));
+        districtMap.put("세종", Arrays.asList("전체","세종시"));
+        districtMap.put("경기도", Arrays.asList("전체","가평군","고양시","과천시","광명시","광주시","구리시","군포시","김포시","남양주시","동두천시","부천시","성남시","수원시","시흥시","안산시","안성시","안양시","양주시","양평군","여주시","연천군","오산시","용인시","의왕시","의정부시","이천시","파주시","평택시","포천시","하남시","화성시"));
+        districtMap.put("강원도", Arrays.asList("전체","강릉시","고성군","동해시","삼척시","속초시","양구군","양양군","영월군","원주시","인제군","정선군","철원군","춘천시","태백시","평창군","홍천군","화천군","횡성군"));
+        districtMap.put("충북", Arrays.asList("전체","괴산군","단양군","보은군","영동군","옥천군","음성군","제천시","증평군","진천군","청주시","충주시"));
+        districtMap.put("충남", Arrays.asList("전체","계룡시","공주시","금산군","논산시","당진시","보령시","부여군","서산시","서천군","아산시","예산군","천안시","청양군","태안군","홍성군"));
+        districtMap.put("전북", Arrays.asList("전체","고창군","군산시","김제시","남원시","무주군","부안군","순창군","완주군","익산시","임실군","장수군","전주시","정읍시","진안군"));
+        districtMap.put("전남", Arrays.asList("전체","강진군","고흥군","곡성군","광양시","구례군","나주시","담양군","목포시","무안군","보성군","순천시","신안군","여수시","영광군","영암군","완도군","장성군","장흥군","진도군","함평군","해남군","화순군"));
+        districtMap.put("경북", Arrays.asList("전체","경산시","경주시","고령군","구미시","군위군","김천시","문경시","봉화군","상주시","성주군","안동시","영덕군","영양군","영주시","영천시","예천군","울릉군","울진군","의성군","청도군","청송군","칠곡군","포항시"));
+        districtMap.put("경남", Arrays.asList("전체","거제시","거창군","고성군","김해시","남해군","밀양시","사천시","산청군","양산시","의령군","진주시","창녕군","창원시","통영시","하동군","함안군","함양군","합천군"));
+        districtMap.put("제주도", Arrays.asList("전체","서귀포시","제주시"));
     }
 }

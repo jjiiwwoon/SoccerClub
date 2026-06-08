@@ -1,17 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    팀 목록 화면
-    변경 사항:
-    1. 검색창에 돋보기 아이콘 추가
-    2. 필터 칩에 라벨 추가 (활동지역 | 구/군 | 실력 | 나이(시작) ~ 나이(끝))
-    3. 전체적인 여백/색상 정리
--->
+
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_page">
+    android:background="#E8EFF8">
 
     <LinearLayout
         android:layout_width="match_parent"
