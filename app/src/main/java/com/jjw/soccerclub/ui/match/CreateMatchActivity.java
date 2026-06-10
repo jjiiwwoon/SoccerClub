@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.common.CustomToast;
+import com.jjw.soccerclub.repository.MatchRepository;
 import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.ui.common.StadiumSearchActivity;
 import com.jjw.soccerclub.util.AppUtils;
@@ -47,6 +48,7 @@ public class CreateMatchActivity extends BaseActivity {
     private String myTeamRegion      = "";
     private int    mySkill           = -1;
 
+    private final MatchRepository matchRepository = new MatchRepository();
     private final ActivityResultLauncher<Intent> stadiumLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), r -> {
                 if (r.getResultCode() == RESULT_OK && r.getData() != null) {
@@ -195,6 +197,7 @@ public class CreateMatchActivity extends BaseActivity {
     }
 
     private void submitMatchPost() {
+        // ── 입력 검증 (기존 그대로) ──────────────────────────────────────────────
         if (AppUtils.isEmpty(myTeamId) || AppUtils.isEmpty(myTeamName)) {
             CustomToast.warning(this, "소속 팀이 없어요. 팀에 가입하거나 만들어주세요.");
             return;
@@ -222,48 +225,31 @@ public class CreateMatchActivity extends BaseActivity {
             return;
         }
 
-        long matchTs = DateUtils.computeStartMillis(selectedDate, selectedStartTime);
-        long endTs   = DateUtils.computeEndMillis(selectedDate,
-                selectedStartTime + " ~ " + selectedEndTime);
-        long nowMs   = System.currentTimeMillis();
-        String weekday = DateUtils.getKoreanWeekday(selectedDate);
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("teamId",         myTeamId);
-        data.put("teamName",       myTeamName);
-        data.put("logoUrl",        myTeamLogoUrl);
-        data.put("teamLogoUrl",    myTeamLogoUrl);
-        data.put("date",           selectedDate);
-        data.put("time",           selectedStartTime + " ~ " + selectedEndTime);
-        data.put("timeStart",      selectedStartTime);
-        data.put("timeEnd",        selectedEndTime);
-        data.put("matchTs",        matchTs);
-        data.put("endTs",          endTs);
-        data.put("timestamp",      nowMs);
-        data.put("weekday",        weekday);
-        data.put("stadiumName",    stadium);
-        data.put("stadiumAddress", selectedAddress);
-        data.put("address",        selectedAddress);
-        data.put("skill",          mySkill);
-        data.put("description",    description);
-        data.put("status",         "OPEN");
-        data.put("region",         myTeamRegion);
+        // ── 등록 (Repository 위임) ───────────────────────────────────────────────
         String currentUid = FirebaseAuth.getInstance().getCurrentUser() != null
                 ? FirebaseAuth.getInstance().getCurrentUser().getUid() : "";
-        data.put("authorUid",      currentUid);
-        data.put("createdBy",      currentUid);
-        data.put("createdAt",      Timestamp.now());
+
+        MatchRepository.NewMatchPost post = new MatchRepository.NewMatchPost(
+                myTeamId, myTeamName, myTeamLogoUrl, myTeamRegion, mySkill,
+                selectedDate, selectedStartTime, selectedEndTime,
+                stadium, selectedAddress, description, currentUid);
 
         btnSubmit.setEnabled(false);
-        FirebaseFirestore.getInstance().collection("matches").add(data)
-                .addOnSuccessListener(ref -> {
-                    CustomToast.success(this, "시합 모집글이 등록됐어요!");
-                    setResult(RESULT_OK);
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    CustomToast.error(this, "등록 실패: " + e.getMessage());
-                    btnSubmit.setEnabled(true);
-                });
+        matchRepository.createPost(post, new MatchRepository.WriteCallback() {
+            @Override
+            public void onSuccess() {
+                if (isFinishing() || isDestroyed()) return;
+                CustomToast.success(CreateMatchActivity.this, "시합 모집글이 등록됐어요!");
+                setResult(RESULT_OK);
+                finish();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                if (isFinishing() || isDestroyed()) return;
+                CustomToast.error(CreateMatchActivity.this, "등록 실패: " + e.getMessage());
+                btnSubmit.setEnabled(true);
+            }
+        });
     }
 }

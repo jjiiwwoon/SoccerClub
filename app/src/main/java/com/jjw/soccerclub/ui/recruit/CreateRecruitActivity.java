@@ -1,5 +1,6 @@
 package com.jjw.soccerclub.ui.recruit;
 
+import com.jjw.soccerclub.repository.RecruitRepository;
 import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.ui.common.SchedulePickerDialog;
 import android.app.DatePickerDialog;
@@ -36,10 +37,8 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class CreateRecruitActivity extends BaseActivity {
@@ -80,6 +79,8 @@ public class CreateRecruitActivity extends BaseActivity {
     private final List<String> positions   = new ArrayList<>();
     private final Set<String>  positionSet = new HashSet<>();
 
+    private final RecruitRepository recruitRepository = new RecruitRepository();
+
     private final ActivityResultLauncher<Intent> addressSearchLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), r -> {
                 if (r.getResultCode() == RESULT_OK && r.getData() != null) {
@@ -114,7 +115,6 @@ public class CreateRecruitActivity extends BaseActivity {
         myUid = auth.getCurrentUser() != null ? auth.getCurrentUser().getUid() : "";
         fetchMyProfileThenTeam();
 
-        // ✅ 뒤로가기 취소 확인 다이얼로그
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -123,7 +123,6 @@ public class CreateRecruitActivity extends BaseActivity {
         });
     }
 
-    // ✅ 작성 취소 확인 다이얼로그 — 입력 내용이 있을 때만 표시
     private void showExitConfirm() {
         boolean hasInput = !AppUtils.isEmpty(selectedDate)
                 || !AppUtils.isEmpty(stadiumAddr)
@@ -240,13 +239,11 @@ public class CreateRecruitActivity extends BaseActivity {
             if (isRegular) applyTeamToRegularUI();
         });
 
-        // 용병 모집 필드
         txtDate.setOnClickListener(v -> pickMercenaryDate());
         txtTime.setOnClickListener(v -> showTimeRangePicker(false));
         txtAddressSearch.setOnClickListener(v ->
                 addressSearchLauncher.launch(new Intent(this, StadiumSearchActivity.class)));
 
-        // ✅ 일정에서 가져오기 — 용병 쪽에서만 사용
         if (btnLoadFromSchedule != null) {
             if (btnLoadFromSchedule != null) {
                 btnLoadFromSchedule.setOnClickListener(v -> {
@@ -259,7 +256,6 @@ public class CreateRecruitActivity extends BaseActivity {
                             myTeamId, myTeamId, myTeamName);
 
                     picker.setOnScheduleSelected(doc -> {
-                        // ★ 선택한 일정의 정보를 용병 모집 폼에 자동 채움
                         String date = AppUtils.safe(doc.getString("date"));
                         String time = AppUtils.safe(doc.getString("time"));
                         String sName = AppUtils.firstNonEmpty(
@@ -267,15 +263,12 @@ public class CreateRecruitActivity extends BaseActivity {
                         String sAddr = AppUtils.firstNonEmpty(
                                 doc.getString("stadiumAddress"), doc.getString("address"));
 
-                        // 날짜
                         if (!AppUtils.isEmpty(date)) {
                             selectedDate = date;
                             if (txtDate != null) txtDate.setText(DateUtils.appendWeekday(date));
                         }
 
-                        // 시간
                         if (!AppUtils.isEmpty(time)) {
-                            // "HH:mm ~ HH:mm" 또는 "HH:mm" 형태
                             if (time.contains("~")) {
                                 String[] parts = time.split("~");
                                 selectedStartTime = parts[0].trim();
@@ -289,13 +282,11 @@ public class CreateRecruitActivity extends BaseActivity {
                             if (txtTime != null) txtTime.setText(range);
                         }
 
-                        // 경기장
                         if (!AppUtils.isEmpty(sName)) {
                             stadiumName = sName;
                             if (editStadium != null) editStadium.setText(sName);
                         }
 
-                        // 주소
                         if (!AppUtils.isEmpty(sAddr)) {
                             stadiumAddr = sAddr;
                             if (txtSelectedAddress != null) txtSelectedAddress.setText(sAddr);
@@ -313,7 +304,6 @@ public class CreateRecruitActivity extends BaseActivity {
         btnSubmit.setOnClickListener(v -> submit());
     }
 
-    // ✅ 용병 모집용 날짜 선택
     private void pickMercenaryDate() {
         Calendar c = Calendar.getInstance();
         new DatePickerDialog(this, (view, y, m, d) -> {
@@ -346,7 +336,6 @@ public class CreateRecruitActivity extends BaseActivity {
     }
 
     private void applyTeamToRegularUI() {
-        // ✅ 구장 - 팀 정보로 기본 세팅 (클릭하면 변경 가능)
         if (tvRegularStadium != null) {
             boolean hasStadium = !AppUtils.isEmpty(myHomeStadiumName);
             tvRegularStadium.setText(hasStadium ? myHomeStadiumName : "주활동구장 미설정 (탭하여 설정)");
@@ -363,7 +352,6 @@ public class CreateRecruitActivity extends BaseActivity {
         stadiumName = myHomeStadiumName;
         stadiumAddr = myStadiumAddress;
 
-        // ✅ 시간 - 팀 정보로 기본 세팅 (클릭하면 변경 가능)
         String timeRange = (!AppUtils.isEmpty(myTimeStart) && !AppUtils.isEmpty(myTimeEnd))
                 ? myTimeStart + " ~ " + myTimeEnd : "";
         selectedStartTime = myTimeStart;
@@ -375,7 +363,6 @@ public class CreateRecruitActivity extends BaseActivity {
             tvRegularTime.setOnClickListener(v -> showTimeRangePicker(true));
         }
 
-        // ✅ 날짜 - 팀 활동일 기본 세팅 (클릭하면 변경 가능)
         if (tvRegularDate != null) {
             if (!AppUtils.isEmpty(myActivityDay)) {
                 selectedDate = myActivityDay;
@@ -389,7 +376,6 @@ public class CreateRecruitActivity extends BaseActivity {
         }
     }
 
-    // ✅ 팀원 모집용 날짜 선택
     private void pickRegularDate() {
         Calendar c = Calendar.getInstance();
         new DatePickerDialog(this, (view, y, m, d) -> {
@@ -398,8 +384,6 @@ public class CreateRecruitActivity extends BaseActivity {
         }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).show();
     }
 
-    // ✅ 시간 선택 (isRegular: true면 tvRegularTime, false면 txtTime 업데이트)
-    // ✅ 시간 선택 — 시작/종료 각각 선택 (dialog_time_range_picker 사용)
     private void showTimeRangePicker(boolean isRegular) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_time_range_picker, null);
         android.widget.NumberPicker sh = dialogView.findViewById(R.id.pickerStartHour);
@@ -417,7 +401,6 @@ public class CreateRecruitActivity extends BaseActivity {
             p.setDisplayedValues(mins);
         }
 
-        // 기존 값 복원
         if (!AppUtils.isEmpty(selectedStartTime) && selectedStartTime.contains(":")) {
             try {
                 String[] parts = selectedStartTime.split(":");
@@ -449,12 +432,21 @@ public class CreateRecruitActivity extends BaseActivity {
                 .show();
     }
 
+    /**
+     * 모집글 등록.
+     *
+     * 입력 검증은 이 Activity 가 담당하고,
+     * 문서 스키마 구성 + Firestore 쓰기는 RecruitRepository.createPost() 가 담당한다.
+     *
+     * [변경 전] 25개 필드 Map 을 직접 구성해 db.collection("recruitPosts").add(data).
+     * [변경 후] 검증 완료된 값을 NewRecruitPost 로 묶어 Repository 에 위임.
+     *   저장되는 필드명/값/파생값(matchTs, endTs, weekday, postTs) 은 변경 전과 동일.
+     */
     private void submit() {
         boolean isRegular = (radioRecruitType.getCheckedRadioButtonId() == R.id.rdoRegular);
 
         if (isRegular) {
             if (AppUtils.isEmpty(myTeamId)) { CustomToast.error(this, "팀 정보를 불러오지 못했습니다."); return; }
-            // ✅ 날짜 없으면 오늘 날짜로 기본 설정
             if (AppUtils.isEmpty(selectedDate)) {
                 Calendar c = Calendar.getInstance();
                 selectedDate = String.format("%04d-%02d-%02d",
@@ -462,16 +454,13 @@ public class CreateRecruitActivity extends BaseActivity {
                 if (tvRegularDate != null) tvRegularDate.setText(DateUtils.appendWeekday(selectedDate));
             }
             if (AppUtils.isEmpty(selectedStartTime) || AppUtils.isEmpty(selectedEndTime)) {
-                // 시간 미설정이면 기본값 00:00 ~ 02:00
                 selectedStartTime = "00:00";
                 selectedEndTime   = "02:00";
             }
             if (AppUtils.isEmpty(stadiumName)) stadiumName = myHomeStadiumName;
             if (AppUtils.isEmpty(stadiumAddr)) stadiumAddr = myStadiumAddress;
         } else {
-            // ✅ 용병 모집 - 날짜/시간/장소 선택 사항
             stadiumName = editStadium != null ? editStadium.getText().toString().trim() : "";
-            // 날짜 없으면 빈 값으로 저장 (선택 사항)
             if (AppUtils.isEmpty(selectedStartTime)) selectedStartTime = "";
             if (AppUtils.isEmpty(selectedEndTime))   selectedEndTime   = "";
         }
@@ -481,54 +470,36 @@ public class CreateRecruitActivity extends BaseActivity {
         int skillMax   = parseInt(spinnerSkillMax.getSelectedItem().toString(), 10);
         if (skillMin > skillMax) { CustomToast.warning(this, "실력 범위를 올바르게 선택하세요."); return; }
 
-        String recruitType = isRegular ? "regular" : "mercenary";
-        String timeRange   = selectedStartTime + " ~ " + selectedEndTime;
-        long matchTs       = DateUtils.computeStartMillis(selectedDate, selectedStartTime);
-        long endTs         = DateUtils.computeEndMillis(selectedDate, timeRange);
-        long nowMs         = System.currentTimeMillis();
-        String weekday     = DateUtils.getKoreanWeekday(selectedDate);
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("teamId",         myTeamId);
-        data.put("teamName",       myTeamName);
-        data.put("teamLogoUrl",    myTeamLogo);
-        data.put("region",         myRegion);
-        data.put("date",           selectedDate);
-        data.put("time",           timeRange);
-        data.put("timeStart",      selectedStartTime);
-        data.put("timeEnd",        selectedEndTime);
-        data.put("matchTs",        matchTs);
-        data.put("endTs",          endTs);
-        data.put("weekday",        weekday);
-        data.put("postTs",         matchTs);
-        data.put("timestamp",      nowMs);
-        data.put("createdAtMs",    nowMs);
-        data.put("stadiumName",    stadiumName);
-        data.put("stadiumAddress", stadiumAddr);
-        data.put("skillMin",       skillMin);
-        data.put("skillMax",       skillMax);
+        // ── 등록 (Repository 위임) ───────────────────────────────────────────────
         positions.sort((a, b) -> posOrder(a) - posOrder(b));
-        data.put("positions",      new ArrayList<>(positions));
-        data.put("recruitType",    recruitType);
-        data.put("intro",          details);
-        data.put("status",         "open");
-        data.put("createdBy",      myUid);
-        data.put("authorUid",      myUid); // ✅ ApplicationsListActivity 내 글 탭 조회용
-        data.put("createdAt",      com.google.firebase.Timestamp.now());
-        data.put("updatedAt",      com.google.firebase.Timestamp.now());
+
+        RecruitRepository.NewRecruitPost post = new RecruitRepository.NewRecruitPost(
+                myTeamId, myTeamName, myTeamLogo, myRegion,
+                selectedDate, selectedStartTime, selectedEndTime,
+                stadiumName, stadiumAddr,
+                skillMin, skillMax,
+                positions, isRegular,
+                details, myUid);
 
         btnSubmit.setEnabled(false);
-        db.collection("recruitPosts").add(data)
-                .addOnSuccessListener(r -> {
-                    CustomToast.success(this, "모집글이 등록되었습니다.");
-                    setResult(RESULT_OK);
-                    finish();
-                })
-                .addOnFailureListener(e -> {
-                    CustomToast.error(this, "등록 실패: " + e.getMessage());
-                    btnSubmit.setEnabled(true);
-                });
+        recruitRepository.createPost(post, new RecruitRepository.WriteCallback() {
+            @Override
+            public void onSuccess() {
+                if (isFinishing() || isDestroyed()) return;
+                CustomToast.success(CreateRecruitActivity.this, "모집글이 등록되었습니다.");
+                setResult(RESULT_OK);
+                finish();
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                if (isFinishing() || isDestroyed()) return;
+                CustomToast.error(CreateRecruitActivity.this, "등록 실패: " + e.getMessage());
+                btnSubmit.setEnabled(true);
+            }
+        });
     }
+
     private int posOrder(String pos) {
         switch (pos) {
             case "GK": return 0;

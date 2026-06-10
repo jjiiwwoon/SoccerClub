@@ -21,6 +21,17 @@ import java.util.List;
  * Firestore 실시간 리스너는 ViewModel 이 살아있는 동안 유지되고
  * onCleared() 에서 해제된다. Fragment 가 재생성(화면 회전)돼도
  * 리스너는 끊기지 않는다.
+ *
+ * [변경 전] 원본 목록을 내부 MutableLiveData(allTeams) 로 보관하고
+ *   allTeams.observeForever(teams -> publishFiltered()) 로 필터를 연결.
+ *   → observer 를 해제하는 코드가 없어 ViewModel 소멸 후에도 콜백이 잔존하고,
+ *     재생성 시 observer 가 누적돼 publishFiltered 가 중복 실행될 수 있었음.
+ *     (MyTeamViewModel 에서는 같은 문제를 observer 필드 보관으로 고쳤으나 여기는 누락)
+ *
+ * [변경 후] TeamRepository.listenAllTeams 가 TeamsCallback 으로 결과를 전달.
+ *   콜백 안에서 원본 갱신 + publishFiltered() 를 직접 호출한다.
+ *   중간 LiveData 와 observeForever 가 모두 사라져 누수 원인 자체가 제거됨.
+ *   외부 동작(목록/검색/필터/실시간 갱신)은 변경 전과 동일.
  */
 public class AllTeamViewModel extends ViewModel {
 
@@ -36,8 +47,11 @@ public class AllTeamViewModel extends ViewModel {
 
     // ── 내부 상태 ────────────────────────────────────────────────────────────────
 
-    /** Firestore 에서 받아온 전체 팀 목록 */
-    private final MutableLiveData<List<Team>> allTeams = new MutableLiveData<>(new ArrayList<>());
+    /**
+     * Firestore 에서 받아온 전체 팀 목록.
+     * Fragment 에 직접 노출되지 않는 내부 상태이므로 LiveData 일 필요가 없다.
+     */
+    private List<Team> allTeams = new ArrayList<>();
 
     /** 현재 검색어 */
     private String searchQuery = "";
@@ -58,10 +72,10 @@ public class AllTeamViewModel extends ViewModel {
         if (listenerStarted) return;
         listenerStarted = true;
 
-        listenerReg = repository.listenAllTeams(allTeams);
-
-        // allTeams 가 바뀔 때마다 자동으로 필터 적용
-        allTeams.observeForever(teams -> publishFiltered());
+        listenerReg = repository.listenAllTeams(teams -> {
+            allTeams = teams;
+            publishFiltered();
+        });
     }
 
     /** 검색어 변경 */
@@ -85,11 +99,7 @@ public class AllTeamViewModel extends ViewModel {
 
     /** allTeams 에 검색어+필터 적용 → displayTeams 업데이트 */
     private void publishFiltered() {
-        List<Team> source = allTeams.getValue();
-        if (source == null) {
-            _displayTeams.setValue(new ArrayList<>());
-            return;
-        }
+        List<Team> source = allTeams;
 
         // 나이 필터 범위 파싱
         boolean filterByAge = !isAll(filterAgeStart) && !isAll(filterAgeEnd);
@@ -163,7 +173,8 @@ public class AllTeamViewModel extends ViewModel {
     @Override
     protected void onCleared() {
         super.onCleared();
-        // ViewModel 이 완전히 소멸될 때 Firestore 리스너 해제
+        // ViewModel 이 완전히 소멸될 때 Firestore 리스너 해제.
+        // 해제할 observer 자체가 사라졌으므로 listenerReg.remove() 만으로 충분.
         if (listenerReg != null) {
             listenerReg.remove();
             listenerReg = null;

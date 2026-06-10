@@ -3,8 +3,6 @@ package com.jjw.soccerclub.ui.auth;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Patterns;
-import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.activity.EdgeToEdge;
@@ -15,18 +13,20 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.common.CustomToast;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseAuthUserCollisionException;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
+import com.jjw.soccerclub.repository.AuthRepository;
 
-import java.util.HashMap;
-import java.util.Map;
-
+/**
+ * 회원가입 화면.
+ *
+ * Firestore/Auth 호출은 모두 AuthRepository 가 담당하고,
+ * 이 Activity 는 입력 검증 / 화면 전환 / 사용자 안내만 처리한다.
+ *
+ * 프로젝트 공통 규칙(상세/작성/인증 화면 = Repository 콜백 분리)에 따라
+ * ViewModel 은 적용하지 않는다 — 회전 시 유지할 상태가 없는 일회성 요청 화면.
+ */
 public class RegisterActivity extends AppCompatActivity {
 
-    private FirebaseAuth auth;
-    private FirebaseFirestore firestore;
+    private final AuthRepository authRepository = new AuthRepository();
 
     private EditText etUsername, etEmail, etPassword;
 
@@ -42,9 +42,6 @@ public class RegisterActivity extends AppCompatActivity {
             return insets;
         });
 
-        auth      = FirebaseAuth.getInstance();
-        firestore = FirebaseFirestore.getInstance();
-
         etUsername = findViewById(R.id.etUsername);
         etEmail    = findViewById(R.id.etEmail);
         etPassword = findViewById(R.id.etPassword);
@@ -57,6 +54,7 @@ public class RegisterActivity extends AppCompatActivity {
         String email    = etEmail.getText().toString().trim();
         String password = etPassword.getText().toString().trim();
 
+        // ── 입력 검증 (Activity 책임) ─────────────────────────────────────────────
         if (username.isEmpty()) {
             CustomToast.warning(this, "아이디를 입력해주세요.");
             return;
@@ -70,48 +68,46 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        firestore.collection("users")
-                .whereEqualTo("username", username)
-                .get()
-                .addOnSuccessListener(snap -> {
-                    if (!snap.isEmpty()) {
-                        CustomToast.error(this, "이미 사용 중인 사용자 이름입니다.");
-                        return;
-                    }
-                    createNewAccount(username, email, password);
-                })
-                .addOnFailureListener(e ->
-                        CustomToast.error(this, "중복 확인 중 오류: " + e.getMessage()));
-    }
+        // ── 회원가입 요청 (Repository 위임) ──────────────────────────────────────
+        authRepository.register(username, email, password,
+                new AuthRepository.RegisterCallback() {
+                    @Override
+                    public void onSuccess() {
+                        // 비동기 응답 도착 시점에 화면이 이미 닫혔으면 무시
+                        if (isFinishing() || isDestroyed()) return;
 
-    private void createNewAccount(String username, String email, String password) {
-        auth.createUserWithEmailAndPassword(email, password)
-                .addOnSuccessListener(result -> {
-                    FirebaseUser user = auth.getCurrentUser();
-                    if (user != null) saveUserToFirestore(user.getUid(), username, email);
-                })
-                .addOnFailureListener(e -> {
-                    if (e instanceof FirebaseAuthUserCollisionException) {
-                        CustomToast.error(this, "이미 사용 중인 이메일입니다.");
-                    } else {
-                        CustomToast.error(this, "계정 생성 실패: " + e.getMessage());
+                        CustomToast.success(RegisterActivity.this, "회원가입이 완료되었습니다.");
+                        startActivity(new Intent(RegisterActivity.this, LoginActivity.class));
+                        finish();
+                    }
+
+                    @Override
+                    public void onError(AuthRepository.RegisterError error, String detail) {
+                        if (isFinishing() || isDestroyed()) return;
+
+                        switch (error) {
+                            case USERNAME_TAKEN:
+                                CustomToast.error(RegisterActivity.this,
+                                        "이미 사용 중인 사용자 이름입니다.");
+                                break;
+                            case DUPLICATE_CHECK_FAILED:
+                                CustomToast.error(RegisterActivity.this,
+                                        "중복 확인 중 오류: " + detail);
+                                break;
+                            case EMAIL_TAKEN:
+                                CustomToast.error(RegisterActivity.this,
+                                        "이미 사용 중인 이메일입니다.");
+                                break;
+                            case ACCOUNT_CREATE_FAILED:
+                                CustomToast.error(RegisterActivity.this,
+                                        "계정 생성 실패: " + detail);
+                                break;
+                            case SAVE_FAILED:
+                                CustomToast.error(RegisterActivity.this,
+                                        "정보 저장 실패: " + detail);
+                                break;
+                        }
                     }
                 });
-    }
-
-    private void saveUserToFirestore(String uid, String username, String email) {
-        Map<String, Object> userMap = new HashMap<>();
-        userMap.put("username", username);
-        userMap.put("email", email);
-
-        firestore.collection("users").document(uid)
-                .set(userMap)
-                .addOnSuccessListener(v -> {
-                    CustomToast.success(this, "회원가입이 완료되었습니다.");
-                    startActivity(new Intent(this, LoginActivity.class));
-                    finish();
-                })
-                .addOnFailureListener(e ->
-                        CustomToast.error(this, "정보 저장 실패: " + e.getMessage()));
     }
 }

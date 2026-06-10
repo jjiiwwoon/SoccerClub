@@ -20,6 +20,7 @@ import com.google.android.gms.tasks.Tasks;
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.common.CustomToast;
 import com.jjw.soccerclub.common.StateLayout;
+import com.jjw.soccerclub.repository.RecruitDetailRepository;
 import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.ui.team.TeamDetailActivity;
 import com.jjw.soccerclub.util.AppUtils;
@@ -75,6 +76,7 @@ public class RecruitDetailActivity extends BaseActivity {
     private String postTeamId    = "";
     private String postAuthorUid = "";
 
+    private final RecruitDetailRepository detailRepository = new RecruitDetailRepository();
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -430,79 +432,38 @@ public class RecruitDetailActivity extends BaseActivity {
     }
 
     private void applyOrReapply() {
-        if (AppUtils.isEmpty(recruitId)) { CustomToast.warning(this, "잘못된 글입니다."); return; }
+        if (AppUtils.isEmpty(recruitId)) {
+            CustomToast.warning(this, "잘못된 글입니다.");
+            return;
+        }
         btnApply.setEnabled(false);
 
-        db.runTransaction(tr -> {
-            DocumentReference postRef = db.collection("recruitPosts").document(recruitId);
-            DocumentSnapshot postSnap = tr.get(postRef);
-            if (!postSnap.exists()) {
-                postRef = db.collection("recruits").document(recruitId);
-                postSnap = tr.get(postRef);
-                if (!postSnap.exists()) throw new IllegalStateException("삭제된 글입니다.");
-            }
+        RecruitDetailRepository.ApplicantData applicant =
+                new RecruitDetailRepository.ApplicantData(
+                        currentUid, myTeamId, myTeamName, myNickname, mySkill);
 
-            DocumentSnapshot profSnap = tr.get(db.collection("profiles").document(currentUid));
-            String myTeamIdTx   = AppUtils.safe(profSnap.getString("myTeam"));
-            String postTeamIdTx = AppUtils.safe(postSnap.getString("teamId"));
-            String typeTx       = AppUtils.normalizeRecruitType(postSnap.getString("recruitType"));
-            String authorTx     = AppUtils.firstNonEmpty(
-                    postSnap.getString("authorUid"),
-                    postSnap.getString("writerUid"),
-                    postSnap.getString("uid"));
+        detailRepository.applyOrReapply(recruitId, applicant,
+                new RecruitDetailRepository.WriteCallback() {
+                    @Override
+                    public void onSuccess() {
+                        if (isFinishing() || isDestroyed()) return;
+                        CustomToast.success(RecruitDetailActivity.this, "신청 완료!");
+                        applyState = APPLY_ALREADY;
+                        btnApply.setText("신청 완료");
+                        btnApply.setEnabled(true);
+                    }
 
-            if (!AppUtils.isEmpty(authorTx) && authorTx.equals(currentUid))
-                throw new IllegalStateException("본인이 올린 글에는 신청할 수 없습니다.");
-            if (!AppUtils.isEmpty(myTeamIdTx) && myTeamIdTx.equals(postTeamIdTx))
-                throw new IllegalStateException("내 팀이 올린 글에는 신청할 수 없습니다.");
-            if ("regular".equals(typeTx) && !AppUtils.isEmpty(myTeamIdTx))
-                throw new IllegalStateException("현재 소속된 팀이 있습니다.");
-
-            DocumentReference apRef  = postRef.collection("applicants").document(currentUid);
-            DocumentSnapshot  apSnap = tr.get(apRef);
-
-            long now = System.currentTimeMillis();
-            if (apSnap.exists()) {
-                String st = AppUtils.safe(apSnap.getString("status")).toLowerCase();
-                if (!st.startsWith("rej")) throw new IllegalStateException("이미 신청한 글입니다.");
-            }
-
-            Map<String, Object> apData = new HashMap<>();
-            apData.put("status",          "pending");
-            apData.put("timestamp",       now);
-            apData.put("teamId",          myTeamId);
-            apData.put("teamName",        myTeamName);
-            apData.put("nickname",        myNickname);
-            apData.put("skill",           mySkill);
-            apData.put("applicantUserId", currentUid);
-            tr.set(apRef, apData, SetOptions.merge());
-
-            // ✅ profiles/{uid}/applications 에도 저장 → 인덱스 없이 내 신청 조회 가능
-            DocumentReference myAppRef = db.collection("profiles")
-                    .document(currentUid)
-                    .collection("applications")
-                    .document(recruitId);
-            Map<String, Object> myApp = new HashMap<>();
-            myApp.put("postId",    recruitId);
-            myApp.put("postType",  "recruit");
-            myApp.put("status",    "pending");
-            myApp.put("timestamp", now);
-            tr.set(myAppRef, myApp, SetOptions.merge());
-
-            return null;
-
-        }).addOnSuccessListener(v -> {
-            CustomToast.success(this, "신청 완료!");
-            applyState = APPLY_ALREADY;
-            btnApply.setText("신청 완료");
-            btnApply.setEnabled(true);
-        }).addOnFailureListener(e -> {
-            String msg = AppUtils.safe(e.getMessage());
-            CustomToast.error(this, msg.isEmpty() ? "신청 실패" : msg);
-            applyState = APPLY_ALLOWED;
-            btnApply.setText("신청하기");
-            btnApply.setEnabled(true);
-        });
+                    @Override
+                    public void onFailure(Exception e) {
+                        if (isFinishing() || isDestroyed()) return;
+                        String msg = AppUtils.safe(e.getMessage());
+                        CustomToast.error(RecruitDetailActivity.this,
+                                msg.isEmpty() ? "신청 실패" : msg);
+                        applyState = APPLY_ALLOWED;
+                        btnApply.setText("신청하기");
+                        btnApply.setEnabled(true);
+                    }
+                });
     }
 
     private int dp(int value) {

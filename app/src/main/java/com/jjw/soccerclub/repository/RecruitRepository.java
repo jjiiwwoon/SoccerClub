@@ -1,5 +1,7 @@
 package com.jjw.soccerclub.repository;
 
+import androidx.annotation.NonNull;
+
 import com.jjw.soccerclub.adapter.RecruitAdapter;
 import com.jjw.soccerclub.util.AppUtils;
 import com.google.android.gms.tasks.Task;
@@ -8,9 +10,12 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.jjw.soccerclub.util.DateUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 모집글(recruitPosts) Firestore 호출 전담.
@@ -89,5 +94,91 @@ public class RecruitRepository {
         it.matchTs     = matchTs      != null ? matchTs      : 0L;
 
         return it;
+    }
+
+    // ── 모집글 등록 ──────────────────────────────────────────────────────────────
+
+    /** 쓰기 결과 콜백 — UI 갱신(토스트, 버튼 상태)은 Activity 책임 */
+    public interface WriteCallback {
+        void onSuccess();
+        void onFailure(@NonNull Exception e);
+    }
+
+    /** 모집글 등록 입력값 묶음 — 검증 완료된 값만 전달받는다 */
+    public static class NewRecruitPost {
+        public final String teamId, teamName, teamLogoUrl, region;
+        public final String date, startTime, endTime;
+        public final String stadiumName, stadiumAddress;
+        public final int    skillMin, skillMax;
+        public final List<String> positions;   // 호출 전에 정렬 완료된 리스트
+        public final boolean isRegular;        // true=정식선수 / false=용병
+        public final String intro;
+        public final String authorUid;
+
+        public NewRecruitPost(String teamId, String teamName, String teamLogoUrl,
+                              String region,
+                              String date, String startTime, String endTime,
+                              String stadiumName, String stadiumAddress,
+                              int skillMin, int skillMax,
+                              List<String> positions, boolean isRegular,
+                              String intro, String authorUid) {
+            this.teamId = teamId;   this.teamName = teamName;
+            this.teamLogoUrl = teamLogoUrl; this.region = region;
+            this.date = date;       this.startTime = startTime; this.endTime = endTime;
+            this.stadiumName = stadiumName; this.stadiumAddress = stadiumAddress;
+            this.skillMin = skillMin; this.skillMax = skillMax;
+            this.positions = positions; this.isRegular = isRegular;
+            this.intro = intro;     this.authorUid = authorUid;
+        }
+    }
+
+    /**
+     * 모집글 등록.
+     *
+     * [변경 전] CreateRecruitActivity 가 25개 필드 Map 을 직접 구성해 add().
+     *
+     * [변경 후] 문서 스키마 구성과 쓰기를 이 Repository 가 담당.
+     *   저장되는 필드명/값/파생값(matchTs, endTs, weekday, postTs) 계산은
+     *   변경 전과 동일.
+     */
+    public void createPost(@NonNull NewRecruitPost p, @NonNull WriteCallback callback) {
+        String recruitType = p.isRegular ? "regular" : "mercenary";
+        String timeRange   = p.startTime + " ~ " + p.endTime;
+        long matchTs       = DateUtils.computeStartMillis(p.date, p.startTime);
+        long endTs         = DateUtils.computeEndMillis(p.date, timeRange);
+        long nowMs         = System.currentTimeMillis();
+        String weekday     = DateUtils.getKoreanWeekday(p.date);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("teamId",         p.teamId);
+        data.put("teamName",       p.teamName);
+        data.put("teamLogoUrl",    p.teamLogoUrl);
+        data.put("region",         p.region);
+        data.put("date",           p.date);
+        data.put("time",           timeRange);
+        data.put("timeStart",      p.startTime);
+        data.put("timeEnd",        p.endTime);
+        data.put("matchTs",        matchTs);
+        data.put("endTs",          endTs);
+        data.put("weekday",        weekday);
+        data.put("postTs",         matchTs);
+        data.put("timestamp",      nowMs);
+        data.put("createdAtMs",    nowMs);
+        data.put("stadiumName",    p.stadiumName);
+        data.put("stadiumAddress", p.stadiumAddress);
+        data.put("skillMin",       p.skillMin);
+        data.put("skillMax",       p.skillMax);
+        data.put("positions",      new ArrayList<>(p.positions));
+        data.put("recruitType",    recruitType);
+        data.put("intro",          p.intro);
+        data.put("status",         "open");
+        data.put("createdBy",      p.authorUid);
+        data.put("authorUid",      p.authorUid); // ApplicationsListActivity 내 글 탭 조회용
+        data.put("createdAt",      Timestamp.now());
+        data.put("updatedAt",      Timestamp.now());
+
+        db.collection("recruitPosts").add(data)
+                .addOnSuccessListener(ref -> callback.onSuccess())
+                .addOnFailureListener(callback::onFailure);
     }
 }

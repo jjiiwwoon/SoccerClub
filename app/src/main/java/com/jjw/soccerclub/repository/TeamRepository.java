@@ -1,6 +1,6 @@
 package com.jjw.soccerclub.repository;
 
-import androidx.lifecycle.LiveData;
+import androidx.annotation.NonNull;
 import androidx.lifecycle.MutableLiveData;
 
 import com.jjw.soccerclub.model.Team;
@@ -22,19 +22,34 @@ public class TeamRepository {
 
     private final FirebaseFirestore db = FirebaseFirestore.getInstance();
 
+    // ── 콜백 인터페이스 ───────────────────────────────────────────────────────────
+
+    /** 전체 팀 목록 실시간 수신 콜백 */
+    public interface TeamsCallback {
+        void onTeams(@NonNull List<Team> teams);
+    }
+
     // ── 전체 팀 목록 (실시간) ─────────────────────────────────────────────────────
 
     /**
-     * 전체 팀 목록을 실시간으로 관찰하는 LiveData 반환.
+     * 전체 팀 목록을 실시간으로 관찰.
      *
-     * AllTeamFragment 가 사용. addSnapshotListener 로 연결하고
+     * AllTeamViewModel 이 사용. addSnapshotListener 로 연결하고
      * 반환된 ListenerRegistration 을 ViewModel.onCleared() 에서 해제한다.
      *
-     * @param liveData  데이터를 흘려보낼 MutableLiveData
-     * @return          해제용 ListenerRegistration
+     * [변경 전] MutableLiveData<List<Team>> 을 파라미터로 받아 setValue 직접 호출.
+     *   → ViewModel 이 내부 중간 LiveData + observeForever 를 둬야 했고,
+     *     observer 해제 누락으로 누수 발생.
+     *     (ProfileRepository 리팩토링 때 제거한 것과 동일한 코드 스멜)
+     *
+     * [변경 후] TeamsCallback 인터페이스로 결과 전달.
+     *   ViewModel 은 람다 안에서 바로 필터를 적용한다.
+     *   중간 LiveData 와 observeForever 가 모두 사라진다.
+     *
+     * @param callback 팀 목록 수신 콜백
+     * @return         해제용 ListenerRegistration
      */
-    public ListenerRegistration listenAllTeams(
-            MutableLiveData<List<Team>> liveData) {
+    public ListenerRegistration listenAllTeams(@NonNull TeamsCallback callback) {
 
         return db.collection("teams")
                 .addSnapshotListener((snapshots, e) -> {
@@ -51,7 +66,7 @@ public class TeamRepository {
                             // 파싱 실패한 개별 문서는 스킵
                         }
                     }
-                    liveData.setValue(list);
+                    callback.onTeams(list);
                 });
     }
 

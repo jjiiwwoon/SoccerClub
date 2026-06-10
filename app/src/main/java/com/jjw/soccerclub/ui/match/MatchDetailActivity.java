@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.common.CustomToast;
 import com.jjw.soccerclub.common.StateLayout;
+import com.jjw.soccerclub.repository.MatchDetailRepository;
 import com.jjw.soccerclub.ui.common.BaseActivity;
 import com.jjw.soccerclub.ui.team.TeamDetailActivity;
 import com.jjw.soccerclub.util.AppUtils;
@@ -56,6 +57,8 @@ public class MatchDetailActivity extends BaseActivity {
     private String myTeamName = "", myTeamLogoUrl = "";
     private String myTeamCaptainUid = "", myTeamViceCaptainUid = "";
     private int mySkill = -1;
+
+    private final MatchDetailRepository detailRepository = new MatchDetailRepository();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -290,76 +293,51 @@ public class MatchDetailActivity extends BaseActivity {
     }
 
     private void submitApplication() {
-        long now = System.currentTimeMillis();
-        Map<String, Object> data = new HashMap<>();
-        data.put("userId",      currentUid);
-        data.put("nickname",    myNickname);
-        data.put("skill",       mySkill);
-        data.put("timestamp",   now);
-        data.put("teamName",    myTeamName);
-        data.put("teamId",      myTeamId);
-        data.put("teamLogoUrl", myTeamLogoUrl);
-        data.put("status",      "pending");
-        data.put("responded",   false);
+        MatchDetailRepository.ApplicantData applicant =
+                new MatchDetailRepository.ApplicantData(
+                        currentUid, myNickname, mySkill,
+                        myTeamId, myTeamName, myTeamLogoUrl);
 
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("matches").document(matchId)
-                .collection("applicants").document(currentUid)
-                .set(data)
-                .addOnSuccessListener(v -> {
-                    db.collection("matches").document(matchId)
-                            .update("lastApplicantTs", now);
+        detailRepository.submitApplication(matchId, applicant,
+                new MatchDetailRepository.WriteCallback() {
+                    @Override
+                    public void onSuccess() {
+                        if (isFinishing() || isDestroyed()) return;
+                        CustomToast.success(MatchDetailActivity.this,
+                                "신청 완료! 상대 팀의 확인을 기다려 주세요.");
+                        applyState = APPLY_ALREADY;
+                        btnApply.setText("신청 완료");
+                    }
 
-                    // ✅ teams/{teamId}/matchApplications/{matchId} 에 저장
-                    // → 팀 관점에서 신청한 시합 목록 조회 가능 (인덱스 불필요)
-                    Map<String, Object> teamApp = new HashMap<>();
-                    teamApp.put("matchId",      matchId);
-                    teamApp.put("postType",     "match");
-                    teamApp.put("status",       "pending");
-                    teamApp.put("timestamp",    now);
-                    teamApp.put("applicantUid", currentUid); // 신청한 주장 uid
-                    db.collection("teams").document(myTeamId)
-                            .collection("matchApplications").document(matchId)
-                            .set(teamApp);
-
-                    CustomToast.success(this, "신청 완료! 상대 팀의 확인을 기다려 주세요.");
-                    applyState = APPLY_ALREADY;
-                    btnApply.setText("신청 완료");
-                })
-                .addOnFailureListener(e ->
-                        CustomToast.error(this, "신청 실패: " + e.getMessage()));
+                    @Override
+                    public void onFailure(Exception e) {
+                        if (isFinishing() || isDestroyed()) return;
+                        CustomToast.error(MatchDetailActivity.this,
+                                "신청 실패: " + e.getMessage());
+                    }
+                });
     }
 
     private void reapply() {
-        long now = System.currentTimeMillis();
-        Map<String, Object> up = new HashMap<>();
-        up.put("status",      "pending");
-        up.put("timestamp",   now);
-        up.put("responded",   false);
-        up.put("reapplyCount", FieldValue.increment(1));
+        detailRepository.reapply(matchId, currentUid, myTeamId,
+                new MatchDetailRepository.WriteCallback() {
+                    @Override
+                    public void onSuccess() {
+                        if (isFinishing() || isDestroyed()) return;
+                        // ▼ 기존 reapply() 의 addOnSuccessListener 내부 UI 코드를 그대로 이동
+                        CustomToast.success(MatchDetailActivity.this, "재신청 완료!");
+                        applyState = APPLY_ALREADY;
+                        btnApply.setText("신청 완료");
+                    }
 
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        db.collection("matches").document(matchId)
-                .collection("applicants").document(currentUid)
-                .update(up)
-                .addOnSuccessListener(v -> {
-                    db.collection("matches").document(matchId)
-                            .update("lastApplicantTs", now);
-
-                    // ✅ teams/{teamId}/matchApplications 상태도 업데이트
-                    Map<String, Object> teamApp = new HashMap<>();
-                    teamApp.put("status",    "pending");
-                    teamApp.put("timestamp", now);
-                    db.collection("teams").document(myTeamId)
-                            .collection("matchApplications").document(matchId)
-                            .set(teamApp, com.google.firebase.firestore.SetOptions.merge());
-
-                    CustomToast.success(this, "재신청 완료!");
-                    applyState = APPLY_ALREADY;
-                    btnApply.setText("신청 완료");
-                })
-                .addOnFailureListener(e ->
-                        CustomToast.error(this, "재신청 실패: " + e.getMessage()));
+                    @Override
+                    public void onFailure(Exception e) {
+                        if (isFinishing() || isDestroyed()) return;
+                        // ▼ 기존 reapply() 의 addOnFailureListener 내부 코드를 그대로 이동
+                        CustomToast.error(MatchDetailActivity.this,
+                                "재신청 실패: " + e.getMessage());
+                    }
+                });
     }
 
     private void loadRecentForm(String teamId) {

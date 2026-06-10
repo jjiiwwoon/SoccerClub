@@ -2,7 +2,6 @@ package com.jjw.soccerclub.ui.auth;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Button;
 import android.widget.EditText;
 
 import androidx.activity.EdgeToEdge;
@@ -13,15 +12,21 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.jjw.soccerclub.R;
 import com.jjw.soccerclub.common.CustomToast;
+import com.jjw.soccerclub.repository.AuthRepository;
 import com.jjw.soccerclub.ui.home.HomeActivity;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.firestore.FirebaseFirestore;
 
+/**
+ * 로그인 화면.
+ *
+ * Firestore/Auth 호출은 모두 AuthRepository 가 담당하고,
+ * 이 Activity 는 입력 검증 / 화면 전환 / 사용자 안내만 처리한다.
+ *
+ * 프로젝트 공통 규칙(상세/작성/인증 화면 = Repository 콜백 분리)에 따라
+ * ViewModel 은 적용하지 않는다 — 회전 시 유지할 상태가 없는 일회성 요청 화면.
+ */
 public class LoginActivity extends AppCompatActivity {
 
-    private FirebaseAuth auth;
-    private FirebaseFirestore firestore;
+    private final AuthRepository authRepository = new AuthRepository();
 
     private EditText etUsername, etPassword;
 
@@ -36,9 +41,6 @@ public class LoginActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
-
-        auth      = FirebaseAuth.getInstance();
-        firestore = FirebaseFirestore.getInstance();
 
         etUsername = findViewById(R.id.etUsername);
         etPassword = findViewById(R.id.etPassword);
@@ -57,52 +59,36 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-        // 1단계: username → email 조회
-        firestore.collection("users")
-                .whereEqualTo("username", username)
-                .limit(1)
-                .get()
-                .addOnSuccessListener(querySnapshot -> {
-                    if (querySnapshot.isEmpty()) {
-                        CustomToast.error(this, "아이디를 확인해주세요.");
-                        return;
-                    }
+        authRepository.login(username, password, new AuthRepository.LoginCallback() {
+            @Override
+            public void onSuccess(String uid, boolean hasProfile) {
+                if (hasProfile) {
+                    startActivity(new Intent(LoginActivity.this, HomeActivity.class));
+                } else {
+                    Intent intent = new Intent(LoginActivity.this, CreateProfileActivity.class);
+                    intent.putExtra("username", username);
+                    startActivity(intent);
+                }
+                finish();
+            }
 
-                    String email = querySnapshot.getDocuments().get(0).getString("email");
-
-                    // 2단계: Firebase Auth 로그인
-                    auth.signInWithEmailAndPassword(email, password)
-                            .addOnCompleteListener(this, task -> {
-                                if (!task.isSuccessful()) {
-                                    CustomToast.error(this, "비밀번호를 확인해주세요.");
-                                    return;
-                                }
-
-                                FirebaseUser user = auth.getCurrentUser();
-                                if (user == null) return;
-
-                                // ✅ 3단계: UID 로 프로필 직접 조회 (username 조회 방식 제거)
-                                // 변경 전: .whereEqualTo("username", username) → 필드 불일치 시 항상 빈 결과
-                                // 변경 후: .document(user.getUid()) → UID 기반으로 정확히 조회
-                                firestore.collection("profiles")
-                                        .document(user.getUid())
-                                        .get()
-                                        .addOnSuccessListener(doc -> {
-                                            if (doc.exists()) {
-                                                // 프로필 있음 → 홈
-                                                startActivity(new Intent(this, HomeActivity.class));
-                                            } else {
-                                                // 프로필 없음 → 프로필 생성
-                                                Intent intent = new Intent(this, CreateProfileActivity.class);
-                                                intent.putExtra("username", username);
-                                                startActivity(intent);
-                                            }
-                                            finish();
-                                        })
-                                        .addOnFailureListener(e ->
-                                                CustomToast.error(this, "프로필 확인 중 오류 발생"));
-                            });
-                })
-                .addOnFailureListener(e -> CustomToast.error(this, "로그인 중 오류 발생"));
+            @Override
+            public void onError(AuthRepository.LoginError error) {
+                switch (error) {
+                    case USERNAME_NOT_FOUND:
+                        CustomToast.error(LoginActivity.this, "아이디를 확인해주세요.");
+                        break;
+                    case WRONG_PASSWORD:
+                        CustomToast.error(LoginActivity.this, "비밀번호를 확인해주세요.");
+                        break;
+                    case PROFILE_CHECK_FAILED:
+                        CustomToast.error(LoginActivity.this, "프로필 확인 중 오류 발생");
+                        break;
+                    default:
+                        CustomToast.error(LoginActivity.this, "로그인 중 오류 발생");
+                        break;
+                }
+            }
+        });
     }
 }
