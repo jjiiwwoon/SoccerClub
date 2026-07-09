@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:padding="@dimen/spacing_sm"
+    android:background="@drawable/bg_card">
+
+    <ImageView
+        android:id="@+id/ivPhoto"
+        android:layout_width="@dimen/avatar_md"
+        android:layout_height="@dimen/avatar_md"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_person_placeholder"
+        android:contentDescription="프로필"/>
+
+    <TextView
+        android:id="@+id/tvNickname"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xs"
+        android:textSize="@dimen/text_sm"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        android:gravity="center"
+        android:singleLine="true"
+        android:ellipsize="end"/>
+
+    <TextView
+        android:id="@+id/tvPosition"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/text_xs"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"/>
+
+    <TextView
+        android:id="@+id/tvRole"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="@dimen/spacing_xs"
+        android:paddingVertical="2dp"
+        android:background="@drawable/bg_badge_blue"
+        android:textColor="@color/white"
+        android:textSize="@dimen/text_xs"
+        android:visibility="gone"/>
+
+</LinearLayout>

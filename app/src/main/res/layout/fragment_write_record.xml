@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.jjw.soccerclub.common.StateLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/state"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:loadingLayout="@layout/view_state_loading"
+    app:emptyLayout="@layout/view_state_empty"
+    android:background="@color/bg_page">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/page_padding_horizontal">
+
+            <!-- ★ 팀 vs 팀 (로고 + 이름 + 스코어) -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_lg"
+                android:layout_marginBottom="@dimen/spacing_md">
+
+                <!-- 가이드라인 -->
+                <androidx.constraintlayout.widget.Guideline
+                    android:id="@+id/guideLeft"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    app:layout_constraintGuide_percent="0.28" />
+
+                <androidx.constraintlayout.widget.Guideline
+                    android:id="@+id/guideRight"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    app:layout_constraintGuide_percent="0.72" />
+
+                <!-- 홈팀 로고 -->
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/imgHomeLogo"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:scaleType="centerCrop"
+                    android:contentDescription="우리팀 로고"
+                    android:src="@drawable/ic_shield_gray"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/guideLeft"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:shapeAppearanceOverlay="@style/RoundedImageStyle"
+                    app:strokeColor="@android:color/transparent" />
+
+                <!-- 홈팀 이름 -->
+                <TextView
+                    android:id="@+id/tvHomeTeam"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="우리팀"
+                    android:textSize="@dimen/text_sm"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:gravity="center"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:layout_marginTop="6dp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toStartOf="@id/guideLeft"
+                    app:layout_constraintTop_toBottomOf="@id/imgHomeLogo" />
+
+                <!-- 어웨이팀 로고 -->
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/imgAwayLogo"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:scaleType="centerCrop"
+                    android:contentDescription="상대팀 로고"
+                    android:src="@drawable/ic_shield_gray"
+                    app:layout_constraintStart_toEndOf="@id/guideRight"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:shapeAppearanceOverlay="@style/RoundedImageStyle"
+                    app:strokeColor="@android:color/transparent" />
+
+                <!-- 어웨이팀 이름 -->
+                <TextView
+                    android:id="@+id/tvAwayTeam"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:text="상대팀"
+                    android:textSize="@dimen/text_sm"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:gravity="center"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:layout_marginTop="6dp"
+                    app:layout_constraintStart_toEndOf="@id/guideRight"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/imgAwayLogo" />
+
+                <!-- 중앙 VS + 스코어 -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    app:layout_constraintStart_toEndOf="@id/guideLeft"
+                    app:layout_constraintEnd_toStartOf="@id/guideRight"
+                    app:layout_constraintTop_toTopOf="@id/imgHomeLogo"
+                    app:layout_constraintBottom_toBottomOf="@id/imgHomeLogo">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="VS"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_hint"
+                        android:layout_marginBottom="6dp" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center">
+
+                        <EditText
+                            android:id="@+id/editScoreFor"
+                            android:layout_width="48dp"
+                            android:layout_height="44dp"
+                            android:inputType="number"
+                            android:digits="0123456789"
+                            android:maxLength="2"
+                            android:gravity="center"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/primary"
+                            android:hint="0"
+                            android:background="@drawable/bg_card" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" : "
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_hint"
+                            android:layout_marginHorizontal="4dp" />
+
+                        <EditText
+                            android:id="@+id/editScoreAgainst"
+                            android:layout_width="48dp"
+                            android:layout_height="44dp"
+                            android:inputType="number"
+                            android:digits="0123456789"
+                            android:maxLength="2"
+                            android:gravity="center"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="#C62828"
+                            android:hint="0"
+                            android:background="@drawable/bg_card" />
+
+                    </LinearLayout>
+                </LinearLayout>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- 득점 이벤트 목록 -->
+            <LinearLayout
+                android:id="@+id/goalEventListContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/spacing_lg" />
+
+            <!-- 득점 추가 버튼 -->
+            <Button
+                android:id="@+id/btnAddGoalEvent"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/btn_height"
+                android:layout_marginTop="@dimen/spacing_md"
+                android:text="+ 득점 추가"
+                android:textAllCaps="false"
+                android:textColor="@color/primary"
+                android:backgroundTint="@color/primary_light"
+                app:cornerRadius="@dimen/btn_radius" />
+
+            <!-- 저장 버튼 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSaveRecord"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/btn_height"
+                android:layout_marginTop="@dimen/spacing_xl"
+                android:layout_marginBottom="@dimen/spacing_xl"
+                android:text="기록 저장"
+                android:textColor="@color/white"
+                android:textAllCaps="false"
+                app:backgroundTint="@color/primary"
+                app:cornerRadius="@dimen/btn_radius" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</com.jjw.soccerclub.common.StateLayout>

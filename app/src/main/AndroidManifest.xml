@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- 권한 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SoccerClub"
+        tools:targetApi="31">
+        <!-- 네이버 지도 API 키 -->
+        <meta-data
+            android:name="com.naver.maps.map.NCP_KEY_ID"
+            android:value="YOUR_NAVER_NCP_KEY_ID" />
+        <!-- ✅ 스플래시 — LAUNCHER, SplashScreen API 적용 -->
+        <activity
+            android:name=".ui.auth.SplashActivity"
+            android:theme="@style/Theme.App.Starting"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <!-- ==================== auth ==================== -->
+        <activity
+            android:name=".ui.auth.LoginActivity"
+            android:theme="@style/Theme.SoccerClub.Login" />
+        <activity android:name=".ui.auth.RegisterActivity" />
+        <activity android:name=".ui.auth.CreateProfileActivity" />
+        <!-- ==================== home ==================== -->
+        <activity android:name=".ui.home.HomeActivity" />
+        <!-- ==================== team ==================== -->
+        <activity android:name=".ui.team.TeamDetailActivity" />
+        <activity android:name=".ui.team.CreateTeamActivity" />
+        <activity android:name=".ui.team.EditTeamActivity" />
+        <activity android:name=".ui.team.JoinRequestsActivity" />
+        <!-- ==================== recruit ==================== -->
+        <activity android:name=".ui.recruit.RecruitDetailActivity" />
+        <activity android:name=".ui.recruit.CreateRecruitActivity" />
+        <!-- ==================== match ==================== -->
+        <activity android:name=".ui.match.MatchDetailActivity" />
+        <activity android:name=".ui.match.CreateMatchActivity" />
+        <!-- ==================== chat ==================== -->
+        <activity
+            android:name=".ui.chat.ChatRoomActivity"
+            android:windowSoftInputMode="adjustResize" />
+        <!-- ==================== common ==================== -->
+        <activity android:name=".ui.common.ApplicationsListActivity" />
+        <activity android:name=".ui.common.RecordsActivity" />
+        <activity android:name=".ui.common.ScheduleActivity" />
+        <activity android:name=".ui.common.StadiumSearchActivity" />
+        <!-- ==================== profile ==================== -->
+        <activity android:name=".ui.profile.EditProfileActivity" />
+        <activity android:name=".ui.profile.MercenaryActivitiesActivity" />
+    </application>
+</manifest>

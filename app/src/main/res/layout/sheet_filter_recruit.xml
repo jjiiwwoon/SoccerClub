@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/bg_surface">
+
+    <!-- 헤더 -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical"
+        android:padding="@dimen/spacing_lg">
+
+        <TextView android:id="@+id/btnClose"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="✕" android:textSize="@dimen/text_xl"
+            android:textColor="@color/text_secondary"
+            android:clickable="true" android:focusable="true"/>
+
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:gravity="center"
+            android:text="모집 필터" android:textSize="@dimen/text_lg"
+            android:textStyle="bold" android:textColor="@color/text_primary"/>
+
+        <TextView android:id="@+id/btnReset"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="초기화" android:textSize="@dimen/text_md"
+            android:textColor="@color/primary"
+            android:clickable="true" android:focusable="true"/>
+    </LinearLayout>
+
+    <ScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/spacing_lg"
+            android:paddingBottom="@dimen/spacing_xl">
+
+            <!-- 모집 유형 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="모집 유형" android:textSize="@dimen/text_sm"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="@dimen/spacing_sm"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginBottom="@dimen/spacing_lg">
+
+                <TextView android:id="@+id/chipRecruitTypeAll"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="전체" android:textSize="@dimen/text_sm"
+                    android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_badge_blue"
+                    android:textColor="@color/white"
+                    android:layout_marginEnd="@dimen/spacing_sm"
+                    android:clickable="true" android:focusable="true"/>
+
+                <TextView android:id="@+id/chipRecruitTypeRegular"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="회원" android:textSize="@dimen/text_sm"
+                    android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip"
+                    android:textColor="@color/chip_text"
+                    android:layout_marginEnd="@dimen/spacing_sm"
+                    android:clickable="true" android:focusable="true"/>
+
+                <TextView android:id="@+id/chipRecruitTypeMerc"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="용병" android:textSize="@dimen/text_sm"
+                    android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip"
+                    android:textColor="@color/chip_text"
+                    android:clickable="true" android:focusable="true"/>
+            </LinearLayout>
+
+            <!-- 지역 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="지역" android:textSize="@dimen/text_sm"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="@dimen/spacing_sm"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginBottom="@dimen/spacing_lg">
+
+                <LinearLayout android:id="@+id/btnCity"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:layout_marginEnd="@dimen/spacing_sm"
+                    android:orientation="horizontal" android:gravity="center_vertical"
+                    android:background="@drawable/bg_filter_chip_selector"
+                    android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_sm"
+                    android:clickable="true" android:focusable="true">
+                    <TextView android:id="@+id/textCity" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="전체" android:textSize="@dimen/text_sm"
+                        android:textColor="@color/text_primary"/>
+                    <ImageView android:layout_width="@dimen/icon_sm" android:layout_height="@dimen/icon_sm"
+                        android:src="@drawable/ic_arrow_down" android:contentDescription="도시 선택"/>
+                </LinearLayout>
+
+                <LinearLayout android:id="@+id/btnDistrict"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/bg_filter_chip_selector"
+                    android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_sm"
+                    android:clickable="true" android:focusable="true">
+                    <TextView android:id="@+id/textDistrict" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:text="전체" android:textSize="@dimen/text_sm"
+                        android:textColor="@color/text_primary"/>
+                    <ImageView android:layout_width="@dimen/icon_sm" android:layout_height="@dimen/icon_sm"
+                        android:src="@drawable/ic_arrow_down" android:contentDescription="구/군 선택"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 실력 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="실력 범위" android:textSize="@dimen/text_sm"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="@dimen/spacing_sm"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:layout_marginBottom="@dimen/spacing_lg">
+
+                <LinearLayout android:id="@+id/btnSkillMin"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:layout_marginEnd="@dimen/spacing_xs"
+                    android:background="@drawable/bg_filter_chip_selector"
+                    android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_sm"
+                    android:clickable="true" android:focusable="true">
+                    <TextView android:id="@+id/textSkillMin" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="전체"
+                        android:textSize="@dimen/text_sm" android:textColor="@color/text_primary"
+                        android:gravity="center"/>
+                </LinearLayout>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text=" ~ " android:textColor="@color/text_hint"/>
+
+                <LinearLayout android:id="@+id/btnSkillMax"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:layout_marginStart="@dimen/spacing_xs"
+                    android:background="@drawable/bg_filter_chip_selector"
+                    android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_sm"
+                    android:clickable="true" android:focusable="true">
+                    <TextView android:id="@+id/textSkillMax" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="전체"
+                        android:textSize="@dimen/text_sm" android:textColor="@color/text_primary"
+                        android:gravity="center"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 포지션 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="포지션" android:textSize="@dimen/text_sm"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="@dimen/spacing_sm"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginBottom="@dimen/spacing_lg">
+
+                <TextView android:id="@+id/chipPosAll" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="전체"
+                    android:textSize="@dimen/text_sm" android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_badge_blue" android:textColor="@color/white"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/chipPosGK" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="GK"
+                    android:textSize="@dimen/text_sm" android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip" android:textColor="@color/chip_text"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/chipPosDF" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="DF"
+                    android:textSize="@dimen/text_sm" android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip" android:textColor="@color/chip_text"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/chipPosMF" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="MF"
+                    android:textSize="@dimen/text_sm" android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip" android:textColor="@color/chip_text"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/chipPosFW" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="FW"
+                    android:textSize="@dimen/text_sm" android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip" android:textColor="@color/chip_text"
+                    android:clickable="true" android:focusable="true"/>
+            </LinearLayout>
+
+            <!-- 날짜 범위 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="날짜 범위" android:textSize="@dimen/text_sm"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="@dimen/spacing_sm"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:layout_marginBottom="@dimen/spacing_lg">
+
+                <LinearLayout android:id="@+id/btnDateFrom"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:layout_marginEnd="@dimen/spacing_xs"
+                    android:background="@drawable/bg_filter_chip_selector"
+                    android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_sm"
+                    android:clickable="true" android:focusable="true">
+                    <TextView android:id="@+id/textDateFrom" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="전체"
+                        android:textSize="@dimen/text_sm" android:textColor="@color/text_primary"
+                        android:gravity="center"/>
+                </LinearLayout>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text=" ~ " android:textColor="@color/text_hint"/>
+
+                <LinearLayout android:id="@+id/btnDateTo"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:layout_marginStart="@dimen/spacing_xs"
+                    android:background="@drawable/bg_filter_chip_selector"
+                    android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_sm"
+                    android:clickable="true" android:focusable="true">
+                    <TextView android:id="@+id/textDateTo" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="전체"
+                        android:textSize="@dimen/text_sm" android:textColor="@color/text_primary"
+                        android:gravity="center"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 시간 범위 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="시간 범위" android:textSize="@dimen/text_sm"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="@dimen/spacing_sm"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:gravity="center_vertical"
+                android:layout_marginBottom="@dimen/spacing_lg">
+
+                <LinearLayout android:id="@+id/btnTimeFrom"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:layout_marginEnd="@dimen/spacing_xs"
+                    android:background="@drawable/bg_filter_chip_selector"
+                    android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_sm"
+                    android:clickable="true" android:focusable="true">
+                    <TextView android:id="@+id/textTimeFrom" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="전체"
+                        android:textSize="@dimen/text_sm" android:textColor="@color/text_primary"
+                        android:gravity="center"/>
+                </LinearLayout>
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text=" ~ " android:textColor="@color/text_hint"/>
+
+                <LinearLayout android:id="@+id/btnTimeTo"
+                    android:layout_width="0dp" android:layout_height="wrap_content"
+                    android:layout_weight="1" android:layout_marginStart="@dimen/spacing_xs"
+                    android:background="@drawable/bg_filter_chip_selector"
+                    android:paddingHorizontal="@dimen/spacing_md"
+                    android:paddingVertical="@dimen/spacing_sm"
+                    android:clickable="true" android:focusable="true">
+                    <TextView android:id="@+id/textTimeTo" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:text="전체"
+                        android:textSize="@dimen/text_sm" android:textColor="@color/text_primary"
+                        android:gravity="center"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- 요일 -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="요일" android:textSize="@dimen/text_sm"
+                android:textColor="@color/text_secondary"
+                android:layout_marginBottom="@dimen/spacing_sm"/>
+
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginBottom="@dimen/spacing_lg">
+
+                <TextView android:id="@+id/chipWeekAll" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="전체" android:textSize="@dimen/text_xs" android:gravity="center"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_badge_blue" android:textColor="@color/white"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/chipWeekMon" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="월" android:textSize="@dimen/text_xs" android:gravity="center"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip" android:textColor="@color/chip_text"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/chipWeekTue" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="화" android:textSize="@dimen/text_xs" android:gravity="center"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip" android:textColor="@color/chip_text"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/chipWeekWed" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="수" android:textSize="@dimen/text_xs" android:gravity="center"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip" android:textColor="@color/chip_text"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/chipWeekThu" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="목" android:textSize="@dimen/text_xs" android:gravity="center"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip" android:textColor="@color/chip_text"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/chipWeekFri" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="금" android:textSize="@dimen/text_xs" android:gravity="center"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip" android:textColor="@color/chip_text"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/chipWeekSat" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="토" android:textSize="@dimen/text_xs" android:gravity="center"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip" android:textColor="@color/chip_text"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    android:clickable="true" android:focusable="true"/>
+                <TextView android:id="@+id/chipWeekSun" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:text="일" android:textSize="@dimen/text_xs" android:gravity="center"
+                    android:paddingVertical="@dimen/spacing_xs"
+                    android:background="@drawable/bg_chip" android:textColor="@color/chip_text"
+                    android:clickable="true" android:focusable="true"/>
+            </LinearLayout>
+
+            <!-- 적용 버튼 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnApply"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/btn_height"
+                android:text="필터 적용"
+                android:textColor="@color/white"
+                android:textAllCaps="false"
+                app:backgroundTint="@color/primary"
+                app:cornerRadius="@dimen/btn_radius"
+                xmlns:app="http://schemas.android.com/apk/res-auto"/>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

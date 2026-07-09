@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SoccerClub</string>
+
+    <string name="hint_email">이메일</string>
+    <string name="hint_password">비밀번호</string>
+    <string name="btn_login">로그인</string>
+    <string name="btn_register">회원가입</string>
+
+    <string name="select_city">지역 설정</string>
+    <string name="select_district">하위 지역 선택</string>
+    <string name="select_age">나이 선택</string>
+    <string name="select_skill">실력 선택</string>
+
+    <string name="loading">불러오는 중...</string>
+    <string name="empty_list">데이터가 없습니다.</string>
+    <string name="error_login_required">로그인이 필요해요.</string>
+    <string name="error_unknown">오류가 발생했어요. 다시 시도해 주세요.</string>
+    <string name="btn_confirm">확인</string>
+    <string name="btn_cancel">취소</string>
+    <string name="btn_save">저장</string>
+    <string name="btn_apply">신청</string>
+    <string name="btn_accept">수락</string>
+    <string name="btn_reject">거절</string>
+</resources>

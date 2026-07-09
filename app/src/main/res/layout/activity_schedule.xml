@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Capstone 스타일: 다가오는 일정 빈 상태 + 전체 일정 카드 달력 -->
+<com.jjw.soccerclub.common.StateLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/stateLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:loadingLayout="@layout/view_state_loading"
+    app:emptyLayout="@layout/view_state_empty"
+    android:background="#E8EFF8"
+    android:fitsSystemWindows="true">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/page_padding_horizontal">
+
+            <!-- ═══ 1. 다가오는 일정 ═══ -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_calendar"
+                    android:tint="#42A5F5"
+                    android:layout_marginEnd="6dp"/>
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="다가오는 일정"
+                    android:textStyle="bold"
+                    android:textSize="@dimen/text_lg"
+                    android:textColor="@color/text_primary"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnVoteAttendance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:minHeight="36dp"
+                    android:paddingStart="14dp"
+                    android:paddingEnd="14dp"
+                    android:text="경기 참석 투표하기"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="@android:color/white"
+                    android:visibility="gone"
+                    app:cornerRadius="12dp"
+                    app:backgroundTint="#1E88E5"
+                    app:strokeWidth="0dp"/>
+            </LinearLayout>
+
+            <!-- VS 카드 (있을 때) -->
+            <include
+                android:id="@+id/nextScheduleCard"
+                layout="@layout/view_next_schedule_card"
+                android:visibility="gone"/>
+
+            <!-- ★ 빈 상태 메시지 (일정 없을 때 Java에서 VISIBLE) -->
+            <TextView
+                android:id="@+id/tvNoScheduleMsg"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="다가오는 일정이 없습니다."
+                android:textSize="14sp"
+                android:textColor="#9E9E9E"
+                android:paddingVertical="20dp"
+                android:visibility="gone"/>
+
+            <!-- ═══ 2. 전체 일정 (달력) ═══ -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="8dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_calendar"
+                    android:tint="#42A5F5"
+                    android:layout_marginEnd="6dp"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="전체 일정"
+                    android:textStyle="bold"
+                    android:textSize="@dimen/text_lg"
+                    android:textColor="@color/text_primary"/>
+            </LinearLayout>
+
+            <!-- 달력 카드 -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                app:cardBackgroundColor="@android:color/white">
+
+                <FrameLayout
+                    android:id="@+id/calendarContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="8dp"/>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ═══ 3. 선택된 날짜 일정 ═══ -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="20dp">
+
+                <TextView
+                    android:id="@+id/tvSelectedDateTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="날짜를 선택하세요"
+                    android:textStyle="bold"
+                    android:textSize="@dimen/text_lg"
+                    android:textColor="@color/text_primary"/>
+
+                <ProgressBar
+                    android:id="@+id/progressSelectedDate"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:visibility="gone"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/selectedDateList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="@dimen/spacing_sm"
+                android:layout_marginBottom="@dimen/spacing_xl"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</com.jjw.soccerclub.common.StateLayout>

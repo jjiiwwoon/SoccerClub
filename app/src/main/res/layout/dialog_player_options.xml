@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="280dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="@dimen/spacing_sm"
+    android:background="@drawable/dialog_background">
+
+    <TextView
+        android:id="@+id/txtPlayerName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/text_lg"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingBottom="@dimen/spacing_sm"
+        android:textColor="@color/text_primary"/>
+
+    <LinearLayout
+        android:id="@+id/btnAssignVice"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingVertical="@dimen/spacing_sm"
+        android:paddingHorizontal="@dimen/spacing_md"
+        android:background="?attr/selectableItemBackground">
+
+        <TextView
+            android:id="@+id/txtAssignViceText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="부주장 권한 부여"
+            android:textSize="@dimen/text_lg"
+            android:gravity="center"
+            android:textColor="@color/text_primary"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/btnAssignCaptain"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingVertical="@dimen/spacing_sm"
+        android:paddingHorizontal="@dimen/spacing_md"
+        android:background="?attr/selectableItemBackground"
+        android:layout_marginTop="@dimen/spacing_xs">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="주장 권한 위임"
+            android:textSize="@dimen/text_lg"
+            android:textColor="@color/primary"
+            android:gravity="center"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/btnKickPlayer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingVertical="@dimen/spacing_sm"
+        android:paddingHorizontal="@dimen/spacing_md"
+        android:background="?attr/selectableItemBackground"
+        android:layout_marginTop="@dimen/spacing_xs">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="팀원 방출"
+            android:textSize="@dimen/text_lg"
+            android:textColor="@color/loss"
+            android:gravity="center"/>
+    </LinearLayout>
+
+</LinearLayout>

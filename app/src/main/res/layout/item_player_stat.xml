@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="10dp">
+
+    <!-- 순위 -->
+    <TextView
+        android:id="@+id/tvRank"
+        android:layout_width="28dp"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        android:textColor="@color/text_hint"
+        android:gravity="center"/>
+
+    <!-- 프로필 사진 -->
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/imgProfile"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_person_placeholder"
+        android:layout_marginStart="4dp"
+        app:shapeAppearanceOverlay="@style/CircleImageStyle"/>
+
+    <!-- 닉네임 -->
+    <TextView
+        android:id="@+id/tvNickname"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        android:layout_marginStart="8dp"
+        android:maxLines="1"
+        android:ellipsize="end"/>
+
+    <!-- 경기 -->
+    <TextView
+        android:id="@+id/tvGames"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"/>
+
+    <!-- 득점 -->
+    <TextView
+        android:id="@+id/tvGoals"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="@color/primary"
+        android:gravity="center"/>
+
+    <!-- 도움 -->
+    <TextView
+        android:id="@+id/tvAssists"
+        android:layout_width="50dp"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"/>
+
+</LinearLayout>

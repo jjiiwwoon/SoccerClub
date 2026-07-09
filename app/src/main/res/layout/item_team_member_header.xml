@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    포지션 헤더 아이템 (FW / MF / DF / GK)
+    res/layout/item_team_member_header.xml
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingHorizontal="10dp"
+    android:paddingTop="14dp"
+    android:paddingBottom="6dp">
+
+    <!-- 포지션 컬러 바 -->
+    <View
+        android:id="@+id/positionBar"
+        android:layout_width="4dp"
+        android:layout_height="16dp"
+        android:layout_marginEnd="8dp"/>
+
+    <!-- 포지션 텍스트 (FW 3) -->
+    <TextView
+        android:id="@+id/tvPositionHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_secondary"/>
+
+</LinearLayout>

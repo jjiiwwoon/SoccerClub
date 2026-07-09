@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.jjw.soccerclub.common.StateLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/stateLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:loadingLayout="@layout/view_state_loading"
+    app:emptyLayout="@layout/view_state_empty"
+    android:background="#E8EFF8">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="24dp">
+
+            <!-- ═══ 히어로 헤더 (팀 사진 + 그라디언트 + 수정 버튼) ═══ -->
+            <FrameLayout
+                android:id="@+id/heroHeader"
+                android:layout_width="match_parent"
+                android:layout_height="200dp">
+
+                <ImageView
+                    android:id="@+id/teamPhoto"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/default_team_photo"
+                    android:clickable="true"
+                    android:focusable="true"/>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_header_gradient"/>
+
+
+            </FrameLayout>
+
+            <!-- ═══ 팀 정보 카드 (오버랩) ═══ -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="-24dp"
+                android:layout_marginHorizontal="14dp"
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="3dp"
+                app:strokeColor="#C5D0DE"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- 로고 + 팀명 -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/teamHeaderBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardBackgroundColor="#F3F6FA"
+                        app:cardCornerRadius="14dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:padding="12dp">
+
+                            <ImageView
+                                android:id="@+id/teamLogo"
+                                android:layout_width="72dp"
+                                android:layout_height="72dp"
+                                android:layout_marginEnd="16dp"
+                                android:scaleType="centerCrop"
+                                android:src="@drawable/ic_shield_gray"/>
+
+                            <TextView
+                                android:id="@+id/teamName"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:textSize="22sp"
+                                android:textStyle="bold"
+                                android:textColor="#111827"/>
+
+                            <ImageView
+                                android:id="@+id/introToggle"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:padding="4dp"
+                                android:src="@drawable/ic_arrow_down"
+                                android:clickable="true"
+                                android:focusable="true"/>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- 스펙 리스트 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginTop="12dp">
+
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:minHeight="30dp" android:gravity="center_vertical" android:paddingVertical="6dp">
+                            <TextView style="@style/SpecLabel" android:text="주 연령대"/>
+                            <TextView android:id="@+id/teamAge" style="@style/SpecValue"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:minHeight="30dp" android:gravity="center_vertical" android:paddingVertical="6dp">
+                            <TextView style="@style/SpecLabel" android:text="실력"/>
+                            <TextView android:id="@+id/teamSkill" style="@style/SpecValue"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:minHeight="30dp" android:gravity="center_vertical" android:paddingVertical="6dp">
+                            <TextView style="@style/SpecLabel" android:text="활동 지역"/>
+                            <TextView android:id="@+id/teamRegion" style="@style/SpecValue"/>
+                        </LinearLayout>
+                        <LinearLayout android:id="@+id/activityDayRow" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:minHeight="30dp"
+                            android:gravity="center_vertical" android:paddingVertical="6dp">
+                            <TextView style="@style/SpecLabel" android:text="활동 시간"/>
+                            <TextView android:id="@+id/teamActivityDay" style="@style/SpecValue"/>
+                        </LinearLayout>
+                        <LinearLayout android:id="@+id/homeStadiumBox" android:layout_width="match_parent"
+                            android:layout_height="wrap_content" android:orientation="vertical" android:paddingVertical="6dp">
+                            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                                android:minHeight="30dp" android:gravity="center_vertical">
+                                <TextView style="@style/SpecLabel" android:text="활동 장소"/>
+                                <TextView android:id="@+id/teamHomeStadiumName" style="@style/SpecValue" android:textStyle="bold"/>
+                            </LinearLayout>
+                            <TextView android:id="@+id/teamHomeStadiumAddress"
+                                android:layout_width="match_parent" android:layout_height="wrap_content"
+                                android:textSize="12sp" android:textColor="#6B7280"
+                                android:layout_marginStart="70dp" android:textAlignment="viewEnd"
+                                android:visibility="gone"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- 팀 소개 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:padding="10dp"
+                        android:background="@drawable/bg_card_light"
+                        android:orientation="vertical">
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:gravity="center_vertical" android:paddingBottom="8dp">
+                            <View android:layout_width="0dp" android:layout_height="1dp"
+                                android:layout_weight="1" android:background="#E5E7EB"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="  팀 소개  " android:textSize="13sp"
+                                android:textStyle="bold" android:textColor="#6B7280"/>
+                            <View android:layout_width="0dp" android:layout_height="1dp"
+                                android:layout_weight="1" android:background="#E5E7EB"/>
+                        </LinearLayout>
+                        <TextView android:id="@+id/teamIntro"
+                            android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:textSize="14sp" android:textColor="#4B5563"
+                            android:maxLines="10" android:ellipsize="end"
+                            android:lineSpacingExtra="2dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+
+            <!-- ═══ 기록 카드 ═══ -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="14dp"
+                android:layout_marginTop="10dp"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#C5D0DE"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:id="@+id/recordSection"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- 헤더 (카드 내부) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                            android:src="@drawable/ic_baseline_bar_chart_24" android:tint="#2196F3"
+                            android:layout_marginEnd="6dp"/>
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="기록"
+                            android:textStyle="bold" android:textSize="16sp" android:textColor="#111827"/>
+                        <TextView android:id="@+id/tvSeeDetails"
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="기록 전체보기" android:textSize="12sp"
+                            android:textColor="@color/primary" android:padding="6dp"
+                            android:clickable="true" android:focusable="true"/>
+                    </LinearLayout>
+
+                    <!-- 통계: 경기/승/무/패/승률 -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:weightSum="5" android:paddingBottom="8dp">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                            <TextView android:text="경기" android:textColor="#757575" android:textSize="11sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                            <TextView android:id="@+id/tvGames" android:text="0" android:textColor="#000000"
+                                android:textStyle="bold" android:textSize="16sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                            <TextView android:text="승" android:textColor="@color/win" android:textSize="11sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                            <TextView android:id="@+id/tvWins" android:text="0" android:textColor="@color/win"
+                                android:textStyle="bold" android:textSize="16sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                            <TextView android:text="무" android:textColor="@color/draw" android:textSize="11sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                            <TextView android:id="@+id/tvDraws" android:text="0" android:textColor="@color/draw"
+                                android:textStyle="bold" android:textSize="16sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                            <TextView android:text="패" android:textColor="@color/loss" android:textSize="11sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                            <TextView android:id="@+id/tvLosses" android:text="0" android:textColor="@color/loss"
+                                android:textStyle="bold" android:textSize="16sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                            <TextView android:text="승률" android:textColor="#757575" android:textSize="11sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                            <TextView android:id="@+id/tvWinRate" android:text="-" android:textColor="#000000"
+                                android:textStyle="bold" android:textSize="16sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="#EAEAEA" android:layout_marginBottom="8dp"/>
+
+                    <!-- 득점/실점 -->
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:weightSum="2">
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                            <TextView android:text="득점" android:textColor="@color/goal_for" android:textSize="11sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                            <TextView android:id="@+id/tvGF" android:text="0" android:textColor="#444444"
+                                android:textStyle="bold" android:textSize="13sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                            <TextView android:text="실점" android:textColor="@color/goal_against" android:textSize="11sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                            <TextView android:id="@+id/tvGA" android:text="0" android:textColor="#444444"
+                                android:textStyle="bold" android:textSize="13sp"
+                                android:layout_width="wrap_content" android:layout_height="wrap_content"/>
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ═══ 팀 멤버 카드 ═══ -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="14dp"
+                android:layout_marginTop="10dp"
+                app:cardCornerRadius="14dp"
+                app:cardElevation="2dp"
+                app:strokeColor="#C5D0DE"
+                app:strokeWidth="1dp"
+                app:cardBackgroundColor="#FFFFFF">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- 헤더: 아이콘 + 팀 멤버 (N) + 팀원 초대 버튼 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="10dp">
+
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                            android:src="@drawable/ic_baseline_group_24" android:tint="#2196F3"
+                            android:layout_marginEnd="6dp"/>
+
+                        <TextView
+                            android:id="@+id/tvMemberTitle"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="팀 멤버 (0)"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="#111827"/>
+
+
+                    </LinearLayout>
+
+                    <!-- 호환용 (GONE) -->
+                    <LinearLayout
+                        android:id="@+id/playerListLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone"/>
+
+                    <!-- 멤버 리스트 -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/recyclerViewMembers"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:nestedScrollingEnabled="false"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 팀 가입 신청 -->
+            <Button
+                android:id="@+id/btnJoinTeam"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginHorizontal="14dp"
+                android:layout_marginTop="12dp"
+                android:text="팀 가입 신청"
+                android:textAllCaps="false"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="@color/white"
+                android:backgroundTint="@color/primary"
+                app:cornerRadius="12dp"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</com.jjw.soccerclub.common.StateLayout>

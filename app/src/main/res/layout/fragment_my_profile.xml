@@ -1,0 +1,359 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.jjw.soccerclub.common.StateLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/state"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:loadingLayout="@layout/view_state_loading"
+    app:emptyLayout="@layout/view_state_empty"
+    android:background="#E8EFF8">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="24dp">
+
+            <!-- ═══ 프로필 헤더 카드 ═══ -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/bg_divider"
+                app:cardBackgroundColor="@color/bg_surface">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:gravity="center_vertical">
+
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/profileImageView"
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_person_placeholder"
+                        app:shapeAppearanceOverlay="@style/CircleImageStyle"
+                        app:strokeWidth="2dp"
+                        app:strokeColor="@color/bg_divider"/>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="14dp">
+
+                        <TextView
+                            android:id="@+id/textNickname"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"/>
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:layout_marginTop="4dp">
+
+                            <com.google.android.material.imageview.ShapeableImageView
+                                android:id="@+id/teamLogo"
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:scaleType="centerCrop"
+                                android:src="@drawable/ic_shield_gray"
+                                app:shapeAppearanceOverlay="@style/CircleImageStyle"/>
+
+                            <TextView
+                                android:id="@+id/textTeam"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="5dp"
+                                android:textSize="13sp"
+                                android:textColor="@color/text_secondary"/>
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/textPositionBox"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:paddingHorizontal="14dp"
+                            android:paddingVertical="4dp"
+                            android:textSize="13sp"
+                            android:textStyle="bold"/>
+                    </LinearLayout>
+
+                    <ImageButton
+                        android:id="@+id/btnEditProfile"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:src="@drawable/ic_edit"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:padding="6dp"
+                        android:contentDescription="편집"
+                        android:layout_gravity="top"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ═══ 핵심 수치: 실력 / 나이 (2칸, 라벨 위) ═══ -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/bg_divider"
+                app:cardBackgroundColor="@color/bg_surface">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="14dp">
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="실력" android:textSize="11sp" android:textColor="@color/text_hint"/>
+                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="4dp">
+                            <TextView android:id="@+id/textSkill" android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" android:textSize="26sp"
+                                android:textStyle="bold" android:textColor="@color/text_primary"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="/10" android:textSize="13sp" android:textColor="@color/text_hint"
+                                android:layout_marginStart="2dp" android:layout_marginTop="6dp"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <View android:layout_width="0.5dp" android:layout_height="match_parent"
+                        android:background="@color/bg_divider"/>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="나이" android:textSize="11sp" android:textColor="@color/text_hint"/>
+                        <TextView android:id="@+id/textAge" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textSize="22sp"
+                            android:textStyle="bold" android:textColor="@color/text_primary"
+                            android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ═══ 신체 정보: 신장 / 체중 / 주발 (3칸, 라벨 위) ═══ -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/bg_divider"
+                app:cardBackgroundColor="@color/bg_surface">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingVertical="14dp">
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="키" android:textSize="11sp" android:textColor="@color/text_hint"/>
+                        <TextView android:id="@+id/textHeight" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textSize="16sp"
+                            android:textStyle="bold" android:textColor="@color/text_primary"
+                            android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+
+                    <View android:layout_width="0.5dp" android:layout_height="match_parent"
+                        android:background="@color/bg_divider"/>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="체중" android:textSize="11sp" android:textColor="@color/text_hint"/>
+                        <TextView android:id="@+id/textWeight" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textSize="16sp"
+                            android:textStyle="bold" android:textColor="@color/text_primary"
+                            android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+
+                    <View android:layout_width="0.5dp" android:layout_height="match_parent"
+                        android:background="@color/bg_divider"/>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1" android:orientation="vertical" android:gravity="center">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="주발" android:textSize="11sp" android:textColor="@color/text_hint"/>
+                        <TextView android:id="@+id/textFoot" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textSize="16sp"
+                            android:textStyle="bold" android:textColor="@color/text_primary"
+                            android:layout_marginTop="4dp"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ═══ 선수 유형 + 자기소개 ═══ -->
+            <com.google.android.material.card.MaterialCardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="12dp"
+                app:cardCornerRadius="16dp" app:cardElevation="0dp" app:strokeWidth="1dp"
+                app:strokeColor="@color/bg_divider" app:cardBackgroundColor="@color/bg_surface">
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:paddingBottom="12dp">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="선수 유형" android:textSize="13sp"
+                            android:textColor="@color/text_secondary"/>
+                        <TextView android:id="@+id/textPlayerType" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:paddingHorizontal="12dp"
+                            android:paddingVertical="4dp" android:textSize="12sp" android:textStyle="bold"
+                            android:textColor="@color/primary" android:background="@drawable/bg_badge_recruit"/>
+                    </LinearLayout>
+
+                    <View android:layout_width="match_parent" android:layout_height="0.5dp"
+                        android:background="@color/bg_divider" android:layout_marginBottom="12dp"/>
+
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="자기소개" android:textSize="13sp"
+                            android:textStyle="bold" android:textColor="@color/text_secondary"/>
+                        <ImageView android:id="@+id/toggleIntroArrow" android:layout_width="20dp"
+                            android:layout_height="20dp" android:src="@drawable/ic_arrow_down"
+                            android:clickable="true" android:focusable="true"/>
+                    </LinearLayout>
+
+                    <TextView android:id="@+id/textIntroContent" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textSize="14sp"
+                        android:textColor="@color/text_primary" android:lineSpacingExtra="2dp"
+                        android:maxLines="2" android:ellipsize="end"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ═══ 기록: 팀 + 용병 ═══ -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginBottom="12dp">
+
+                <com.google.android.material.card.MaterialCardView android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginEnd="6dp"
+                    app:cardCornerRadius="16dp" app:cardElevation="0dp" app:strokeWidth="1dp"
+                    app:strokeColor="@color/bg_divider" app:cardBackgroundColor="@color/bg_surface">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="vertical" android:padding="14dp">
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="12dp">
+                            <View android:layout_width="3dp" android:layout_height="14dp"
+                                android:background="@color/primary" android:layout_marginEnd="6dp"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="팀 기록" android:textSize="13sp" android:textStyle="bold"
+                                android:textColor="@color/text_primary"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                                android:layout_weight="1" android:text="경기" android:textSize="12sp" android:textColor="@color/text_hint"/>
+                            <TextView android:id="@+id/statsTeamGames" android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" android:text="0" android:textSize="15sp"
+                                android:textStyle="bold" android:textColor="@color/text_primary"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                                android:layout_weight="1" android:text="득점" android:textSize="12sp" android:textColor="@color/text_hint"/>
+                            <TextView android:id="@+id/statsTeamGoals" android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" android:text="0" android:textSize="15sp"
+                                android:textStyle="bold" android:textColor="@color/text_primary"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center_vertical">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                                android:layout_weight="1" android:text="도움" android:textSize="12sp" android:textColor="@color/text_hint"/>
+                            <TextView android:id="@+id/statsTeamAssists" android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" android:text="0" android:textSize="15sp"
+                                android:textStyle="bold" android:textColor="@color/text_primary"/>
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="6dp"
+                    app:cardCornerRadius="16dp" app:cardElevation="0dp" app:strokeWidth="1dp"
+                    app:strokeColor="@color/bg_divider" app:cardBackgroundColor="@color/bg_surface">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="vertical" android:padding="14dp">
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="12dp">
+                            <View android:layout_width="3dp" android:layout_height="14dp"
+                                android:background="#E65100" android:layout_marginEnd="6dp"/>
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                                android:layout_weight="1" android:text="용병 기록" android:textSize="13sp"
+                                android:textStyle="bold" android:textColor="@color/text_primary"/>
+                            <TextView android:id="@+id/btnMercDetail" android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" android:text="상세 >" android:textSize="11sp"
+                                android:textColor="#E65100" android:paddingHorizontal="6dp" android:paddingVertical="2dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                                android:layout_weight="1" android:text="경기" android:textSize="12sp" android:textColor="@color/text_hint"/>
+                            <TextView android:id="@+id/statsMercGames" android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" android:text="0" android:textSize="15sp"
+                                android:textStyle="bold" android:textColor="@color/text_primary"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="8dp">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                                android:layout_weight="1" android:text="득점" android:textSize="12sp" android:textColor="@color/text_hint"/>
+                            <TextView android:id="@+id/statsMercGoals" android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" android:text="0" android:textSize="15sp"
+                                android:textStyle="bold" android:textColor="@color/text_primary"/>
+                        </LinearLayout>
+                        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:orientation="horizontal" android:gravity="center_vertical">
+                            <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                                android:layout_weight="1" android:text="도움" android:textSize="12sp" android:textColor="@color/text_hint"/>
+                            <TextView android:id="@+id/statsMercAssists" android:layout_width="wrap_content"
+                                android:layout_height="wrap_content" android:text="0" android:textSize="15sp"
+                                android:textStyle="bold" android:textColor="@color/text_primary"/>
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- ═══ 로그아웃 ═══ -->
+            <Button android:id="@+id/btnLogout" android:layout_width="match_parent" android:layout_height="48dp"
+                android:layout_marginTop="4dp" android:text="로그아웃" android:textAllCaps="false" android:textSize="14sp"
+                android:textColor="#C62828" android:backgroundTint="@android:color/transparent"
+                app:strokeColor="#FFCDD2" app:strokeWidth="1dp" android:stateListAnimator="@null"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</com.jjw.soccerclub.common.StateLayout>

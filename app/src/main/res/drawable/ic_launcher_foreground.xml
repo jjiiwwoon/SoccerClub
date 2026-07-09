@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- 공 외곽 (세이프존 안쪽, 중심 54,54 기준 반경 26) -->
+    <path android:pathData="M54,54m-26,0a26,26 0,1 1,52 0a26,26 0,1 1,-52 0"
+        android:fillColor="#FFFFFF" android:strokeColor="#1A1A1A" android:strokeWidth="2"/>
+
+    <!-- 중앙 오각형 -->
+    <path android:pathData="M54,45.2L62.3,51.3L59.2,61.1L48.8,61.1L45.7,51.3Z"
+        android:fillColor="#1A1A1A"/>
+
+    <!-- 솔기 라인 5개 -->
+    <path android:pathData="M54,45.2L54,32" android:strokeColor="#1A1A1A" android:strokeWidth="2"/>
+    <path android:pathData="M62.3,51.3L75.2,46.6" android:strokeColor="#1A1A1A" android:strokeWidth="2"/>
+    <path android:pathData="M59.2,61.1L67.2,72.4" android:strokeColor="#1A1A1A" android:strokeWidth="2"/>
+    <path android:pathData="M48.8,61.1L40.8,72.4" android:strokeColor="#1A1A1A" android:strokeWidth="2"/>
+    <path android:pathData="M45.7,51.3L32.8,46.6" android:strokeColor="#1A1A1A" android:strokeWidth="2"/>
+
+</vector>

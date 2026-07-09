@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    팀 멤버 1명 아이템 (가로 2열 그리드용)
+    res/layout/item_team_member_row.xml
+    ★ 칩 카드 배경 적용 — 멤버가 적어도 허전하지 않게
+    ★ 주장/부주장 뱃지를 포지션과 같은 줄(오른쪽 끝)로 이동 → 카드 높이 통일
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/bg_member_chip"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="9dp"
+    android:layout_margin="4dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- 프로필 사진 -->
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/imgMember"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_person_placeholder"
+        app:shapeAppearanceOverlay="@style/CircleImageStyle"
+        app:strokeWidth="1.5dp"
+        app:strokeColor="#FFFFFF"/>
+
+    <!-- 닉네임 + 역할 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="10dp">
+
+        <!-- 닉네임 -->
+        <TextView
+            android:id="@+id/tvMemberName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+
+        <!-- 포지션 + 주장/부주장 뱃지 (같은 줄, 뱃지는 오른쪽 끝) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="1dp">
+
+            <!-- 포지션 텍스트 (색상은 Java에서 동적 지정, 분류 헤더보다 작고 얇게) -->
+            <TextView
+                android:id="@+id/tvMemberPosition"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                android:textStyle="normal"/>
+
+            <!-- 남는 공간을 채워서 뱃지를 오른쪽 끝으로 밀어냄 -->
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"/>
+
+            <!-- 주장/부주장 뱃지 -->
+            <TextView
+                android:id="@+id/tvMemberBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="1dp"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

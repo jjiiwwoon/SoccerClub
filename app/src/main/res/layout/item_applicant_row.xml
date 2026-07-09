@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginVertical="4dp"
+    app:cardCornerRadius="10dp"
+    app:cardElevation="0dp"
+    app:strokeColor="#C5D0DE"
+    app:strokeWidth="1dp"
+    app:cardBackgroundColor="#FFFFFF">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="10dp">
+
+        <!-- 프로필 사진 -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/imageApplicantLogo"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_person_placeholder"
+            app:shapeAppearanceOverlay="@style/CircleImageStyle"
+            app:strokeWidth="1dp"
+            app:strokeColor="#C5D0DE"/>
+
+        <!-- 이름 + 실력 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginHorizontal="10dp">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/textApplicantRowNew"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="NEW"
+                    android:textSize="9sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/bg_badge_red_circle"
+                    android:paddingHorizontal="5dp"
+                    android:paddingVertical="1dp"
+                    android:layout_marginEnd="5dp"
+                    android:visibility="gone"/>
+
+                <TextView
+                    android:id="@+id/textApplicantName"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#111827"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/textApplicantSkill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="#6B7280"
+                android:layout_marginTop="2dp"/>
+        </LinearLayout>
+
+        <!-- 수락 버튼 -->
+        <Button
+            android:id="@+id/btnAccept"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:minWidth="56dp"
+            android:text="수락"
+            android:textSize="12sp"
+            android:textColor="#1976D2"
+            android:textStyle="bold"
+            android:paddingHorizontal="14dp"
+            android:layout_marginEnd="6dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:strokeColor="#1976D2"
+            app:strokeWidth="1.5dp"
+            app:cornerRadius="8dp"
+            app:backgroundTint="#FFFFFF"
+            app:rippleColor="#1976D233"/>
+
+        <!-- 거절 버튼 -->
+        <Button
+            android:id="@+id/btnReject"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="34dp"
+            android:minWidth="56dp"
+            android:text="거절"
+            android:textSize="12sp"
+            android:textColor="#EF4444"
+            android:textStyle="bold"
+            android:paddingHorizontal="14dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            app:strokeColor="#EF4444"
+            app:strokeWidth="1.5dp"
+            app:cornerRadius="8dp"
+            app:backgroundTint="#FFFFFF"
+            app:rippleColor="#EF444433"/>
+
+        <!-- 처리 상태 (수락됨/거절됨) -->
+        <TextView
+            android:id="@+id/textApplicantStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="28dp"
+            android:gravity="center"
+            android:paddingHorizontal="12dp"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

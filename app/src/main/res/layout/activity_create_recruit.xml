@@ -1,0 +1,548 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#E8EFF8"
+    android:fillViewport="true"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/page_padding_horizontal"
+        android:paddingTop="@dimen/spacing_md"
+        android:paddingBottom="@dimen/spacing_lg">
+
+        <!-- ★ 모집 유형 카드 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card_light"
+            android:padding="12dp"
+            android:layout_marginBottom="10dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="모집 유형"
+                android:textSize="16sp"
+                android:textColor="#111111"
+                android:layout_marginBottom="8dp"/>
+
+            <RadioGroup
+                android:id="@+id/radioRecruitType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <RadioButton
+                    android:id="@+id/rdoRegular"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="회원"
+                    android:checked="true"
+                    android:textSize="14sp"
+                    android:textColor="#222222"
+                    android:buttonTint="@color/primary"
+                    app:buttonTint="@color/primary"
+                    app:useMaterialThemeColors="false"/>
+
+                <RadioButton
+                    android:id="@+id/rdoMercenary"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="용병"
+                    android:textSize="14sp"
+                    android:textColor="#222222"
+                    android:buttonTint="@color/primary"
+                    app:buttonTint="@color/primary"
+                    app:useMaterialThemeColors="false"/>
+            </RadioGroup>
+        </LinearLayout>
+
+        <!-- ═══════ A) 회원(정식) 전용: 읽기 전용 카드 ═══════ -->
+        <LinearLayout
+            android:id="@+id/containerRegular"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card_light"
+            android:padding="12dp"
+            android:layout_marginBottom="10dp"
+            android:visibility="visible">
+
+            <!-- 활동 날짜 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_calendar"
+                    android:tint="#42A5F5"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="활동일"
+                    android:textSize="15sp"
+                    android:textColor="#111111"
+                    android:layout_marginStart="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvRegularDate"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:text="날짜 미설정"
+                    android:textColor="@color/text_hint"
+                    android:background="@drawable/bg_field_readonly"
+                    android:layout_marginStart="12dp"/>
+            </LinearLayout>
+
+            <!-- 활동 시간 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_clock"
+                    android:tint="#42A5F5"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="활동시간"
+                    android:textSize="15sp"
+                    android:textColor="#111111"
+                    android:layout_marginStart="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvRegularTime"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:text="시간 미설정"
+                    android:textColor="@color/text_hint"
+                    android:background="@drawable/bg_field_readonly"
+                    android:layout_marginStart="12dp"/>
+            </LinearLayout>
+
+            <!-- 주 활동 구장 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="8dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_location_pin"
+                    android:tint="#42A5F5"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="주활동구장"
+                    android:textSize="15sp"
+                    android:textColor="#111111"
+                    android:layout_marginStart="8dp"/>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvRegularStadium"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_field_readonly"
+                android:padding="10dp"
+                android:text="구장 미설정"
+                android:textColor="@color/text_hint"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp"/>
+
+            <TextView
+                android:id="@+id/tvRegularAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_field_readonly"
+                android:padding="10dp"
+                android:text="팀 활동지역"
+                android:textColor="@color/text_hint"
+                android:textSize="14sp"/>
+        </LinearLayout>
+
+        <!-- ═══════ B) 용병(일일) 전용: 편집 가능 카드 ═══════ -->
+        <LinearLayout
+            android:id="@+id/containerMercenary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card_light"
+            android:padding="12dp"
+            android:layout_marginBottom="10dp"
+            android:visibility="gone">
+
+            <!-- 날짜 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_calendar"
+                    android:tint="#42A5F5"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="날짜"
+                    android:textSize="15sp"
+                    android:textColor="#111111"
+                    android:layout_marginStart="8dp"/>
+
+                <TextView
+                    android:id="@+id/txtDate"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:hint="날짜 선택"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint"
+                    android:background="@drawable/bg_field_tap"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:layout_marginStart="12dp"/>
+            </LinearLayout>
+
+            <!-- 시간 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="12dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_clock"
+                    android:tint="#42A5F5"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="시간"
+                    android:textSize="15sp"
+                    android:textColor="#111111"
+                    android:layout_marginStart="8dp"/>
+
+                <TextView
+                    android:id="@+id/txtTime"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:paddingStart="12dp"
+                    android:hint="시간 선택"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint"
+                    android:background="@drawable/bg_field_tap"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    android:layout_marginStart="12dp"/>
+            </LinearLayout>
+
+            <!-- 시합 장소 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_location_pin"
+                    android:tint="#42A5F5"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="시합장소"
+                    android:textSize="15sp"
+                    android:textColor="#111111"
+                    android:layout_marginStart="8dp"/>
+
+                <EditText
+                    android:id="@+id/editStadium"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:hint="구장명 입력"
+                    android:background="@android:color/transparent"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_hint"
+                    android:textSize="14sp"
+                    android:inputType="text"
+                    android:paddingBottom="4dp"/>
+            </LinearLayout>
+
+            <!-- 주소 검색 버튼 -->
+            <TextView
+                android:id="@+id/txtAddressSearch"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:minWidth="72dp"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:gravity="center_vertical"
+                android:text="주소 검색"
+                android:textColor="#1E88E5"
+                android:textSize="13sp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="6dp"
+                android:background="@drawable/bg_chip_outline_blue"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless"/>
+
+            <!-- 선택된 주소 출력 -->
+            <TextView
+                android:id="@+id/txtSelectedAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_field_readonly"
+                android:padding="10dp"
+                android:text="주소가 선택되지 않았습니다."
+                android:textColor="@color/text_hint"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp"/>
+
+            <!-- 일정에서 불러오기 -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnLoadFromSchedule"
+                android:layout_width="match_parent"
+                android:layout_height="44dp"
+                android:text="일정에서 불러오기"
+                android:textColor="@color/white"
+                android:textAllCaps="false"
+                app:cornerRadius="@dimen/btn_radius"
+                android:backgroundTint="@color/primary"/>
+        </LinearLayout>
+
+        <!-- ═══════ 공통: 희망 실력 ═══════ -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card_light"
+            android:padding="12dp"
+            android:layout_marginBottom="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_star"
+                    android:tint="#42A5F5"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="희망 실력"
+                    android:textSize="15sp"
+                    android:textColor="#111111"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginEnd="12dp"/>
+
+                <Spinner
+                    android:id="@+id/spinnerSkillMin"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text=" ~ "
+                    android:textSize="16sp"
+                    android:textColor="#333333"
+                    android:paddingHorizontal="8dp"/>
+
+                <Spinner
+                    android:id="@+id/spinnerSkillMax"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- ═══════ 공통: 모집 포지션 ═══════ -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card_light"
+            android:padding="12dp"
+            android:layout_marginBottom="10dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_person_add"
+                    android:tint="#42A5F5"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="모집 포지션(중복선택가능)"
+                    android:textSize="15sp"
+                    android:textColor="#111111"
+                    android:layout_marginStart="8dp"/>
+            </LinearLayout>
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupPositions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:singleSelection="false">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipGK"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="GK"
+                    app:chipBackgroundColor="@color/selector_position_chip_bg"
+                    android:textColor="@color/selector_position_chip_text"
+                    android:checkable="true"/>
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipDF"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="DF"
+                    app:chipBackgroundColor="@color/selector_position_chip_bg"
+                    android:textColor="@color/selector_position_chip_text"
+                    android:checkable="true"/>
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipMF"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MF"
+                    app:chipBackgroundColor="@color/selector_position_chip_bg"
+                    android:textColor="@color/selector_position_chip_text"
+                    android:checkable="true"/>
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chipFW"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="FW"
+                    app:chipBackgroundColor="@color/selector_position_chip_bg"
+                    android:textColor="@color/selector_position_chip_text"
+                    android:checkable="true"/>
+            </com.google.android.material.chip.ChipGroup>
+        </LinearLayout>
+
+        <!-- ═══════ 공통: 상세 설명 ═══════ -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_card_light"
+            android:padding="12dp"
+            android:layout_marginBottom="@dimen/spacing_lg">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_notes"
+                    android:tint="#42A5F5"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="상세 설명"
+                    android:textSize="15sp"
+                    android:textColor="#111111"
+                    android:layout_marginStart="8dp"/>
+            </LinearLayout>
+
+            <EditText
+                android:id="@+id/editDetails"
+                android:layout_width="match_parent"
+                android:layout_height="160dp"
+                android:hint="모집 관련 상세 내용을 입력해 주세요"
+                android:gravity="top"
+                android:padding="12dp"
+                android:background="@drawable/bg_multiline"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_hint"
+                android:textSize="14sp"
+                android:inputType="textMultiLine"/>
+        </LinearLayout>
+
+        <!-- ★ 등록 버튼 (스크롤 내부) -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSubmit"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/btn_height"
+            android:text="모집글 등록"
+            android:textColor="@color/white"
+            android:textAllCaps="false"
+            app:backgroundTint="@color/primary"
+            app:cornerRadius="@dimen/btn_radius"/>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>
